@@ -18,10 +18,9 @@ const Header = () => {
   ];
 
   return (
-    <header className="fixed top-0 right-0 w-full z-50 flex items-center justify-between px-5 py-4 bg-white/90 backdrop-blur-sm shadow-md">
-      <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
-        <div className="w-[60px] h-[60px] bg-primary rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-xl">U</span>
+    <header className="fixed top-0 right-0 w-full z-50 flex items-center justify-between px-5 py-4 bg-white/90 backdrop-blur-sm shadow-md">      <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
+        <div className="w-[60px] h-[60px] rounded-lg flex items-center justify-center">
+          <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
         </div>
       </Link>
 
