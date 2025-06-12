@@ -158,11 +158,11 @@ const Checkout = () => {
                       <Select value={formData.country} onValueChange={(value) => handleInputChange('country', value)}>
                         <SelectTrigger>
                           <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="US">United States</SelectItem>
-                          <SelectItem value="CA">Canada</SelectItem>
-                          <SelectItem value="MX">Mexico</SelectItem>
+                        </SelectTrigger>                        <SelectContent>
+                          <SelectItem value="PH">Philippines</SelectItem>
+                          <SelectItem value="SG">Singapore</SelectItem>
+                          <SelectItem value="MY">Malaysia</SelectItem>
+                          <SelectItem value="ID">Indonesia</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -249,7 +249,7 @@ const Checkout = () => {
                           </div>
                           <div className="flex justify-between mt-1">
                             <span className="text-sm">Qty: {item.quantity}</span>
-                            <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium">₱{(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -259,9 +259,8 @@ const Checkout = () => {
                   <Separator className="my-4" />
 
                   <div className="space-y-2 mb-4">
-                    <div className="flex justify-between">
-                      <span>Subtotal</span>
-                      <span>${state.total.toFixed(2)}</span>
+                    <div className="flex justify-between">                      <span>Subtotal</span>
+                      <span>₱{state.total.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Shipping</span>
@@ -269,12 +268,12 @@ const Checkout = () => {
                     </div>
                     <div className="flex justify-between">
                       <span>Tax</span>
-                      <span>${(state.total * 0.08).toFixed(2)}</span>
+                      <span>₱{(state.total * 0.12).toFixed(2)}</span>
                     </div>
                     <Separator className="my-2" />
                     <div className="flex justify-between font-semibold text-lg">
                       <span>Total</span>
-                      <span>${(state.total * 1.08).toFixed(2)}</span>
+                      <span>₱{(state.total * 1.12).toFixed(2)}</span>
                     </div>
                   </div>
 

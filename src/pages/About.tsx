@@ -29,10 +29,9 @@ const About = () => {
           <p className="text-muted-foreground mb-12 text-lg">
             Get our mobile app for a better shopping experience with exclusive deals and faster checkout
           </p>
-          <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary/20 to-primary/10 p-12">
-            <div className="text-center">
-              <div className="w-32 h-32 bg-primary rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-4xl">U</span>
+          <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary/20 to-primary/10 p-12">          <div className="text-center">
+              <div className="w-32 h-32 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+                <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
               </div>
               <h3 className="text-2xl font-bold text-foreground mb-4">Urban Mobile App</h3>
               <p className="text-muted-foreground mb-8">Coming Soon - Experience shopping like never before</p>

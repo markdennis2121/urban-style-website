@@ -14,12 +14,11 @@ const AboutSection = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="relative overflow-hidden rounded-xl shadow-lg">
-            <div className="w-full h-96 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-24 h-24 bg-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-white font-bold text-2xl">U</span>
+            <div className="w-full h-96 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">              <div className="text-center">
+                <div className="w-24 h-24 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                  <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
                 </div>
-                <p className="text-muted-foreground">About Image Placeholder</p>
+                <p className="text-muted-foreground">About Urban Style</p>
               </div>
             </div>
           </div>

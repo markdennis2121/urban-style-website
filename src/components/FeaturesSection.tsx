@@ -11,9 +11,7 @@ const FeaturesSection = () => {
     {
       icon: <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-primary" />,
       title: "Online Order",
-    },
-    {
-      icon: <DollarSign className="w-16 h-16 mx-auto mb-4 text-primary" />,
+    },    {      icon: <DollarSign className="w-16 h-16 mx-auto mb-4 text-primary" />,
       title: "Save Money",
     },
     {

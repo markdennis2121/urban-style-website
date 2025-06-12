@@ -22,9 +22,8 @@ export interface Product {
 export const products: Product[] = [
   {
     id: '1',
-    name: 'Urban Style T-Shirt',
-    price: 29.99,
-    originalPrice: 39.99,
+    name: 'Urban Style T-Shirt',    price: 1499.00,
+    originalPrice: 1999.00,
     image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
     images: [
       'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
@@ -45,7 +44,7 @@ export const products: Product[] = [
   {
     id: '2',
     name: 'Classic Denim Jacket',
-    price: 89.99,
+    price: 4499.00,
     image: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400',
     images: [
       'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400',
@@ -64,9 +63,8 @@ export const products: Product[] = [
   },
   {
     id: '3',
-    name: 'Slim Fit Jeans',
-    price: 79.99,
-    originalPrice: 99.99,
+    name: 'Slim Fit Jeans',    price: 3999.00,
+    originalPrice: 4999.00,
     image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400',
     images: [
       'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400',
@@ -86,7 +84,7 @@ export const products: Product[] = [
   {
     id: '4',
     name: 'Casual Sneakers',
-    price: 119.99,
+    price: 5999.00,
     image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400',
     images: [
       'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400',
@@ -105,11 +103,10 @@ export const products: Product[] = [
   {
     id: '5',
     name: 'Hoodie Sweatshirt',
-    price: 59.99,
-    image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+    price: 2999.00,    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400',
     images: [
-      'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-      'https://images.unsplash.com/photo-1620799140188-3b2a02fd9a77?w=400',
+      'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400',
+      'https://images.unsplash.com/photo-1700501957502-d98918c18ca7?w=400',
     ],
     category: 'Hoodies',
     brand: 'Urban',
@@ -121,12 +118,10 @@ export const products: Product[] = [
     colors: ['Black', 'Gray', 'Navy', 'Burgundy'],
     inStock: true,
     isNew: true,
-  },
-  {
+  },  {
     id: '6',
-    name: 'Summer Dress',
-    price: 69.99,
-    originalPrice: 89.99,
+    name: 'Summer Dress',    price: 3499.00,
+    originalPrice: 4499.00,
     image: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400',
     images: [
       'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400',
@@ -142,6 +137,45 @@ export const products: Product[] = [
     colors: ['Floral', 'Solid Blue', 'Black', 'White'],
     inStock: true,
     isSale: true,
+  },  {    id: '7',
+    name: 'Athletic Performance Shorts',
+    price: 1999.00,
+    image: 'https://i5.walmartimages.com/seo/Rosvigor-Womens-Athletic-Shorts-High-Waisted-Running-Shorts-Gym-Workout-Shorts-with-Pockets_523d08fe-ad09-47e2-a6cc-b5ee24fa1f15.1f580d550f776e28762abff5e24365b1.jpeg',
+    images: [
+      'https://i5.walmartimages.com/seo/Rosvigor-Womens-Athletic-Shorts-High-Waisted-Running-Shorts-Gym-Workout-Shorts-with-Pockets_523d08fe-ad09-47e2-a6cc-b5ee24fa1f15.1f580d550f776e28762abff5e24365b1.jpeg',
+      'https://i5.walmartimages.com/seo/Rosvigor-Womens-Athletic-Shorts-High-Waisted-Running-Shorts-Gym-Workout-Shorts-with-Pockets_523d08fe-ad09-47e2-a6cc-b5ee24fa1f15.1f580d550f776e28762abff5e24365b1.jpeg',
+    ],
+    category: 'Shorts',
+    brand: 'Nike',
+    rating: 4.7,
+    reviews: 45,
+    description: 'High-performance athletic shorts with moisture-wicking technology. Perfect for workouts and sports.',
+    features: ['Moisture Wicking', 'Quick Dry', 'Breathable Mesh', 'Hidden Pocket'],
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['Black', 'Navy', 'Gray', 'Red'],
+    inStock: true,
+    isNew: true,
+  },
+  {
+    id: '8',
+    name: 'Crossbody Leather Bag',
+    price: 4999.00,
+    originalPrice: 5999.00,
+    image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400',
+    images: [
+      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400',
+      'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=400',
+    ],
+    category: 'Accessories',
+    brand: 'Urban',
+    rating: 4.8,
+    reviews: 34,
+    description: 'Premium leather crossbody bag with modern design. Perfect blend of style and functionality.',
+    features: ['Genuine Leather', 'Adjustable Strap', 'Multiple Compartments', 'Metal Hardware'],
+    sizes: ['One Size'],
+    colors: ['Brown', 'Black', 'Tan'],
+    inStock: true,
+    isNew: true,
   },
 ];
 
@@ -153,6 +187,8 @@ export const categories = [
   'Shoes',
   'Hoodies',
   'Dresses',
+  'Shorts',
+  'Accessories',
 ];
 
 export const brands = [

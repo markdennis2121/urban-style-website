@@ -141,11 +141,10 @@ const ProductDetail = () => {
               </div>
 
               {/* Price */}
-              <div className="flex items-center gap-4">
-                <span className="text-3xl font-bold text-foreground">${product.price}</span>
+              <div className="flex items-center gap-4">                <span className="text-3xl font-bold text-foreground">₱{product.price}</span>
                 {product.originalPrice && (
                   <span className="text-xl text-muted-foreground line-through">
-                    ${product.originalPrice}
+                    ₱{product.originalPrice}
                   </span>
                 )}
                 {product.originalPrice && (

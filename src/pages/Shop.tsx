@@ -15,7 +15,7 @@ const Shop = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
-  const [priceRange, setPriceRange] = useState([0, 200]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -140,15 +140,14 @@ const Shop = () => {
               </div>
 
               {/* Price Range */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
-                  Price Range: ${priceRange[0]} - ${priceRange[1]}
+              <div className="mb-6">                <label className="block text-sm font-medium mb-2">
+                  Price Range: ₱{priceRange[0]} - ₱{priceRange[1]}
                 </label>
                 <Slider
                   value={priceRange}
                   onValueChange={setPriceRange}
-                  max={200}
-                  step={10}
+                  max={10000}
+                  step={500}
                   className="mt-2"
                 />
               </div>

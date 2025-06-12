@@ -122,9 +122,8 @@ const Cart = () => {
                             </Button>
                           </div>
                           
-                          <div className="text-right">
-                            <div className="font-semibold">${(item.price * item.quantity).toFixed(2)}</div>
-                            <div className="text-sm text-muted-foreground">${item.price} each</div>
+                          <div className="text-right">                            <div className="font-semibold">₱{(item.price * item.quantity).toFixed(2)}</div>
+                            <div className="text-sm text-muted-foreground">₱{item.price} each</div>
                           </div>
                         </div>
                       </div>
@@ -140,9 +139,8 @@ const Cart = () => {
                 <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
                 
                 <div className="space-y-3 mb-6">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>${state.total.toFixed(2)}</span>
+                  <div className="flex justify-between">                    <span>Subtotal</span>
+                    <span>₱{state.total.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
@@ -150,12 +148,12 @@ const Cart = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Tax</span>
-                    <span>${(state.total * 0.08).toFixed(2)}</span>
+                    <span>₱{(state.total * 0.08).toFixed(2)}</span>
                   </div>
                   <div className="border-t pt-3">
                     <div className="flex justify-between font-semibold text-lg">
                       <span>Total</span>
-                      <span>${(state.total * 1.08).toFixed(2)}</span>
+                      <span>₱{(state.total * 1.08).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -174,10 +172,9 @@ const Cart = () => {
                 </Link>
 
                 {/* Promo */}
-                <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <div className="text-sm font-medium mb-2">Free shipping on orders over $50!</div>
+                <div className="mt-6 p-4 bg-muted rounded-lg">                  <div className="text-sm font-medium mb-2">Free shipping on orders over ₱2500!</div>
                   <div className="text-xs text-muted-foreground">
-                    Add ${Math.max(0, 50 - state.total).toFixed(2)} more to qualify
+                    Add ₱{Math.max(0, 2500 - state.total).toFixed(2)} more to qualify
                   </div>
                 </div>
               </div>

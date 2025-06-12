@@ -141,16 +141,20 @@ const Contact = () => {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Map Placeholder */}
+              </div>              {/* Map */}
               <div className="mt-8">
                 <h3 className="font-semibold mb-4">Find us here</h3>
-                <div className="bg-muted rounded-lg h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="w-12 h-12 text-primary mx-auto mb-2" />
-                    <p className="text-muted-foreground">Interactive map coming soon</p>
-                  </div>
+                <div className="rounded-lg h-[400px] overflow-hidden">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d125559.34760461194!2d122.94144839726556!3d10.676732500000002!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33aed056a0feacd9%3A0x90bd5c4b10d59e34!2sBacolod%20City%2C%20Negros%20Occidental!5e0!3m2!1sen!2sph!4v1705999728932!5m2!1sen!2sph"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Bacolod City Map"
+                  />
                 </div>
               </div>
             </div>
