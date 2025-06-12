@@ -1,37 +1,40 @@
 
 import React, { useState } from 'react';
 import { ShoppingBag, Menu, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { useCart } from '../contexts/CartContext';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const cartCount = 0;
+  const { state } = useCart();
+  const location = useLocation();
 
   const navItems = [
-    { name: 'Home', href: '#', isActive: false },
-    { name: 'Shop', href: '#', isActive: false },
-    { name: 'Blog', href: '#', isActive: false },
-    { name: 'About', href: '#', isActive: true },
-    { name: 'Contact', href: '#', isActive: false },
+    { name: 'Home', href: '/', isActive: location.pathname === '/' },
+    { name: 'Shop', href: '/shop', isActive: location.pathname === '/shop' },
+    { name: 'Blog', href: '/blog', isActive: location.pathname === '/blog' },
+    { name: 'About', href: '/', isActive: false },
+    { name: 'Contact', href: '/contact', isActive: location.pathname === '/contact' },
   ];
 
   return (
     <header className="fixed top-0 right-0 w-full z-50 flex items-center justify-between px-5 py-4 bg-white/90 backdrop-blur-sm shadow-md">
-      <div className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
+      <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
         <div className="w-[60px] h-[60px] bg-primary rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-xl">U</span>
         </div>
-      </div>
+      </Link>
 
       {/* Desktop Navigation */}
       <nav className="hidden md:flex">
         <ul className="flex items-center justify-center">
           {navItems.map((item) => (
             <li key={item.name} className="px-5 relative group">
-              <a
+              <Link
                 className={`text-primary hover:text-muted-foreground transition-colors duration-200 relative ${
                   item.isActive ? 'font-bold' : ''
                 }`}
-                href={item.href}
+                to={item.href}
               >
                 {item.name}
                 <span
@@ -39,18 +42,18 @@ const Header = () => {
                     item.isActive ? 'w-full' : 'w-0 group-hover:w-full'
                   }`}
                 ></span>
-              </a>
+              </Link>
             </li>
           ))}
           <li className="px-5 relative">
-            <a className="text-primary hover:text-muted-foreground transition-colors duration-200 relative" href="#">
+            <Link className="text-primary hover:text-muted-foreground transition-colors duration-200 relative" to="/cart">
               <ShoppingBag className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartCount}
+              {state.itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {state.itemCount}
                 </span>
               )}
-            </a>
+            </Link>
           </li>
           <div className="inline-block w-px h-5 bg-border mx-2.5"></div>
           <li className="px-5 relative group">
@@ -67,9 +70,14 @@ const Header = () => {
 
       {/* Mobile Menu Button */}
       <div className="md:hidden flex items-center gap-4">
-        <a className="text-primary hover:text-muted-foreground transition-colors duration-200" href="#">
+        <Link className="text-primary hover:text-muted-foreground transition-colors duration-200 relative" to="/cart">
           <ShoppingBag className="w-5 h-5" />
-        </a>
+          {state.itemCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {state.itemCount}
+            </span>
+          )}
+        </Link>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="text-primary hover:text-muted-foreground transition-colors duration-200"
@@ -80,18 +88,19 @@ const Header = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="absolute top-full left-0 w-full bg-white shadow-lg md:hidden">
+        <div className="absolute top-full left-0 w-full bg-white shadow-lg md:hidden animate-fade-in">
           <nav className="py-4">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.name}
-                href={item.href}
+                to={item.href}
                 className={`block px-5 py-3 text-primary hover:bg-gray-50 transition-colors ${
                   item.isActive ? 'font-bold bg-gray-50' : ''
                 }`}
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 {item.name}
-              </a>
+              </Link>
             ))}
             <a href="#" className="block px-5 py-3 text-primary hover:bg-gray-50 transition-colors">
               Logout

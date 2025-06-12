@@ -6,12 +6,15 @@ import AboutSection from '../components/AboutSection';
 import AppSection from '../components/AppSection';
 import Newsletter from '../components/Newsletter';
 import Footer from '../components/Footer';
+import FeaturedProducts from '../components/FeaturedProducts';
+import HeroSection from '../components/HeroSection';
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Hero />
+      <HeroSection />
+      <FeaturedProducts />
       <AboutSection />
       <AppSection />
       <Newsletter />
