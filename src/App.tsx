@@ -19,6 +19,7 @@ import SuperAdminLoginPage from "./components/auth/SuperAdminLoginPage";
 import SignUpPage from "./components/auth/SignUpPage";
 import AuthCallback from "./components/auth/AuthCallback";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -63,28 +64,17 @@ const App = () => (
               }
             />
 
-            {/* Admin Routes */}
+            {/* Protected Super Admin Routes */}
             <Route
-              path="/admin/*"
+              path="/superadmin/dashboard"
               element={
-                <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
-                  {/* Add your admin dashboard component here */}
-                  <div>Admin Dashboard</div>
+                <ProtectedRoute requiredRole="super_admin">
+                  <SuperAdminDashboard />
                 </ProtectedRoute>
               }
             />
 
-            {/* Super Admin Routes */}
-            <Route
-              path="/superadmin/*"
-              element={
-                <ProtectedRoute allowedRoles={["super_admin"]}>
-                  {/* Add your super admin dashboard component here */}
-                  <div>Super Admin Dashboard</div>
-                </ProtectedRoute>
-              }
-            />
-
+            {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
