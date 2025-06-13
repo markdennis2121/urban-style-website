@@ -8,17 +8,39 @@ import { Badge } from '@/components/ui/badge';
 import { Alert } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, Package, Shield, Settings } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Package, Shield, Settings, Plus, Edit, Trash2, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('users');
-  const [users, setUsers] = useState([]);
+  const { toast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showCreateProduct, setShowCreateProduct] = useState(false);
+  const [showEditProduct, setShowEditProduct] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: '',
+    stock: '',
+    image_url: ''
+  });
 
   useEffect(() => {
     loadData();
@@ -29,15 +51,6 @@ const AdminDashboard = () => {
       setLoading(true);
       const profile = await getCurrentProfile();
       setCurrentUser(profile);
-
-      // Load users
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (usersError) throw usersError;
-      setUsers(usersData || []);
 
       // Load products
       const { data: productsData, error: productsError } = await supabase
@@ -58,29 +71,87 @@ const AdminDashboard = () => {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      navigate('/login');
+      navigate('/admin/login');
     } catch (err) {
       console.error('Logout error:', err);
     }
   };
 
-  const deleteUser = async (userId) => {
+  const handleCreateProduct = async () => {
     try {
       const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
+        .from('products')
+        .insert({
+          name: newProduct.name,
+          description: newProduct.description,
+          price: parseFloat(newProduct.price),
+          category: newProduct.category,
+          stock: parseInt(newProduct.stock),
+          image_url: newProduct.image_url
+        });
 
       if (error) throw error;
-      
+
+      toast({
+        title: "Product Created",
+        description: "Product has been created successfully.",
+      });
+
+      setShowCreateProduct(false);
+      setNewProduct({
+        name: '',
+        description: '',
+        price: '',
+        category: '',
+        stock: '',
+        image_url: ''
+      });
       await loadData();
     } catch (err) {
-      console.error('Error deleting user:', err);
-      setError(err.message);
+      console.error('Error creating product:', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create product.",
+      });
     }
   };
 
-  const deleteProduct = async (productId) => {
+  const handleEditProduct = async () => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: newProduct.name,
+          description: newProduct.description,
+          price: parseFloat(newProduct.price),
+          category: newProduct.category,
+          stock: parseInt(newProduct.stock),
+          image_url: newProduct.image_url
+        })
+        .eq('id', selectedProduct.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Product Updated",
+        description: "Product has been updated successfully.",
+      });
+
+      setShowEditProduct(false);
+      setSelectedProduct(null);
+      await loadData();
+    } catch (err) {
+      console.error('Error updating product:', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update product.",
+      });
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
     try {
       const { error } = await supabase
         .from('products')
@@ -88,46 +159,78 @@ const AdminDashboard = () => {
         .eq('id', productId);
 
       if (error) throw error;
-      
+
+      toast({
+        title: "Product Deleted",
+        description: "Product has been deleted successfully.",
+      });
+
       await loadData();
     } catch (err) {
       console.error('Error deleting product:', err);
-      setError(err.message);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete product.",
+      });
     }
+  };
+
+  const openEditDialog = (product) => {
+    setSelectedProduct(product);
+    setNewProduct({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      category: product.category,
+      stock: product.stock.toString(),
+      image_url: product.image_url
+    });
+    setShowEditProduct(true);
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-400"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-black/20 backdrop-blur-xl border-b border-purple-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Shield className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+              <Shield className="h-8 w-8 text-purple-400" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Admin Dashboard
+              </h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 ring-2 ring-purple-400/50">
                   <AvatarImage src={currentUser?.avatar_url} />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-purple-600 text-white">
                     {currentUser?.username?.charAt(0)?.toUpperCase() || 'A'}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-white">
                   {currentUser?.username}
                 </span>
-                <Badge variant="secondary">{currentUser?.role}</Badge>
+                <Badge className="bg-purple-600/20 text-purple-300 border-purple-500/30">
+                  {currentUser?.role}
+                </Badge>
               </div>
-              <Button onClick={handleLogout} variant="outline" size="sm">
+              <Button 
+                onClick={handleLogout} 
+                variant="outline" 
+                size="sm"
+                className="border-purple-500/30 text-purple-300 hover:bg-purple-600/20"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
             </div>
@@ -137,161 +240,270 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-6 bg-red-900/50 border-red-500/50 text-red-200">
             {error}
           </Alert>
         )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6">
+          <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
             <div className="flex items-center">
-              <Users className="h-12 w-12 text-blue-600" />
+              <Package className="h-12 w-12 text-purple-400" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+                <p className="text-sm font-medium text-gray-300">Total Products</p>
+                <p className="text-2xl font-bold text-white">{products.length}</p>
               </div>
             </div>
           </Card>
-          <Card className="p-6">
+          <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
             <div className="flex items-center">
-              <Package className="h-12 w-12 text-green-600" />
+              <Settings className="h-12 w-12 text-green-400" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Products</p>
-                <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+                <p className="text-sm font-medium text-gray-300">In Stock</p>
+                <p className="text-2xl font-bold text-white">
+                  {products.filter(p => p.stock > 0).length}
+                </p>
               </div>
             </div>
           </Card>
-          <Card className="p-6">
+          <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
             <div className="flex items-center">
-              <Settings className="h-12 w-12 text-purple-600" />
+              <Shield className="h-12 w-12 text-blue-400" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Admin Level</p>
-                <p className="text-2xl font-bold text-gray-900">Standard</p>
+                <p className="text-sm font-medium text-gray-300">Admin Level</p>
+                <p className="text-2xl font-bold text-white">Standard</p>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'users'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              User Management
-            </button>
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'products'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Product Management
-            </button>
-          </nav>
-        </div>
-
-        {/* Content */}
-        {activeTab === 'users' && (
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Users</h2>
-            </div>
+        {/* Product Management */}
+        <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold text-white">Product Management</h2>
+            <Dialog open={showCreateProduct} onOpenChange={setShowCreateProduct}>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-purple-500/30 text-white">
+                <DialogHeader>
+                  <DialogTitle className="text-purple-300">Create New Product</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Add a new product to your inventory.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right text-gray-300">Name</Label>
+                    <Input
+                      id="name"
+                      value={newProduct.name}
+                      onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
+                      className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="description" className="text-right text-gray-300">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newProduct.description}
+                      onChange={(e) => setNewProduct(prev => ({ ...prev, description: e.target.value }))}
+                      className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="price" className="text-right text-gray-300">Price</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      value={newProduct.price}
+                      onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
+                      className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="category" className="text-right text-gray-300">Category</Label>
+                    <Input
+                      id="category"
+                      value={newProduct.category}
+                      onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
+                      className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="stock" className="text-right text-gray-300">Stock</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      value={newProduct.stock}
+                      onChange={(e) => setNewProduct(prev => ({ ...prev, stock: e.target.value }))}
+                      className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="image_url" className="text-right text-gray-300">Image URL</Label>
+                    <Input
+                      id="image_url"
+                      value={newProduct.image_url}
+                      onChange={(e) => setNewProduct(prev => ({ ...prev, image_url: e.target.value }))}
+                      className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowCreateProduct(false)} className="border-purple-500/30 text-purple-300">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateProduct} className="bg-gradient-to-r from-purple-600 to-pink-600">
+                    Create Product
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          
+          <div className="rounded-lg border border-purple-500/20 overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar_url} />
-                          <AvatarFallback>
-                            {user.username?.charAt(0)?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{user.username}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        onClick={() => deleteUser(user.id)}
-                        variant="destructive"
-                        size="sm"
-                        disabled={user.role === 'super_admin'}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-
-        {activeTab === 'products' && (
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Products</h2>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="border-purple-500/20 hover:bg-purple-900/20">
+                  <TableHead className="text-purple-300">Image</TableHead>
+                  <TableHead className="text-purple-300">Name</TableHead>
+                  <TableHead className="text-purple-300">Category</TableHead>
+                  <TableHead className="text-purple-300">Price</TableHead>
+                  <TableHead className="text-purple-300">Stock</TableHead>
+                  <TableHead className="text-purple-300">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>${product.price}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
+                  <TableRow key={product.id} className="border-purple-500/20 hover:bg-purple-900/10">
                     <TableCell>
-                      <Button
-                        onClick={() => deleteProduct(product.id)}
-                        variant="destructive"
-                        size="sm"
-                      >
-                        Delete
-                      </Button>
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-12 h-12 object-cover rounded-lg"
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium text-white">{product.name}</TableCell>
+                    <TableCell>
+                      <Badge className="bg-purple-600/20 text-purple-300 border-purple-500/30">
+                        {product.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-white">₱{product.price}</TableCell>
+                    <TableCell>
+                      <Badge className={product.stock < 10 ? "bg-red-600/20 text-red-300 border-red-500/30" : "bg-green-600/20 text-green-300 border-green-500/30"}>
+                        {product.stock}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={() => openEditDialog(product)}
+                          variant="outline"
+                          size="sm"
+                          className="border-blue-500/30 text-blue-300 hover:bg-blue-600/20"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          variant="outline"
+                          size="sm"
+                          className="border-red-500/30 text-red-300 hover:bg-red-600/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </Card>
-        )}
+          </div>
+        </Card>
+
+        {/* Edit Product Dialog */}
+        <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
+          <DialogContent className="bg-slate-900 border-purple-500/30 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-purple-300">Edit Product</DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Update product information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-name" className="text-right text-gray-300">Name</Label>
+                <Input
+                  id="edit-name"
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-description" className="text-right text-gray-300">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, description: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-price" className="text-right text-gray-300">Price</Label>
+                <Input
+                  id="edit-price"
+                  type="number"
+                  value={newProduct.price}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-category" className="text-right text-gray-300">Category</Label>
+                <Input
+                  id="edit-category"
+                  value={newProduct.category}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-stock" className="text-right text-gray-300">Stock</Label>
+                <Input
+                  id="edit-stock"
+                  type="number"
+                  value={newProduct.stock}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, stock: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-image_url" className="text-right text-gray-300">Image URL</Label>
+                <Input
+                  id="edit-image_url"
+                  value={newProduct.image_url}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, image_url: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditProduct(false)} className="border-purple-500/30 text-purple-300">
+                Cancel
+              </Button>
+              <Button onClick={handleEditProduct} className="bg-gradient-to-r from-purple-600 to-pink-600">
+                Update Product
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
