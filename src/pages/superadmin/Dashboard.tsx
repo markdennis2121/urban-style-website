@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase, getCurrentProfile } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -928,7 +929,7 @@ const SuperAdminDashboard = () => {
                             alt={product.name}
                             className="w-12 h-12 object-cover rounded-lg"
                             onError={(e) => {
-                              e.target.style.display = 'none';
+                              (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         ) : (

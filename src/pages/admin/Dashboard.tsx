@@ -491,7 +491,7 @@ const AdminDashboard = () => {
                           alt={product.name}
                           className="w-12 h-12 object-cover rounded-lg"
                           onError={(e) => {
-                            e.target.style.display = 'none';
+                            (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
                       ) : (
