@@ -33,26 +33,66 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/contact" element={<Contact />} />
-
-            {/* Auth Routes */}
+            {/* Auth Routes - These should be accessible without login */}
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/login" element={<UserLoginPage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
-            {/* Protected User Routes */}
+            {/* All other routes require authentication */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shop"
+              element={
+                <ProtectedRoute>
+                  <Shop />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/product/:id"
+              element={
+                <ProtectedRoute>
+                  <ProductDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/about"
+              element={
+                <ProtectedRoute>
+                  <About />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/blog"
+              element={
+                <ProtectedRoute>
+                  <Blog />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contact"
+              element={
+                <ProtectedRoute>
+                  <Contact />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/cart"
               element={
-                <ProtectedRoute allowedRoles={["user", "admin", "super_admin"]}>
+                <ProtectedRoute>
                   <Cart />
                 </ProtectedRoute>
               }
@@ -60,8 +100,18 @@ const App = () => (
             <Route
               path="/checkout"
               element={
-                <ProtectedRoute allowedRoles={["user", "admin", "super_admin"]}>
+                <ProtectedRoute>
                   <Checkout />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Admin Routes */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
                 </ProtectedRoute>
               }
             />

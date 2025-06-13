@@ -1,13 +1,49 @@
 
-import React, { useState } from 'react';
-import { ShoppingBag, Menu, X } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { ShoppingBag, Menu, X, User, LogOut } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { supabase, getCurrentProfile } from '@/lib/supabase/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import ProfileSettings from './ProfileSettings';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { state } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const profile = await getCurrentProfile();
+      setCurrentUser(profile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const navItems = [
     { name: 'Home', href: '/', isActive: location.pathname === '/' },
@@ -18,7 +54,8 @@ const Header = () => {
   ];
 
   return (
-    <header className="fixed top-0 right-0 w-full z-50 flex items-center justify-between px-5 py-4 bg-white/90 backdrop-blur-sm shadow-md">      <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
+    <header className="fixed top-0 right-0 w-full z-50 flex items-center justify-between px-5 py-4 bg-white/90 backdrop-blur-sm shadow-md">
+      <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
         <div className="w-[60px] h-[60px] rounded-lg flex items-center justify-center">
           <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
         </div>
@@ -55,14 +92,66 @@ const Header = () => {
             </Link>
           </li>
           <div className="inline-block w-px h-5 bg-border mx-2.5"></div>
-          <li className="px-5 relative group">
-            <a
-              className="text-primary hover:text-muted-foreground transition-colors duration-200 relative"
-              href="#"
-            >
-              Logout
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300"></span>
-            </a>
+          
+          {/* User Profile Dropdown */}
+          <li className="px-5">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={currentUser?.avatar_url} alt={currentUser?.username} />
+                    <AvatarFallback>
+                      {currentUser?.username?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium">{currentUser?.username}</p>
+                    <p className="w-[200px] truncate text-sm text-muted-foreground">
+                      {currentUser?.email}
+                    </p>
+                  </div>
+                </div>
+                <DropdownMenuItem asChild>
+                  <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                    <DialogTrigger className="w-full">
+                      <div className="flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile Settings</span>
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <ProfileSettings 
+                        currentUser={currentUser} 
+                        onProfileUpdate={(updatedProfile) => {
+                          setCurrentUser(updatedProfile);
+                          setIsProfileOpen(false);
+                        }}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </DropdownMenuItem>
+                {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                  <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Admin Dashboard</span>
+                  </DropdownMenuItem>
+                )}
+                {currentUser?.role === 'super_admin' && (
+                  <DropdownMenuItem onClick={() => navigate('/superadmin/dashboard')}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Super Admin</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </li>
         </ul>
       </nav>
@@ -101,9 +190,12 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            <a href="#" className="block px-5 py-3 text-primary hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={handleLogout}
+              className="block w-full text-left px-5 py-3 text-primary hover:bg-gray-50 transition-colors"
+            >
               Logout
-            </a>
+            </button>
           </nav>
         </div>
       )}
