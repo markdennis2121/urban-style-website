@@ -38,10 +38,25 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
+      console.log('User logging out, role:', currentUser?.role);
       await supabase.auth.signOut();
-      navigate('/login');
+      
+      // Redirect based on user role
+      switch (currentUser?.role) {
+        case 'super_admin':
+          navigate('/superadmin/login');
+          break;
+        case 'admin':
+          navigate('/admin/login');
+          break;
+        default:
+          navigate('/login');
+          break;
+      }
     } catch (error) {
       console.error('Logout error:', error);
+      // Fallback to general login page
+      navigate('/login');
     }
   };
 

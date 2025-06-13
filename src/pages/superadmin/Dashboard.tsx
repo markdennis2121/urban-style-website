@@ -1,28 +1,14 @@
-
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase, getCurrentProfile } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from '@/components/ui/badge';
+import { Alert } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -32,196 +18,132 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
 import { 
-  Search, 
-  UserPlus, 
-  MoreVertical, 
-  Shield, 
-  UserX, 
-  Trash2, 
-  Lock,
-  History,
-  Users,
-  Settings,
-  LogOut,
-  Package,
-  TrendingUp,
-  Activity,
-  Eye,
-  Crown
+  Crown, Shield, Users, Package, Settings, Plus, Edit, Trash2, LogOut, 
+  Eye, UserX, Activity, BarChart3, Calendar, Clock 
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-
-interface Profile {
-  id: string;
-  email: string;
-  username: string;
-  role: 'user' | 'admin' | 'super_admin';
-  created_at: string;
-  last_login: string | null;
-  failed_login_attempts: number;
-  account_locked: boolean;
-  last_password_change: string | null;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  stock: number;
-  image_url: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface AuditLog {
-  id: string;
-  user_id: string;
-  action: string;
-  details: any;
-  ip_address: string | null;
-  created_at: string;
-}
-
-interface UserSession {
-  id: string;
-  user_id: string;
-  ip_address: string | null;
-  user_agent: string | null;
-  created_at: string;
-  expires_at: string;
-  revoked: boolean;
-}
-
-interface SystemMetrics {
-  totalUsers: number;
-  activeUsers: number;
-  totalProducts: number;
-  totalRevenue: number;
-  dailySignups: number;
-  dailyLogins: number;
-}
+import { useToast } from '@/hooks/use-toast';
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [sessions, setSessions] = useState<UserSession[]>([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<string>('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
-  const [newAdminData, setNewAdminData] = useState({
-    email: '',
-    username: '',
-    password: ''
-  });
   const { toast } = useToast();
+  
+  // State management
+  const [activeTab, setActiveTab] = useState('overview');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  
+  // Data states
+  const [users, setUsers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [systemMetrics, setSystemMetrics] = useState({
+    totalUsers: 0,
+    totalProducts: 0,
+    activeUsers: 0,
+    totalRevenue: 0
+  });
 
-  const metrics = useMemo<SystemMetrics>(() => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    return {
-      totalUsers: profiles.length,
-      activeUsers: profiles.filter(p => p.last_login && new Date(p.last_login) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length,
-      totalProducts: products.length,
-      totalRevenue: products.reduce((sum, p) => sum + (p.price * Math.max(0, 100 - p.stock)), 0),
-      dailySignups: profiles.filter(p => new Date(p.created_at) >= today).length,
-      dailyLogins: profiles.filter(p => p.last_login && new Date(p.last_login) >= today).length
-    };
-  }, [profiles, products]);
+  // Dialog states
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [showEditUser, setShowEditUser] = useState(false);
+  const [showCreateProduct, setShowCreateProduct] = useState(false);
+  const [showEditProduct, setShowEditProduct] = useState(false);
+  
+  // Form states
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  
+  const [newUser, setNewUser] = useState({
+    email: '',
+    password: '',
+    username: '',
+    full_name: '',
+    role: 'user'
+  });
 
-  const stats = useMemo(() => ({
-    totalUsers: profiles.length,
-    admins: profiles.filter(p => p.role === 'admin').length,
-    regularUsers: profiles.filter(p => p.role === 'user').length,
-    superAdmins: profiles.filter(p => p.role === 'super_admin').length,
-    lockedAccounts: profiles.filter(p => p.account_locked).length,
-    activeSessions: sessions.filter(s => !s.revoked).length,
-    recentActivity: auditLogs.filter(log => 
-      new Date(log.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-    ).length
-  }), [profiles, sessions, auditLogs]);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: 'T-Shirts',
+    stock: '',
+    image_url: ''
+  });
 
-  const fetchProfiles = async () => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      console.log('Loading super admin dashboard data...');
+      
+      const profile = await getCurrentProfile();
+      console.log('Current profile:', profile);
+      setCurrentUser(profile);
+
+      // Verify super admin access
+      if (!profile || profile.role !== 'super_admin') {
+        console.error('Access denied - insufficient permissions');
+        navigate('/superadmin/login');
+        return;
+      }
+
+      // Load users
+      const { data: usersData, error: usersError } = await supabase
         .from('profiles')
         .select('*')
-        .order(sortBy, { ascending: sortOrder === 'asc' });
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      if (data) setProfiles(data);
-    } catch (err) {
-      console.error('Error fetching profiles:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch profiles');
-    }
-  };
+      if (usersError) {
+        console.error('Users fetch error:', usersError);
+      } else {
+        setUsers(usersData || []);
+      }
 
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
+      // Load products
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      if (data) setProducts(data);
+      if (productsError) {
+        console.error('Products fetch error:', productsError);
+      } else {
+        setProducts(productsData || []);
+      }
+
+      // Calculate metrics
+      setSystemMetrics({
+        totalUsers: usersData?.length || 0,
+        totalProducts: productsData?.length || 0,
+        activeUsers: usersData?.filter(u => u.role !== 'inactive').length || 0,
+        totalRevenue: productsData?.reduce((sum, p) => sum + (p.price * (100 - p.stock)), 0) || 0
+      });
+
+      // Mock audit logs
+      setAuditLogs([
+        { id: 1, action: 'User Login', user: 'admin@example.com', timestamp: new Date().toISOString(), details: 'Successful login' },
+        { id: 2, action: 'Product Created', user: 'admin@example.com', timestamp: new Date(Date.now() - 3600000).toISOString(), details: 'Created new T-shirt product' },
+        { id: 3, action: 'User Role Changed', user: 'superadmin@example.com', timestamp: new Date(Date.now() - 7200000).toISOString(), details: 'Changed user role to admin' }
+      ]);
+
     } catch (err) {
-      console.error('Error fetching products:', err);
-    }
-  };
-
-  const fetchAuditLogs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      if (data) setAuditLogs(data);
-    } catch (err) {
-      console.error('Error fetching audit logs:', err);
-    }
-  };
-
-  const fetchSessions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      if (data) setSessions(data);
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
+      console.error('Error loading data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = async () => {
     try {
+      console.log('Super admin logging out...');
       await supabase.auth.signOut();
       navigate('/superadmin/login');
     } catch (err) {
@@ -229,184 +151,341 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleRoleUpdate = async (userId: string, newRole: 'user' | 'admin' | 'super_admin') => {
+  const validateUserData = (userData) => {
+    const errors = [];
+    
+    if (!userData.email?.trim()) errors.push('Email is required');
+    if (!userData.username?.trim()) errors.push('Username is required');
+    if (!userData.full_name?.trim()) errors.push('Full name is required');
+    if (!userData.role?.trim()) errors.push('Role is required');
+    if (!selectedUser && !userData.password?.trim()) errors.push('Password is required');
+    
+    return errors;
+  };
+
+  const validateProductData = (productData) => {
+    const errors = [];
+    
+    if (!productData.name?.trim()) errors.push('Product name is required');
+    if (!productData.description?.trim()) errors.push('Description is required');
+    if (!productData.price || parseFloat(productData.price) <= 0) errors.push('Valid price is required');
+    if (!productData.category?.trim()) errors.push('Category is required');
+    if (!productData.stock || parseInt(productData.stock) < 0) errors.push('Valid stock quantity is required');
+    
+    return errors;
+  };
+
+  const handleCreateUser = async () => {
+    if (submitting) return;
+    
     try {
+      setSubmitting(true);
+      console.log('Creating user with data:', newUser);
+      
+      const validationErrors = validateUserData(newUser);
+      if (validationErrors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: validationErrors.join(', '),
+        });
+        return;
+      }
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUser.email,
+        password: newUser.password,
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Update profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            username: newUser.username,
+            full_name: newUser.full_name,
+            role: newUser.role
+          })
+          .eq('id', authData.user.id);
+
+        if (profileError) throw profileError;
+      }
+
+      toast({
+        title: "User Created",
+        description: "User has been created successfully.",
+      });
+
+      setShowCreateUser(false);
+      setNewUser({
+        email: '',
+        password: '',
+        username: '',
+        full_name: '',
+        role: 'user'
+      });
+      await loadData();
+    } catch (err) {
+      console.error('Error creating user:', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to create user.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditUser = async () => {
+    if (submitting) return;
+    
+    try {
+      setSubmitting(true);
+      console.log('Updating user:', selectedUser?.id, 'with data:', newUser);
+      
+      const validationErrors = validateUserData(newUser);
+      if (validationErrors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: validationErrors.join(', '),
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({ role: newRole })
+        .update({
+          username: newUser.username,
+          full_name: newUser.full_name,
+          role: newUser.role
+        })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "User Updated",
+        description: "User has been updated successfully.",
+      });
+
+      setShowEditUser(false);
+      setSelectedUser(null);
+      await loadData();
+    } catch (err) {
+      console.error('Error updating user:', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to update user.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+      console.log('Deleting user:', userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
         .eq('id', userId);
 
       if (error) throw error;
 
       toast({
-        title: "Role Updated",
-        description: "User role has been successfully updated.",
-      });
-
-      fetchProfiles();
-      fetchAuditLogs();
-    } catch (err) {
-      console.error('Error updating role:', err);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update user role.",
-      });
-    }
-  };
-
-  const handleCreateAdmin = async () => {
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newAdminData.email,
-        password: newAdminData.password,
-        options: {
-          data: {
-            username: newAdminData.username,
-          }
-        }
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('No user data returned');
-
-      const { error: roleError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: 'admin',
-          last_password_change: new Date().toISOString()
-        })
-        .eq('id', authData.user.id);
-
-      if (roleError) throw roleError;
-
-      toast({
-        title: "Admin Created",
-        description: "New admin account has been created successfully.",
-      });
-
-      setShowCreateAdmin(false);
-      setNewAdminData({ email: '', username: '', password: '' });
-      fetchProfiles();
-      fetchAuditLogs();
-    } catch (err) {
-      console.error('Error creating admin:', err);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to create admin account.",
-      });
-    }
-  };
-
-  const handleDeleteUser = async () => {
-    if (!selectedUser) return;
-
-    try {
-      const { error } = await supabase.auth.admin.deleteUser(selectedUser.id);
-      if (error) throw error;
-
-      toast({
         title: "User Deleted",
-        description: "User account has been permanently deleted.",
+        description: "User has been deleted successfully.",
       });
 
-      setShowDeleteConfirm(false);
-      setSelectedUser(null);
-      fetchProfiles();
-      fetchAuditLogs();
+      await loadData();
     } catch (err) {
       console.error('Error deleting user:', err);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete user account.",
+        description: err.message || "Failed to delete user.",
       });
     }
   };
 
-  const handleUnlockAccount = async (userId: string) => {
+  const handleCreateProduct = async () => {
+    if (submitting) return;
+    
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          account_locked: false,
-          failed_login_attempts: 0
-        })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Account Unlocked",
-        description: "User account has been unlocked successfully.",
-      });
-
-      fetchProfiles();
-      fetchAuditLogs();
-    } catch (err) {
-      console.error('Error unlocking account:', err);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to unlock user account.",
-      });
-    }
-  };
-
-  const handleRevokeSessions = async (userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .update({ revoked: true })
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Sessions Revoked",
-        description: "All user sessions have been revoked successfully.",
-      });
-
-      fetchSessions();
-      fetchAuditLogs();
-    } catch (err) {
-      console.error('Error revoking sessions:', err);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to revoke user sessions.",
-      });
-    }
-  };
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      const profile = await getCurrentProfile();
-      setCurrentUser(profile);
+      setSubmitting(true);
+      console.log('Creating product with data:', newProduct);
       
-      await Promise.all([
-        fetchProfiles(),
-        fetchProducts(),
-        fetchAuditLogs(),
-        fetchSessions()
-      ]);
-      setLoading(false);
-    };
+      const validationErrors = validateProductData(newProduct);
+      if (validationErrors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: validationErrors.join(', '),
+        });
+        return;
+      }
 
-    loadData();
-  }, []);
+      const productData = {
+        name: newProduct.name.trim(),
+        description: newProduct.description.trim(),
+        price: parseFloat(newProduct.price),
+        category: newProduct.category.trim(),
+        stock: parseInt(newProduct.stock),
+        image_url: newProduct.image_url.trim() || null
+      };
 
-  const filteredProfiles = useMemo(() => 
-    profiles.filter(profile =>
-      profile.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      profile.email.toLowerCase().includes(searchTerm.toLowerCase())
-    ), [profiles, searchTerm]);
+      const { error } = await supabase
+        .from('products')
+        .insert([productData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Product Created",
+        description: "Product has been created successfully.",
+      });
+
+      setShowCreateProduct(false);
+      setNewProduct({
+        name: '',
+        description: '',
+        price: '',
+        category: 'T-Shirts',
+        stock: '',
+        image_url: ''
+      });
+      await loadData();
+    } catch (err) {
+      console.error('Error creating product:', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to create product.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditProduct = async () => {
+    if (submitting) return;
+    
+    try {
+      setSubmitting(true);
+      console.log('Updating product:', selectedProduct?.id, 'with data:', newProduct);
+      
+      const validationErrors = validateProductData(newProduct);
+      if (validationErrors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: validationErrors.join(', '),
+        });
+        return;
+      }
+
+      const productData = {
+        name: newProduct.name.trim(),
+        description: newProduct.description.trim(),
+        price: parseFloat(newProduct.price),
+        category: newProduct.category.trim(),
+        stock: parseInt(newProduct.stock),
+        image_url: newProduct.image_url.trim() || null
+      };
+
+      const { error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', selectedProduct.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Product Updated",
+        description: "Product has been updated successfully.",
+      });
+
+      setShowEditProduct(false);
+      setSelectedProduct(null);
+      await loadData();
+    } catch (err) {
+      console.error('Error updating product:', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to update product.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    
+    try {
+      console.log('Deleting product:', productId);
+      
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Product Deleted",
+        description: "Product has been deleted successfully.",
+      });
+
+      await loadData();
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to delete product.",
+      });
+    }
+  };
+
+  const openEditUserDialog = (user) => {
+    setSelectedUser(user);
+    setNewUser({
+      email: user.email,
+      password: '',
+      username: user.username || '',
+      full_name: user.full_name || '',
+      role: user.role
+    });
+    setShowEditUser(true);
+  };
+
+  const openEditProductDialog = (product) => {
+    setSelectedProduct(product);
+    setNewProduct({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      category: product.category,
+      stock: product.stock.toString(),
+      image_url: product.image_url || ''
+    });
+    setShowEditProduct(true);
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-400"></div>
       </div>
     );
@@ -417,74 +496,25 @@ const SuperAdminDashboard = () => {
       {/* Header */}
       <header className="bg-black/20 backdrop-blur-xl border-b border-purple-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Crown className="h-8 w-8 text-yellow-400" />
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Super Admin Dashboard
-                </h1>
-                <p className="text-gray-300">Complete system administration</p>
-              </div>
+              <Crown className="h-8 w-8 text-amber-400" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-purple-400 bg-clip-text text-transparent">
+                Super Admin Dashboard
+              </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Dialog open={showCreateAdmin} onOpenChange={setShowCreateAdmin}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Create Admin
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-slate-900 border-purple-500/30 text-white">
-                  <DialogHeader>
-                    <DialogTitle className="text-purple-300">Create New Admin Account</DialogTitle>
-                    <DialogDescription className="text-gray-400">
-                      Create a new administrator account. They will receive an email to verify their account.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <Input
-                      placeholder="Email"
-                      value={newAdminData.email}
-                      onChange={(e) => setNewAdminData(prev => ({ ...prev, email: e.target.value }))}
-                      className="bg-slate-800 border-purple-500/30 text-white"
-                    />
-                    <Input
-                      placeholder="Username"
-                      value={newAdminData.username}
-                      onChange={(e) => setNewAdminData(prev => ({ ...prev, username: e.target.value }))}
-                      className="bg-slate-800 border-purple-500/30 text-white"
-                    />
-                    <Input
-                      type="password"
-                      placeholder="Initial Password"
-                      value={newAdminData.password}
-                      onChange={(e) => setNewAdminData(prev => ({ ...prev, password: e.target.value }))}
-                      className="bg-slate-800 border-purple-500/30 text-white"
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowCreateAdmin(false)} className="border-purple-500/30 text-purple-300">
-                      Cancel
-                    </Button>
-                    <Button onClick={handleCreateAdmin} className="bg-gradient-to-r from-purple-600 to-pink-600">
-                      Create Admin
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              
               <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8 ring-2 ring-yellow-400/50">
+                <Avatar className="h-8 w-8 ring-2 ring-amber-400/50">
                   <AvatarImage src={currentUser?.avatar_url} />
-                  <AvatarFallback className="bg-yellow-600 text-black">
+                  <AvatarFallback className="bg-amber-600 text-white">
                     {currentUser?.username?.charAt(0)?.toUpperCase() || 'S'}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium text-white">
                   {currentUser?.username}
                 </span>
-                <Badge className="bg-yellow-600/20 text-yellow-300 border-yellow-500/30">
+                <Badge className="bg-amber-600/20 text-amber-300 border-amber-500/30">
                   {currentUser?.role}
                 </Badge>
               </div>
@@ -492,7 +522,7 @@ const SuperAdminDashboard = () => {
                 onClick={handleLogout} 
                 variant="outline" 
                 size="sm"
-                className="border-purple-500/30 text-purple-300 hover:bg-purple-600/20"
+                className="border-amber-500/30 text-amber-300 hover:bg-amber-600/20"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -505,441 +535,636 @@ const SuperAdminDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <Alert variant="destructive" className="mb-6 bg-red-900/50 border-red-500/50 text-red-200">
-            <AlertDescription>{error}</AlertDescription>
+            {error}
           </Alert>
         )}
 
-        {/* Main Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-purple-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{metrics.totalUsers}</div>
-              <p className="text-xs text-gray-400">
-                +{metrics.dailySignups} today
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Active Users</CardTitle>
-              <Activity className="h-4 w-4 text-green-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{metrics.activeUsers}</div>
-              <p className="text-xs text-gray-400">
-                {metrics.dailyLogins} logins today
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Products</CardTitle>
-              <Package className="h-4 w-4 text-blue-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{metrics.totalProducts}</div>
-              <p className="text-xs text-gray-400">In inventory</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">System Health</CardTitle>
-              <TrendingUp className="h-4 w-4 text-yellow-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-400">99.9%</div>
-              <p className="text-xs text-gray-400">Uptime</p>
-            </CardContent>
-          </Card>
+        {/* Navigation Tabs */}
+        <div className="flex space-x-1 mb-8 bg-black/20 backdrop-blur-xl rounded-lg p-1">
+          {[
+            { id: 'overview', label: 'Overview', icon: BarChart3 },
+            { id: 'users', label: 'Users', icon: Users },
+            { id: 'products', label: 'Products', icon: Package },
+            { id: 'audit', label: 'Audit Logs', icon: Activity },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                activeTab === tab.id
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-purple-600/20'
+              }`}
+            >
+              <tab.icon className="h-4 w-4" />
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Secondary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Admins</CardTitle>
-              <Shield className="h-4 w-4 text-purple-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.admins}</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Locked Accounts</CardTitle>
-              <Lock className="h-4 w-4 text-red-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.lockedAccounts}</div>
-            </CardContent>
-          </Card>
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+                <div className="flex items-center">
+                  <Users className="h-12 w-12 text-blue-400" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-300">Total Users</p>
+                    <p className="text-2xl font-bold text-white">{systemMetrics.totalUsers}</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+                <div className="flex items-center">
+                  <Package className="h-12 w-12 text-green-400" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-300">Total Products</p>
+                    <p className="text-2xl font-bold text-white">{systemMetrics.totalProducts}</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+                <div className="flex items-center">
+                  <Activity className="h-12 w-12 text-purple-400" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-300">Active Users</p>
+                    <p className="text-2xl font-bold text-white">{systemMetrics.activeUsers}</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+                <div className="flex items-center">
+                  <BarChart3 className="h-12 w-12 text-amber-400" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-300">Revenue</p>
+                    <p className="text-2xl font-bold text-white">₱{systemMetrics.totalRevenue.toFixed(2)}</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
 
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Active Sessions</CardTitle>
-              <Activity className="h-4 w-4 text-green-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.activeSessions}</div>
-            </CardContent>
-          </Card>
+            {/* Recent Activity */}
+            <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+              <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+              <div className="space-y-3">
+                {auditLogs.slice(0, 5).map((log) => (
+                  <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-purple-900/20">
+                    <div className="flex items-center space-x-3">
+                      <Activity className="h-5 w-5 text-purple-400" />
+                      <div>
+                        <p className="text-white font-medium">{log.action}</p>
+                        <p className="text-gray-400 text-sm">{log.details}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-gray-400 text-sm">{log.user}</p>
+                      <p className="text-gray-500 text-xs">{new Date(log.timestamp).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
 
-          <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Recent Activity</CardTitle>
-              <History className="h-4 w-4 text-blue-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.recentActivity}</div>
-              <p className="text-xs text-gray-400">Last 24h</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-black/40 border-purple-500/20">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600/30 data-[state=active]:text-purple-300">
-              <Users className="h-4 w-4 mr-2" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="data-[state=active]:bg-purple-600/30 data-[state=active]:text-purple-300">
-              <History className="h-4 w-4 mr-2" />
-              Audit Log
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="data-[state=active]:bg-purple-600/30 data-[state=active]:text-purple-300">
-              <Activity className="h-4 w-4 mr-2" />
-              Sessions
-            </TabsTrigger>
-            <TabsTrigger value="products" className="data-[state=active]:bg-purple-600/30 data-[state=active]:text-purple-300">
-              <Package className="h-4 w-4 mr-2" />
-              Products
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-              <CardHeader>
-                <CardTitle className="text-white">User Management</CardTitle>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-white">User Management</h2>
+              <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-900 border-purple-500/30 text-white">
+                  <DialogHeader>
+                    <DialogTitle className="text-purple-300">Create New User</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      Add a new user to the system.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="user-email" className="text-right text-gray-300">Email</Label>
                       <Input
-                        placeholder="Search users by username or email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 bg-slate-800 border-purple-500/30 text-white"
+                        id="user-email"
+                        type="email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="user-password" className="text-right text-gray-300">Password</Label>
+                      <Input
+                        id="user-password"
+                        type="password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="Password"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="user-username" className="text-right text-gray-300">Username</Label>
+                      <Input
+                        id="user-username"
+                        value={newUser.username}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="username"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="user-fullname" className="text-right text-gray-300">Full Name</Label>
+                      <Input
+                        id="user-fullname"
+                        value={newUser.full_name}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, full_name: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="Full Name"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="user-role" className="text-right text-gray-300">Role</Label>
+                      <select
+                        id="user-role"
+                        value={newUser.role}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border border-purple-500/30 text-white rounded-md px-3 py-2"
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                      </select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowCreateUser(false)} 
+                      className="border-purple-500/30 text-purple-300"
+                      disabled={submitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleCreateUser} 
+                      className="bg-gradient-to-r from-blue-600 to-purple-600"
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Creating...' : 'Create User'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <div className="rounded-lg border border-purple-500/20 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-purple-500/20 hover:bg-purple-900/20">
+                    <TableHead className="text-purple-300">Avatar</TableHead>
+                    <TableHead className="text-purple-300">Username</TableHead>
+                    <TableHead className="text-purple-300">Email</TableHead>
+                    <TableHead className="text-purple-300">Role</TableHead>
+                    <TableHead className="text-purple-300">Created</TableHead>
+                    <TableHead className="text-purple-300">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id} className="border-purple-500/20 hover:bg-purple-900/10">
+                      <TableCell>
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.avatar_url} />
+                          <AvatarFallback className="bg-purple-600 text-white">
+                            {user.username?.charAt(0)?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      </TableCell>
+                      <TableCell className="font-medium text-white">{user.username}</TableCell>
+                      <TableCell className="text-white">{user.email}</TableCell>
+                      <TableCell>
+                        <Badge className={
+                          user.role === 'super_admin' ? "bg-amber-600/20 text-amber-300 border-amber-500/30" :
+                          user.role === 'admin' ? "bg-blue-600/20 text-blue-300 border-blue-500/30" :
+                          "bg-green-600/20 text-green-300 border-green-500/30"
+                        }>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-white">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => openEditUserDialog(user)}
+                            variant="outline"
+                            size="sm"
+                            className="border-blue-500/30 text-blue-300 hover:bg-blue-600/20"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteUser(user.id)}
+                            variant="outline"
+                            size="sm"
+                            className="border-red-500/30 text-red-300 hover:bg-red-600/20"
+                            disabled={user.id === currentUser?.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {users.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-gray-400 py-8">
+                        No users found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        )}
+
+        {/* Products Tab */}
+        {activeTab === 'products' && (
+          <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-white">Product Management</h2>
+              <Dialog open={showCreateProduct} onOpenChange={setShowCreateProduct}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-green-600 to-purple-600 hover:from-green-700 hover:to-purple-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-900 border-purple-500/30 text-white">
+                  <DialogHeader>
+                    <DialogTitle className="text-purple-300">Create New Product</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      Add a new product to your inventory.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="product-name" className="text-right text-gray-300">Name</Label>
+                      <Input
+                        id="product-name"
+                        value={newProduct.name}
+                        onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="Product name"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="product-description" className="text-right text-gray-300">Description</Label>
+                      <Textarea
+                        id="product-description"
+                        value={newProduct.description}
+                        onChange={(e) => setNewProduct(prev => ({ ...prev, description: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="Product description"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="product-price" className="text-right text-gray-300">Price</Label>
+                      <Input
+                        id="product-price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={newProduct.price}
+                        onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="product-category" className="text-right text-gray-300">Category</Label>
+                      <Input
+                        id="product-category"
+                        value={newProduct.category}
+                        onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="T-Shirts"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="product-stock" className="text-right text-gray-300">Stock</Label>
+                      <Input
+                        id="product-stock"
+                        type="number"
+                        min="0"
+                        value={newProduct.stock}
+                        onChange={(e) => setNewProduct(prev => ({ ...prev, stock: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="product-image" className="text-right text-gray-300">Image URL</Label>
+                      <Input
+                        id="product-image"
+                        value={newProduct.image_url}
+                        onChange={(e) => setNewProduct(prev => ({ ...prev, image_url: e.target.value }))}
+                        className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                        placeholder="https://example.com/image.jpg"
                       />
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger className="w-[180px] bg-slate-800 border-purple-500/30 text-white">
-                        <SelectValue placeholder="Sort by" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-purple-500/30">
-                        <SelectItem value="created_at">Join Date</SelectItem>
-                        <SelectItem value="username">Username</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="last_login">Last Login</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="outline"
-                      onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                      className="border-purple-500/30 text-purple-300 hover:bg-purple-600/20"
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowCreateProduct(false)} 
+                      className="border-purple-500/30 text-purple-300"
+                      disabled={submitting}
                     >
-                      {sortOrder === 'asc' ? '↑' : '↓'}
+                      Cancel
                     </Button>
+                    <Button 
+                      onClick={handleCreateProduct} 
+                      className="bg-gradient-to-r from-green-600 to-purple-600"
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Creating...' : 'Create Product'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <div className="rounded-lg border border-purple-500/20 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-purple-500/20 hover:bg-purple-900/20">
+                    <TableHead className="text-purple-300">Image</TableHead>
+                    <TableHead className="text-purple-300">Name</TableHead>
+                    <TableHead className="text-purple-300">Category</TableHead>
+                    <TableHead className="text-purple-300">Price</TableHead>
+                    <TableHead className="text-purple-300">Stock</TableHead>
+                    <TableHead className="text-purple-300">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((product) => (
+                    <TableRow key={product.id} className="border-purple-500/20 hover:bg-purple-900/10">
+                      <TableCell>
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="w-12 h-12 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center">
+                            <Package className="h-6 w-6 text-purple-400" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium text-white">{product.name}</TableCell>
+                      <TableCell>
+                        <Badge className="bg-purple-600/20 text-purple-300 border-purple-500/30">
+                          {product.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-white">₱{product.price}</TableCell>
+                      <TableCell>
+                        <Badge className={product.stock < 10 ? "bg-red-600/20 text-red-300 border-red-500/30" : "bg-green-600/20 text-green-300 border-green-500/30"}>
+                          {product.stock}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => openEditProductDialog(product)}
+                            variant="outline"
+                            size="sm"
+                            className="border-blue-500/30 text-blue-300 hover:bg-blue-600/20"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            variant="outline"
+                            size="sm"
+                            className="border-red-500/30 text-red-300 hover:bg-red-600/20"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {products.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-gray-400 py-8">
+                        No products found. Create your first product!
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        )}
+
+        {/* Audit Logs Tab */}
+        {activeTab === 'audit' && (
+          <Card className="p-6 bg-black/40 backdrop-blur-xl border-purple-500/20">
+            <h2 className="text-lg font-semibold text-white mb-6">System Audit Logs</h2>
+            <div className="space-y-3">
+              {auditLogs.map((log) => (
+                <div key={log.id} className="flex items-center justify-between p-4 rounded-lg bg-purple-900/20 border border-purple-500/20">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                    <div>
+                      <p className="text-white font-medium">{log.action}</p>
+                      <p className="text-gray-400 text-sm">{log.details}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-purple-300 text-sm">{log.user}</p>
+                    <p className="text-gray-500 text-xs">{new Date(log.timestamp).toLocaleString()}</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-purple-500/20 overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-purple-500/20 hover:bg-purple-900/20">
-                        <TableHead className="text-purple-300">Username</TableHead>
-                        <TableHead className="text-purple-300">Email</TableHead>
-                        <TableHead className="text-purple-300">Role</TableHead>
-                        <TableHead className="text-purple-300">Status</TableHead>
-                        <TableHead className="text-purple-300">Last Login</TableHead>
-                        <TableHead className="text-purple-300">Joined</TableHead>
-                        <TableHead className="text-right text-purple-300">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredProfiles.map((profile) => (
-                        <TableRow key={profile.id} className="border-purple-500/20 hover:bg-purple-900/10">
-                          <TableCell className="font-medium text-white">{profile.username}</TableCell>
-                          <TableCell className="text-gray-300">{profile.email}</TableCell>
-                          <TableCell>
-                            <Badge className={
-                              profile.role === 'super_admin' ? 'bg-yellow-600/20 text-yellow-300 border-yellow-500/30' : 
-                              profile.role === 'admin' ? 'bg-purple-600/20 text-purple-300 border-purple-500/30' : 
-                              'bg-blue-600/20 text-blue-300 border-blue-500/30'
-                            }>
-                              {profile.role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {profile.account_locked ? (
-                              <Badge className="bg-red-600/20 text-red-300 border-red-500/30">Locked</Badge>
-                            ) : (
-                              <Badge className="bg-green-600/20 text-green-300 border-green-500/30">Active</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-gray-300">
-                            {profile.last_login ? format(new Date(profile.last_login), 'PP') : 'Never'}
-                          </TableCell>
-                          <TableCell className="text-gray-300">{format(new Date(profile.created_at), 'PP')}</TableCell>
-                          <TableCell className="text-right">
-                            {profile.role !== 'super_admin' && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0 text-gray-300 hover:bg-purple-600/20">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-slate-800 border-purple-500/30">
-                                  {profile.role === 'user' && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleRoleUpdate(profile.id, 'admin')}
-                                      className="text-purple-300 hover:bg-purple-600/20"
-                                    >
-                                      <Shield className="mr-2 h-4 w-4" />
-                                      Make Admin
-                                    </DropdownMenuItem>
-                                  )}
-                                  {profile.role === 'admin' && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleRoleUpdate(profile.id, 'user')}
-                                      className="text-orange-400 hover:bg-orange-600/20"
-                                    >
-                                      <UserX className="mr-2 h-4 w-4" />
-                                      Remove Admin
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuSeparator className="bg-purple-500/20" />
-                                  {profile.account_locked && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleUnlockAccount(profile.id)}
-                                      className="text-green-400 hover:bg-green-600/20"
-                                    >
-                                      <Lock className="mr-2 h-4 w-4" />
-                                      Unlock Account
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem
-                                    onClick={() => handleRevokeSessions(profile.id)}
-                                    className="text-blue-400 hover:bg-blue-600/20"
-                                  >
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    Revoke Sessions
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator className="bg-purple-500/20" />
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedUser(profile);
-                                      setShowDeleteConfirm(true);
-                                    }}
-                                    className="text-red-400 hover:bg-red-600/20"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete User
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              ))}
+            </div>
+          </Card>
+        )}
 
-          <TabsContent value="audit">
-            <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-              <CardHeader>
-                <CardTitle className="text-white">System Audit Log</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-purple-500/20 overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-purple-500/20 hover:bg-purple-900/20">
-                        <TableHead className="text-purple-300">Time</TableHead>
-                        <TableHead className="text-purple-300">Action</TableHead>
-                        <TableHead className="text-purple-300">User</TableHead>
-                        <TableHead className="text-purple-300">Details</TableHead>
-                        <TableHead className="text-purple-300">IP Address</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {auditLogs.map((log) => (
-                        <TableRow key={log.id} className="border-purple-500/20 hover:bg-purple-900/10">
-                          <TableCell className="text-gray-300">{format(new Date(log.created_at), 'PP p')}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-blue-600/20 text-blue-300 border-blue-500/30">
-                              {log.action.replace(/_/g, ' ')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-gray-300">
-                            {profiles.find(p => p.id === log.user_id)?.username || 'Unknown'}
-                          </TableCell>
-                          <TableCell>
-                            <code className="text-sm bg-slate-800 text-purple-300 px-2 py-1 rounded">
-                              {JSON.stringify(log.details)}
-                            </code>
-                          </TableCell>
-                          <TableCell className="text-gray-300">{log.ip_address || 'N/A'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="sessions">
-            <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-              <CardHeader>
-                <CardTitle className="text-white">Active User Sessions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-purple-500/20 overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-purple-500/20 hover:bg-purple-900/20">
-                        <TableHead className="text-purple-300">User</TableHead>
-                        <TableHead className="text-purple-300">IP Address</TableHead>
-                        <TableHead className="text-purple-300">User Agent</TableHead>
-                        <TableHead className="text-purple-300">Created</TableHead>
-                        <TableHead className="text-purple-300">Expires</TableHead>
-                        <TableHead className="text-purple-300">Status</TableHead>
-                        <TableHead className="text-right text-purple-300">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sessions.map((session) => (
-                        <TableRow key={session.id} className="border-purple-500/20 hover:bg-purple-900/10">
-                          <TableCell className="text-white">
-                            {profiles.find(p => p.id === session.user_id)?.username || 'Unknown'}
-                          </TableCell>
-                          <TableCell className="text-gray-300">{session.ip_address || 'N/A'}</TableCell>
-                          <TableCell className="max-w-xs truncate text-gray-300">
-                            {session.user_agent || 'N/A'}
-                          </TableCell>
-                          <TableCell className="text-gray-300">{format(new Date(session.created_at), 'PP p')}</TableCell>
-                          <TableCell className="text-gray-300">{format(new Date(session.expires_at), 'PP p')}</TableCell>
-                          <TableCell>
-                            <Badge className={session.revoked ? 'bg-red-600/20 text-red-300 border-red-500/30' : 'bg-green-600/20 text-green-300 border-green-500/30'}>
-                              {session.revoked ? 'Revoked' : 'Active'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {!session.revoked && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRevokeSessions(session.user_id)}
-                                className="border-red-500/30 text-red-300 hover:bg-red-600/20"
-                              >
-                                <LogOut className="h-4 w-4 mr-2" />
-                                Revoke
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="products">
-            <Card className="bg-black/40 backdrop-blur-xl border-purple-500/20">
-              <CardHeader>
-                <CardTitle className="text-white">Products Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-purple-500/20 overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-purple-500/20 hover:bg-purple-900/20">
-                        <TableHead className="text-purple-300">Image</TableHead>
-                        <TableHead className="text-purple-300">Name</TableHead>
-                        <TableHead className="text-purple-300">Category</TableHead>
-                        <TableHead className="text-purple-300">Price</TableHead>
-                        <TableHead className="text-purple-300">Stock</TableHead>
-                        <TableHead className="text-purple-300">Created</TableHead>
-                        <TableHead className="text-right text-purple-300">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {products.map((product) => (
-                        <TableRow key={product.id} className="border-purple-500/20 hover:bg-purple-900/10">
-                          <TableCell>
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="w-12 h-12 object-cover rounded-md"
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium text-white">{product.name}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-purple-600/20 text-purple-300 border-purple-500/30">{product.category}</Badge>
-                          </TableCell>
-                          <TableCell className="text-white">₱{product.price.toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Badge className={product.stock < 10 ? "bg-red-600/20 text-red-300 border-red-500/30" : "bg-green-600/20 text-green-300 border-green-500/30"}>
-                              {product.stock}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-gray-300">{format(new Date(product.created_at), 'PP')}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="outline" size="sm" className="border-blue-500/30 text-blue-300 hover:bg-blue-600/20">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        {/* Edit User Dialog */}
+        <Dialog open={showEditUser} onOpenChange={setShowEditUser}>
           <DialogContent className="bg-slate-900 border-purple-500/30 text-white">
             <DialogHeader>
-              <DialogTitle className="text-red-300">Confirm Delete User</DialogTitle>
+              <DialogTitle className="text-purple-300">Edit User</DialogTitle>
               <DialogDescription className="text-gray-400">
-                Are you sure you want to delete {selectedUser?.username}? This action cannot be undone.
+                Update user information.
               </DialogDescription>
             </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-user-email" className="text-right text-gray-300">Email</Label>
+                <Input
+                  id="edit-user-email"
+                  type="email"
+                  value={newUser.email}
+                  disabled
+                  className="col-span-3 bg-slate-700 border-purple-500/30 text-gray-400"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-user-username" className="text-right text-gray-300">Username</Label>
+                <Input
+                  id="edit-user-username"
+                  value={newUser.username}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-user-fullname" className="text-right text-gray-300">Full Name</Label>
+                <Input
+                  id="edit-user-fullname"
+                  value={newUser.full_name}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, full_name: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-user-role" className="text-right text-gray-300">Role</Label>
+                <select
+                  id="edit-user-role"
+                  value={newUser.role}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border border-purple-500/30 text-white rounded-md px-3 py-2"
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </div>
+            </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} className="border-purple-500/30 text-purple-300">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowEditUser(false)} 
+                className="border-purple-500/30 text-purple-300"
+                disabled={submitting}
+              >
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700">
-                Delete User
+              <Button 
+                onClick={handleEditUser} 
+                className="bg-gradient-to-r from-blue-600 to-purple-600"
+                disabled={submitting}
+              >
+                {submitting ? 'Updating...' : 'Update User'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Product Dialog */}
+        <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
+          <DialogContent className="bg-slate-900 border-purple-500/30 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-purple-300">Edit Product</DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Update product information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-product-name" className="text-right text-gray-300">Name</Label>
+                <Input
+                  id="edit-product-name"
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-product-description" className="text-right text-gray-300">Description</Label>
+                <Textarea
+                  id="edit-product-description"
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, description: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-product-price" className="text-right text-gray-300">Price</Label>
+                <Input
+                  id="edit-product-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={newProduct.price}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-product-category" className="text-right text-gray-300">Category</Label>
+                <Input
+                  id="edit-product-category"
+                  value={newProduct.category}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-product-stock" className="text-right text-gray-300">Stock</Label>
+                <Input
+                  id="edit-product-stock"
+                  type="number"
+                  min="0"
+                  value={newProduct.stock}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, stock: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-product-image" className="text-right text-gray-300">Image URL</Label>
+                <Input
+                  id="edit-product-image"
+                  value={newProduct.image_url}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, image_url: e.target.value }))}
+                  className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowEditProduct(false)} 
+                className="border-purple-500/30 text-purple-300"
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleEditProduct} 
+                className="bg-gradient-to-r from-green-600 to-purple-600"
+                disabled={submitting}
+              >
+                {submitting ? 'Updating...' : 'Update Product'}
               </Button>
             </DialogFooter>
           </DialogContent>

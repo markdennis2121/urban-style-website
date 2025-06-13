@@ -33,11 +33,12 @@ const AdminDashboard = () => {
   const [showCreateProduct, setShowCreateProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
     price: '',
-    category: '',
+    category: 'T-Shirts',
     stock: '',
     image_url: ''
   });
@@ -49,8 +50,18 @@ const AdminDashboard = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('Loading admin dashboard data...');
+      
       const profile = await getCurrentProfile();
+      console.log('Current profile:', profile);
       setCurrentUser(profile);
+
+      // Verify admin access
+      if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+        console.error('Access denied - insufficient permissions');
+        navigate('/admin/login');
+        return;
+      }
 
       // Load products
       const { data: productsData, error: productsError } = await supabase
@@ -58,7 +69,12 @@ const AdminDashboard = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (productsError) throw productsError;
+      if (productsError) {
+        console.error('Products fetch error:', productsError);
+        throw productsError;
+      }
+      
+      console.log('Products loaded:', productsData);
       setProducts(productsData || []);
     } catch (err) {
       console.error('Error loading data:', err);
@@ -70,6 +86,7 @@ const AdminDashboard = () => {
 
   const handleLogout = async () => {
     try {
+      console.log('Admin logging out...');
       await supabase.auth.signOut();
       navigate('/admin/login');
     } catch (err) {
@@ -77,20 +94,57 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleCreateProduct = async () => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .insert({
-          name: newProduct.name,
-          description: newProduct.description,
-          price: parseFloat(newProduct.price),
-          category: newProduct.category,
-          stock: parseInt(newProduct.stock),
-          image_url: newProduct.image_url
-        });
+  const validateProductData = (productData) => {
+    const errors = [];
+    
+    if (!productData.name?.trim()) errors.push('Product name is required');
+    if (!productData.description?.trim()) errors.push('Description is required');
+    if (!productData.price || parseFloat(productData.price) <= 0) errors.push('Valid price is required');
+    if (!productData.category?.trim()) errors.push('Category is required');
+    if (!productData.stock || parseInt(productData.stock) < 0) errors.push('Valid stock quantity is required');
+    
+    return errors;
+  };
 
-      if (error) throw error;
+  const handleCreateProduct = async () => {
+    if (submitting) return;
+    
+    try {
+      setSubmitting(true);
+      console.log('Creating product with data:', newProduct);
+      
+      const validationErrors = validateProductData(newProduct);
+      if (validationErrors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: validationErrors.join(', '),
+        });
+        return;
+      }
+
+      const productData = {
+        name: newProduct.name.trim(),
+        description: newProduct.description.trim(),
+        price: parseFloat(newProduct.price),
+        category: newProduct.category.trim(),
+        stock: parseInt(newProduct.stock),
+        image_url: newProduct.image_url.trim() || null
+      };
+
+      console.log('Inserting product data:', productData);
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert([productData])
+        .select();
+
+      if (error) {
+        console.error('Product creation error:', error);
+        throw error;
+      }
+
+      console.log('Product created successfully:', data);
 
       toast({
         title: "Product Created",
@@ -102,7 +156,7 @@ const AdminDashboard = () => {
         name: '',
         description: '',
         price: '',
-        category: '',
+        category: 'T-Shirts',
         stock: '',
         image_url: ''
       });
@@ -112,26 +166,48 @@ const AdminDashboard = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create product.",
+        description: err.message || "Failed to create product.",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleEditProduct = async () => {
+    if (submitting) return;
+    
     try {
+      setSubmitting(true);
+      console.log('Updating product:', selectedProduct?.id, 'with data:', newProduct);
+      
+      const validationErrors = validateProductData(newProduct);
+      if (validationErrors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: validationErrors.join(', '),
+        });
+        return;
+      }
+
+      const productData = {
+        name: newProduct.name.trim(),
+        description: newProduct.description.trim(),
+        price: parseFloat(newProduct.price),
+        category: newProduct.category.trim(),
+        stock: parseInt(newProduct.stock),
+        image_url: newProduct.image_url.trim() || null
+      };
+
       const { error } = await supabase
         .from('products')
-        .update({
-          name: newProduct.name,
-          description: newProduct.description,
-          price: parseFloat(newProduct.price),
-          category: newProduct.category,
-          stock: parseInt(newProduct.stock),
-          image_url: newProduct.image_url
-        })
+        .update(productData)
         .eq('id', selectedProduct.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Product update error:', error);
+        throw error;
+      }
 
       toast({
         title: "Product Updated",
@@ -146,19 +222,28 @@ const AdminDashboard = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update product.",
+        description: err.message || "Failed to update product.",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDeleteProduct = async (productId) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    
     try {
+      console.log('Deleting product:', productId);
+      
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', productId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Product deletion error:', error);
+        throw error;
+      }
 
       toast({
         title: "Product Deleted",
@@ -171,7 +256,7 @@ const AdminDashboard = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete product.",
+        description: err.message || "Failed to delete product.",
       });
     }
   };
@@ -184,7 +269,7 @@ const AdminDashboard = () => {
       price: product.price.toString(),
       category: product.category,
       stock: product.stock.toString(),
-      image_url: product.image_url
+      image_url: product.image_url || ''
     });
     setShowEditProduct(true);
   };
@@ -304,6 +389,7 @@ const AdminDashboard = () => {
                       value={newProduct.name}
                       onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
                       className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                      placeholder="Product name"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -313,6 +399,7 @@ const AdminDashboard = () => {
                       value={newProduct.description}
                       onChange={(e) => setNewProduct(prev => ({ ...prev, description: e.target.value }))}
                       className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                      placeholder="Product description"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -320,9 +407,12 @@ const AdminDashboard = () => {
                     <Input
                       id="price"
                       type="number"
+                      step="0.01"
+                      min="0"
                       value={newProduct.price}
                       onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
                       className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                      placeholder="0.00"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -332,6 +422,7 @@ const AdminDashboard = () => {
                       value={newProduct.category}
                       onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
                       className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                      placeholder="T-Shirts"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -339,9 +430,11 @@ const AdminDashboard = () => {
                     <Input
                       id="stock"
                       type="number"
+                      min="0"
                       value={newProduct.stock}
                       onChange={(e) => setNewProduct(prev => ({ ...prev, stock: e.target.value }))}
                       className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                      placeholder="0"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -351,15 +444,25 @@ const AdminDashboard = () => {
                       value={newProduct.image_url}
                       onChange={(e) => setNewProduct(prev => ({ ...prev, image_url: e.target.value }))}
                       className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
+                      placeholder="https://example.com/image.jpg"
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowCreateProduct(false)} className="border-purple-500/30 text-purple-300">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowCreateProduct(false)} 
+                    className="border-purple-500/30 text-purple-300"
+                    disabled={submitting}
+                  >
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateProduct} className="bg-gradient-to-r from-purple-600 to-pink-600">
-                    Create Product
+                  <Button 
+                    onClick={handleCreateProduct} 
+                    className="bg-gradient-to-r from-purple-600 to-pink-600"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Creating...' : 'Create Product'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -382,11 +485,20 @@ const AdminDashboard = () => {
                 {products.map((product) => (
                   <TableRow key={product.id} className="border-purple-500/20 hover:bg-purple-900/10">
                     <TableCell>
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-12 h-12 object-cover rounded-lg"
-                      />
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-12 h-12 object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center">
+                          <Package className="h-6 w-6 text-purple-400" />
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="font-medium text-white">{product.name}</TableCell>
                     <TableCell>
@@ -422,6 +534,13 @@ const AdminDashboard = () => {
                     </TableCell>
                   </TableRow>
                 ))}
+                {products.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-gray-400 py-8">
+                      No products found. Create your first product!
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
@@ -460,6 +579,8 @@ const AdminDashboard = () => {
                 <Input
                   id="edit-price"
                   type="number"
+                  step="0.01"
+                  min="0"
                   value={newProduct.price}
                   onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
                   className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
@@ -479,6 +600,7 @@ const AdminDashboard = () => {
                 <Input
                   id="edit-stock"
                   type="number"
+                  min="0"
                   value={newProduct.stock}
                   onChange={(e) => setNewProduct(prev => ({ ...prev, stock: e.target.value }))}
                   className="col-span-3 bg-slate-800 border-purple-500/30 text-white"
@@ -495,11 +617,20 @@ const AdminDashboard = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowEditProduct(false)} className="border-purple-500/30 text-purple-300">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowEditProduct(false)} 
+                className="border-purple-500/30 text-purple-300"
+                disabled={submitting}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleEditProduct} className="bg-gradient-to-r from-purple-600 to-pink-600">
-                Update Product
+              <Button 
+                onClick={handleEditProduct} 
+                className="bg-gradient-to-r from-purple-600 to-pink-600"
+                disabled={submitting}
+              >
+                {submitting ? 'Updating...' : 'Update Product'}
               </Button>
             </DialogFooter>
           </DialogContent>
