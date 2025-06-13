@@ -29,7 +29,7 @@ const Footer = () => {
     <footer className="py-20 bg-foreground text-background">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 max-w-7xl mx-auto px-4">
         <div>          <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-6">
-            <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="Urban Logo" className="w-full h-full object-contain" />
           </div>
           <h4 className="text-xl font-bold mb-6">Contact</h4>
           <p className="mb-3"><strong>Address: </strong> Canetown subd. Victoria City</p>

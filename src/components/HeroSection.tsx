@@ -8,7 +8,7 @@ const HeroSection = () => {
     <section 
       className="bg-cover bg-center h-[90vh] w-full flex flex-col items-center justify-center text-center px-4 relative mt-16"
       style={{
-        backgroundImage: "url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=800&fit=crop')"
+        backgroundImage: "url('https://www.camella.com.ph/wp-content/uploads/2022/04/Bacolod-City-Lacson-Tourism-Strip-Photo-from-SkyscraperCity-Bacolod-via-Facebook.jpg')"
       }}
     >
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50"></div>

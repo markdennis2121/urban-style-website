@@ -108,7 +108,7 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold mb-1">Address</h3>
                     <p className="text-muted-foreground">
-                      Canetown subd. Victoria City<br />
+                      Celine Homes, Bacolod City<br />
                       Building 123, Floor 4<br />
                       City, State 12345
                     </p>
@@ -119,7 +119,7 @@ const Contact = () => {
                   <Phone className="w-6 h-6 text-primary mt-1" />
                   <div>
                     <h3 className="font-semibold mb-1">Phone</h3>
-                    <p className="text-muted-foreground">094602345678</p>
+                    <p className="text-muted-foreground">09709804794</p>
                   </div>
                 </div>
                 
@@ -127,7 +127,7 @@ const Contact = () => {
                   <Mail className="w-6 h-6 text-primary mt-1" />
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
-                    <p className="text-muted-foreground">contact@urban.com</p>
+                    <p className="text-muted-foreground">UrbanPH@gmail.com</p>
                   </div>
                 </div>
                 
