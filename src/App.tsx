@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,12 @@ import Contact from "./pages/Contact";
 import Blog from "./pages/Blog";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
+import UserLoginPage from "./components/auth/UserLoginPage";
+import AdminLoginPage from "./components/auth/AdminLoginPage";
+import SuperAdminLoginPage from "./components/auth/SuperAdminLoginPage";
+import SignUpPage from "./components/auth/SignUpPage";
+import AuthCallback from "./components/auth/AuthCallback";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -25,14 +30,61 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/blog" element={<Blog />} />
             <Route path="/about" element={<About />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/contact" element={<Contact />} />
+
+            {/* Auth Routes */}
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/login" element={<UserLoginPage />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+
+            {/* Protected User Routes */}
+            <Route
+              path="/cart"
+              element={
+                <ProtectedRoute allowedRoles={["user", "admin", "super_admin"]}>
+                  <Cart />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute allowedRoles={["user", "admin", "super_admin"]}>
+                  <Checkout />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Routes */}
+            <Route
+              path="/admin/*"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
+                  {/* Add your admin dashboard component here */}
+                  <div>Admin Dashboard</div>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Super Admin Routes */}
+            <Route
+              path="/superadmin/*"
+              element={
+                <ProtectedRoute allowedRoles={["super_admin"]}>
+                  {/* Add your super admin dashboard component here */}
+                  <div>Super Admin Dashboard</div>
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
