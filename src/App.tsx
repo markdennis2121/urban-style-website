@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +20,7 @@ import SuperAdminLoginPage from "./components/auth/SuperAdminLoginPage";
 import SignUpPage from "./components/auth/SignUpPage";
 import AuthCallback from "./components/auth/AuthCallback";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminDashboard from "./pages/admin/Dashboard";
 import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 
 const queryClient = new QueryClient();
