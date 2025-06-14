@@ -72,9 +72,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             {product.isNew && <Badge className="bg-green-500 rounded-xl">New</Badge>}
             {product.isSale && <Badge className="bg-red-500 rounded-xl">Sale</Badge>}
-            {product.stock !== undefined && (
+            {/* Show stock only for database products that have stock property */}
+            {(product as any).stock !== undefined && (
               <Badge variant="outline" className="bg-background/80 backdrop-blur-sm border-border/50 rounded-xl">
-                Stock: {product.stock}
+                Stock: {(product as any).stock}
               </Badge>
             )}
           </div>

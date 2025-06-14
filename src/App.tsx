@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,7 +22,7 @@ import AuthCallback from "./components/auth/AuthCallback";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboard from "./pages/admin/Dashboard";
 import SuperAdminDashboard from "./pages/superadmin/Dashboard";
-import WishlistProvider from "./contexts/WishlistContext";
+import { WishlistProvider } from "./contexts/WishlistContext";
 import Wishlist from "./pages/Wishlist";
 
 const queryClient = new QueryClient();
