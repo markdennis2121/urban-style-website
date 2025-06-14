@@ -30,19 +30,33 @@ const Contact = () => {
     
     try {
       console.log('Attempting to send message:', formData);
+      console.log('Supabase client config:', {
+        url: import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Not set',
+        key: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Not set'
+      });
       
+      // Validate form data
+      if (!formData.name.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
+        throw new Error('All fields are required');
+      }
+
       const { data, error } = await supabase
         .from('contact_messages')
         .insert([{
-          name: formData.name,
-          email: formData.email,
-          subject: formData.subject,
-          message: formData.message
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          subject: formData.subject.trim(),
+          message: formData.message.trim()
         }])
         .select();
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
 
@@ -54,11 +68,21 @@ const Contact = () => {
       });
       
       setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error sending message:', err);
+      
+      let errorMessage = "Failed to send message. Please try again.";
+      if (err.message === 'All fields are required') {
+        errorMessage = "Please fill in all fields.";
+      } else if (err.code === '42P01') {
+        errorMessage = "Database table not found. Please contact support.";
+      } else if (err.message) {
+        errorMessage = `Error: ${err.message}`;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
