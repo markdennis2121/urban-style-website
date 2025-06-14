@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -119,7 +118,6 @@ const AdminDashboard = () => {
               <ProductManagement 
                 products={products}
                 loading={loading}
-                onProductDeleted={deleteProduct}
                 onProductCreated={loadProducts}
               />
             </TabsContent>
