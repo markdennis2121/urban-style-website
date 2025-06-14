@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { products } from '../data/products';
 import { supabase } from '@/lib/supabase/client';
 import ProductCard from './ProductCard';
 
@@ -43,9 +42,6 @@ const ProductsSection = () => {
     }
   };
 
-  // Combine existing products with database products, filter out of stock
-  const existingFeaturedProducts = products.slice(0, 6).filter(product => product.inStock);
-  
   // Transform database products to match Product interface
   const transformedDbProducts = dbProducts.map(product => ({
     id: product.id,
@@ -65,8 +61,6 @@ const ProductsSection = () => {
     isNew: false,
     isSale: false,
   }));
-
-  const allFeaturedProducts = [...existingFeaturedProducts, ...transformedDbProducts];
 
   return (
     <section className="py-20 bg-gradient-to-br from-background via-muted/10 to-background">
@@ -91,9 +85,9 @@ const ProductsSection = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : transformedDbProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {allFeaturedProducts.map((product, index) => (
+            {transformedDbProducts.map((product, index) => (
               <div 
                 key={product.id}
                 className="animate-fade-in hover:scale-105 transition-all duration-500"
@@ -102,6 +96,12 @@ const ProductsSection = () => {
                 <ProductCard product={product} />
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4 opacity-50">⭐</div>
+            <h3 className="text-2xl font-bold mb-2 text-foreground">No Featured Products</h3>
+            <p className="text-muted-foreground">Featured products will appear here once added by admin!</p>
           </div>
         )}
       </div>

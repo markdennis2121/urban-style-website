@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { products } from '../data/products';
 import { supabase } from '@/lib/supabase/client';
 import ProductCard from './ProductCard';
 
@@ -43,9 +42,6 @@ const NewArrivalsSection = () => {
     }
   };
 
-  // Keep existing new products that are in stock
-  const existingNewProducts = products.filter(product => product.isNew && product.inStock).slice(0, 4);
-  
   // Transform database products to match Product interface
   const transformedDbProducts = dbProducts.map(product => ({
     id: product.id,
@@ -65,8 +61,6 @@ const NewArrivalsSection = () => {
     isNew: true,
     isSale: false,
   }));
-
-  const allNewProducts = [...existingNewProducts, ...transformedDbProducts];
 
   return (
     <section className="py-20 bg-gradient-to-br from-muted/20 via-background to-muted/20">
@@ -91,9 +85,9 @@ const NewArrivalsSection = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : transformedDbProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {allNewProducts.map((product, index) => (
+            {transformedDbProducts.map((product, index) => (
               <div 
                 key={product.id}
                 className="animate-fade-in hover:scale-105 transition-all duration-500"
@@ -102,6 +96,12 @@ const NewArrivalsSection = () => {
                 <ProductCard product={product} />
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4 opacity-50">📦</div>
+            <h3 className="text-2xl font-bold mb-2 text-foreground">No New Arrivals</h3>
+            <p className="text-muted-foreground">Check back soon for new products!</p>
           </div>
         )}
       </div>

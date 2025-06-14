@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import { categories, brands, products as existingProducts } from '../data/products';
+import { categories, brands } from '../data/products';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,7 +68,7 @@ const Shop = () => {
         console.log('Transforming product:', product.name, 'Image field:', product.image);
         return {
           ...product,
-          image: product.image || '/placeholder.svg', // Use the image field directly
+          image: product.image || '/placeholder.svg',
           brand: product.brand || 'Admin Added',
           rating: 4.5,
           reviews: 0,
@@ -88,9 +88,9 @@ const Shop = () => {
     }
   };
 
+  // Only use database products now
   const allProducts = useMemo(() => {
-    const inStockExistingProducts = existingProducts.filter(product => product.inStock);
-    return [...inStockExistingProducts, ...dbProducts];
+    return dbProducts;
   }, [dbProducts]);
 
   const filteredProducts = useMemo(() => {
@@ -350,7 +350,7 @@ const Shop = () => {
                 <p className="text-muted-foreground mb-6 text-lg">
                   {searchTerm 
                     ? `No results found for "${searchTerm}". Try different keywords or adjust your filters.`
-                    : 'Try adjusting your filters or search terms'
+                    : 'No products available. Add products through the admin dashboard!'
                   }
                 </p>
                 <Button onClick={clearFilters} className="bg-primary hover:bg-primary/90 rounded-xl px-8 py-3">
