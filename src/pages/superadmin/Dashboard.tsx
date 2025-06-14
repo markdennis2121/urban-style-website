@@ -11,6 +11,7 @@ import SuperAdminProductManagement from '@/components/superadmin/SuperAdminProdu
 import UserManagement from '@/components/admin/UserManagement';
 import WishlistManagement from '@/components/admin/WishlistManagement';
 import MessageManagement from '@/components/admin/MessageManagement';
+import WishlistAnalytics from '@/components/admin/WishlistAnalytics';
 
 const SuperAdminDashboard = () => {
   const {
@@ -127,10 +128,9 @@ const SuperAdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="wishlists">
-              <WishlistManagement 
+              <WishlistAnalytics 
                 wishlists={wishlists}
                 onRefresh={loadWishlistsData}
-                onDelete={deleteWishlistItem}
               />
             </TabsContent>
 
