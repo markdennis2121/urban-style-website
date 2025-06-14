@@ -58,62 +58,22 @@ function App() {
                     <SecurityHeaders />
                     <ErrorBoundary>
                       <Routes>
-                        {/* Auth Routes - These should be accessible without login */}
+                        {/* Auth Routes */}
                         <Route path="/signup" element={<SignUpPage />} />
                         <Route path="/login" element={<UserLoginPage />} />
                         <Route path="/admin/login" element={<AdminLoginPage />} />
                         <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
 
-                        {/* All other routes require authentication */}
-                        <Route
-                          path="/"
-                          element={
-                            <ProtectedRoute>
-                              <Index />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/shop"
-                          element={
-                            <ProtectedRoute>
-                              <Shop />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/product/:id"
-                          element={
-                            <ProtectedRoute>
-                              <ProductDetail />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/about"
-                          element={
-                            <ProtectedRoute>
-                              <About />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/blog"
-                          element={
-                            <ProtectedRoute>
-                              <Blog />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/contact"
-                          element={
-                            <ProtectedRoute>
-                              <Contact />
-                            </ProtectedRoute>
-                          }
-                        />
+                        {/* Public browsing routes - no authentication required */}
+                        <Route path="/" element={<Index />} />
+                        <Route path="/shop" element={<Shop />} />
+                        <Route path="/product/:id" element={<ProductDetail />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/blog" element={<Blog />} />
+                        <Route path="/contact" element={<Contact />} />
+
+                        {/* Protected shopping routes - require authentication */}
                         <Route
                           path="/cart"
                           element={
@@ -129,6 +89,14 @@ function App() {
                               <Checkout />
                             </ProtectedRoute>
                           }
+                        />
+                        <Route 
+                          path="/wishlist" 
+                          element={
+                            <ProtectedRoute>
+                              <Wishlist />
+                            </ProtectedRoute>
+                          } 
                         />
 
                         {/* Protected Admin Routes */}
@@ -149,16 +117,6 @@ function App() {
                               <SuperAdminDashboard />
                             </ProtectedRoute>
                           }
-                        />
-
-                        {/* Wishlist Route */}
-                        <Route 
-                          path="/wishlist" 
-                          element={
-                            <ProtectedRoute>
-                              <Wishlist />
-                            </ProtectedRoute>
-                          } 
                         />
 
                         {/* 404 Route */}

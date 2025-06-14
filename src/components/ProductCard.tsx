@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Star, Package, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +8,7 @@ import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useProductComparison } from '../contexts/ProductComparisonContext';
 import { useAdminMode } from '../contexts/AdminModeContext';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import LazyImage from '@/components/ui/LazyImage';
 
@@ -37,13 +37,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToWishlist, isInWishlist } = useWishlist();
   const { addToCompare, isInCompare, canAddToCompare } = useProductComparison();
   const { canUseShoppingFeatures } = useAdminMode();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const productIdString = String(product.id);
+
+  const requireAuth = (action: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: `Please log in to ${action}.`,
+        variant: "destructive"
+      });
+      navigate('/login');
+      return false;
+    }
+    return true;
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (!requireAuth('add items to cart')) return;
     
     if (!canUseShoppingFeatures) {
       toast({
@@ -73,6 +90,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (!requireAuth('manage your wishlist')) return;
     
     if (!canUseShoppingFeatures) {
       toast({
@@ -111,7 +130,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     });
   };
 
-  const isWishlisted = isInWishlist(productIdString);
+  const isWishlisted = isAuthenticated && isInWishlist(productIdString);
   const isInComparison = isInCompare(productIdString);
 
   return (
@@ -144,7 +163,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             )}
           </div>
 
-          {/* Action Buttons - only show if shopping features are enabled */}
+          {/* Action Buttons - show for everyone, but require auth for actions */}
           {canUseShoppingFeatures && (
             <div className="absolute top-3 right-3 flex flex-col gap-2">
               <Button 
@@ -176,7 +195,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           )}
 
-          {/* Quick Add Button - only show if shopping features are enabled */}
+          {/* Quick Add Button - show for everyone, but require auth for action */}
           {canUseShoppingFeatures && product.inStock && (
             <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <Button 
@@ -238,7 +257,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           </div>
 
-          {/* Add to Cart Button - only show if shopping features are enabled */}
+          {/* Add to Cart Button - show for everyone, but require auth for action */}
           {canUseShoppingFeatures && (
             <Button 
               onClick={handleAddToCart}

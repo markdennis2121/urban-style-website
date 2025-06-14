@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Menu, X, User, LogOut, Heart } from 'lucide-react';
+import { ShoppingBag, Menu, X, User, LogOut, Heart, LogIn } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useAdminMode } from '../contexts/AdminModeContext';
+import { useAuth } from '../hooks/useAuth';
 import { supabase, getCurrentProfile } from '@/lib/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -27,13 +28,16 @@ const Header = () => {
   const { state } = useCart();
   const { state: wishlistState } = useWishlist();
   const { canUseShoppingFeatures } = useAdminMode();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadCurrentUser();
+    if (isAuthenticated) {
+      loadCurrentUser();
+    }
     loadSearchData();
-  }, []);
+  }, [isAuthenticated]);
 
   const loadCurrentUser = async () => {
     try {
@@ -88,10 +92,29 @@ const Header = () => {
     }
   };
 
+  const handleAuthAction = (action: string) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return false;
+    }
+    return true;
+  };
+
+  const handleCartClick = () => {
+    if (!handleAuthAction('access cart')) return;
+    navigate('/cart');
+  };
+
+  const handleWishlistClick = () => {
+    if (!handleAuthAction('access wishlist')) return;
+    navigate('/wishlist');
+  };
+
   const handleLogout = async () => {
     try {
       console.log('User logging out, role:', currentUser?.role);
       await supabase.auth.signOut();
+      setCurrentUser(null);
       
       // Redirect based on user role
       switch (currentUser?.role) {
@@ -102,13 +125,12 @@ const Header = () => {
           navigate('/admin/login');
           break;
         default:
-          navigate('/login');
+          navigate('/');
           break;
       }
     } catch (error) {
       console.error('Logout error:', error);
-      // Fallback to general login page
-      navigate('/login');
+      navigate('/');
     }
   };
 
@@ -117,8 +139,8 @@ const Header = () => {
     { name: 'Shop', href: '/shop', isActive: location.pathname === '/shop' },
     { name: 'Blog', href: '/blog', isActive: location.pathname === '/blog' },
     { name: 'About', href: '/about', isActive: location.pathname === '/about' },
-    { name: 'Contact', href: '/contact', isActive: location.pathname === '/contact', requireCustomerMode: true },
-  ].filter(item => !item.requireCustomerMode || canUseShoppingFeatures);
+    { name: 'Contact', href: '/contact', isActive: location.pathname === '/contact' },
+  ];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg">
@@ -158,8 +180,8 @@ const Header = () => {
 
           {/* Right side: Admin Toggle, Search, Wishlist, Cart, Profile */}
           <div className="flex items-center space-x-4">
-            {/* Admin Mode Toggle */}
-            <AdminModeToggle />
+            {/* Admin Mode Toggle - only show for authenticated users */}
+            {isAuthenticated && <AdminModeToggle />}
 
             {/* Search */}
             <div className="hidden md:block">
@@ -171,92 +193,107 @@ const Header = () => {
               />
             </div>
 
-            {/* Wishlist - only show if shopping features are enabled */}
+            {/* Wishlist - show for everyone, but require auth for access */}
             {canUseShoppingFeatures && (
-              <Link to="/wishlist">
-                <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-muted/80 text-primary hover:text-muted-foreground">
-                  <Heart className="w-5 h-5" />
-                  {wishlistState.items.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {wishlistState.items.length}
-                    </span>
-                  )}
-                </Button>
-              </Link>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative rounded-xl hover:bg-muted/80 text-primary hover:text-muted-foreground"
+                onClick={handleWishlistClick}
+              >
+                <Heart className="w-5 h-5" />
+                {isAuthenticated && wishlistState.items.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {wishlistState.items.length}
+                  </span>
+                )}
+              </Button>
             )}
 
-            {/* Cart Icon - only show if shopping features are enabled */}
+            {/* Cart Icon - show for everyone, but require auth for access */}
             {canUseShoppingFeatures && (
-              <Link className="text-primary hover:text-muted-foreground transition-colors duration-200 relative" to="/cart">
-                <div className="p-2 rounded-xl hover:bg-muted/80 transition-colors">
-                  <ShoppingBag className="w-5 h-5" />
-                  {state.itemCount > 0 && (
-                    <span className="absolute top-0 right-0 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {state.itemCount}
-                    </span>
-                  )}
-                </div>
-              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative rounded-xl hover:bg-muted/80 text-primary hover:text-muted-foreground"
+                onClick={handleCartClick}
+              >
+                <ShoppingBag className="w-5 h-5" />
+                {isAuthenticated && state.itemCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {state.itemCount}
+                  </span>
+                )}
+              </Button>
             )}
 
-            {/* User Profile Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={currentUser?.avatar_url} alt={currentUser?.username} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {currentUser?.username?.charAt(0)?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{currentUser?.username}</p>
-                    <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {currentUser?.email}
-                    </p>
+            {/* User Profile Dropdown or Login Button */}
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={currentUser?.avatar_url} alt={currentUser?.username} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {currentUser?.username?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{currentUser?.username}</p>
+                      <p className="w-[200px] truncate text-sm text-muted-foreground">
+                        {currentUser?.email}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <DropdownMenuItem asChild>
-                  <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-                    <DialogTrigger className="w-full">
-                      <div className="flex items-center">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Profile Settings</span>
-                      </div>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
-                      <ProfileSettings 
-                        currentUser={currentUser} 
-                        onProfileUpdate={(updatedProfile) => {
-                          setCurrentUser(updatedProfile);
-                          setIsProfileOpen(false);
-                        }}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                </DropdownMenuItem>
-                {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
-                  <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Admin Dashboard</span>
+                  <DropdownMenuItem asChild>
+                    <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                      <DialogTrigger className="w-full">
+                        <div className="flex items-center">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>Profile Settings</span>
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[500px]">
+                        <ProfileSettings 
+                          currentUser={currentUser} 
+                          onProfileUpdate={(updatedProfile) => {
+                            setCurrentUser(updatedProfile);
+                            setIsProfileOpen(false);
+                          }}
+                        />
+                      </DialogContent>
+                    </Dialog>
                   </DropdownMenuItem>
-                )}
-                {currentUser?.role === 'super_admin' && (
-                  <DropdownMenuItem onClick={() => navigate('/superadmin/dashboard')}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Super Admin</span>
+                  {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                    <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Admin Dashboard</span>
+                    </DropdownMenuItem>
+                  )}
+                  {currentUser?.role === 'super_admin' && (
+                    <DropdownMenuItem onClick={() => navigate('/superadmin/dashboard')}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Super Admin</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/login">
+                <Button variant="default" size="sm" className="rounded-xl">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Login
+                </Button>
+              </Link>
+            )}
 
             {/* Mobile Menu Button */}
             <div className="md:hidden">
@@ -297,12 +334,22 @@ const Header = () => {
                     showResults={false}
                   />
                 </div>
-                <button 
-                  onClick={handleLogout}
-                  className="block w-full text-left px-5 py-3 text-primary hover:bg-muted/50 transition-colors"
-                >
-                  Logout
-                </button>
+                {isAuthenticated ? (
+                  <button 
+                    onClick={handleLogout}
+                    className="block w-full text-left px-5 py-3 text-primary hover:bg-muted/50 transition-colors"
+                  >
+                    Logout
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="block px-5 py-3 text-primary hover:bg-muted/50 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                )}
               </nav>
             </div>
           )}

@@ -12,7 +12,7 @@ export const useAuth = () => {
         const userProfile = await getCurrentProfile();
         setProfile(userProfile);
       } catch (error) {
-        console.error('Error getting profile:', error);
+        // Don't log errors for unauthenticated users browsing
         setProfile(null);
       } finally {
         setLoading(false);
