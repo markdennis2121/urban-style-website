@@ -1,21 +1,21 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { validateEmail, validatePassword, authRateLimiter, sanitizeText } from '@/lib/security';
-import { Shield, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { validateEmail, authRateLimiter, sanitizeText } from '@/lib/security';
+import { Shield } from 'lucide-react';
+import LoginForm from './LoginForm';
+import ForgotPasswordDialog from './ForgotPasswordDialog';
+import RateLimitAlert from './RateLimitAlert';
 
 const UserLoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(
@@ -23,13 +23,6 @@ const UserLoginPage = () => {
   );
   const [rateLimited, setRateLimited] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
-  
-  // Forgot password states
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
-  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
-  const [forgotPasswordError, setForgotPasswordError] = useState<string | null>(null);
 
   const handleResendVerification = async () => {
     try {
@@ -43,55 +36,6 @@ const UserLoginPage = () => {
       setMessage('Verification email has been resent. Please check your inbox.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resend verification email');
-    }
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setForgotPasswordLoading(true);
-    setForgotPasswordError(null);
-    setForgotPasswordMessage(null);
-
-    // Sanitize and validate email
-    const sanitizedEmail = sanitizeText(forgotPasswordEmail);
-    
-    if (!validateEmail(sanitizedEmail)) {
-      setForgotPasswordError('Please enter a valid email address');
-      setForgotPasswordLoading(false);
-      return;
-    }
-
-    // Check rate limiting for password reset
-    if (!authRateLimiter.isAllowed(`reset_${sanitizedEmail}`)) {
-      const remaining = authRateLimiter.getRemainingTime(`reset_${sanitizedEmail}`);
-      setForgotPasswordError(`Too many password reset attempts. Please try again in ${Math.ceil(remaining / 1000 / 60)} minutes.`);
-      setForgotPasswordLoading(false);
-      return;
-    }
-
-    try {
-      console.log('Sending password reset email to:', sanitizedEmail);
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
-      setForgotPasswordMessage('Password reset email sent! Please check your inbox and follow the instructions.');
-      
-      // Close dialog after a delay
-      setTimeout(() => {
-        setForgotPasswordOpen(false);
-        setForgotPasswordEmail('');
-        setForgotPasswordMessage(null);
-      }, 3000);
-
-    } catch (err) {
-      console.error('Password reset error:', err);
-      setForgotPasswordError(err instanceof Error ? err.message : 'Failed to send password reset email');
-    } finally {
-      setForgotPasswordLoading(false);
     }
   };
 
@@ -222,8 +166,6 @@ const UserLoginPage = () => {
     }
   };
 
-  const passwordValidation = validatePassword(password);
-
   return (
     <div className="flex justify-center items-center min-h-screen bg-background">
       <Card className="w-full max-w-md p-8 border shadow-lg">
@@ -262,129 +204,21 @@ const UserLoginPage = () => {
         )}
 
         {rateLimited && (
-          <Alert variant="destructive" className="mb-6">
-            <div className="space-y-3">
-              <p className="font-medium">Account temporarily locked due to too many failed attempts.</p>
-              <Progress value={(15 - remainingTime) / 15 * 100} className="w-full" />
-              <p className="text-sm">Unlocks in {remainingTime} minutes</p>
-            </div>
-          </Alert>
+          <RateLimitAlert remainingTime={remainingTime} />
         )}
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <Input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full h-12"
-              disabled={loading || rateLimited}
-            />
-          </div>
-          
-          <div className="relative">
-            <Input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full h-12 pr-12"
-              minLength={6}
-              disabled={loading || rateLimited}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-              onClick={() => setShowPassword(!showPassword)}
-              disabled={loading}
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
-          </div>
-
-          {password && !passwordValidation.isValid && (
-            <div className="text-sm text-destructive bg-destructive/10 p-4 rounded-md space-y-2">
-              <p className="font-semibold">Password requirements:</p>
-              <ul className="list-disc list-inside space-y-1">
-                {passwordValidation.errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-            disabled={loading || rateLimited}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
-        </form>
+        <LoginForm
+          email={email}
+          password={password}
+          loading={loading}
+          rateLimited={rateLimited}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+          onSubmit={handleLogin}
+        />
 
         <div className="mt-6 text-center">
-          <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="link"
-                className="text-primary hover:text-primary/80 font-medium"
-                disabled={loading}
-              >
-                <KeyRound className="h-4 w-4 mr-2" />
-                Forgot your password?
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <KeyRound className="h-5 w-5" />
-                  Reset Password
-                </DialogTitle>
-              </DialogHeader>
-              
-              {forgotPasswordError && (
-                <Alert variant="destructive" className="mb-4">
-                  <span className="text-destructive-foreground font-medium">{forgotPasswordError}</span>
-                </Alert>
-              )}
-              
-              {forgotPasswordMessage && (
-                <Alert className="mb-4 bg-green-500/10 border-green-500/20 text-green-600">
-                  <span className="font-medium">{forgotPasswordMessage}</span>
-                </Alert>
-              )}
-
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={forgotPasswordEmail}
-                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                    required
-                    className="w-full"
-                    disabled={forgotPasswordLoading}
-                  />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    We'll send you a link to reset your password.
-                  </p>
-                </div>
-                
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={forgotPasswordLoading}
-                >
-                  {forgotPasswordLoading ? 'Sending...' : 'Send Reset Link'}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <ForgotPasswordDialog disabled={loading} />
         </div>
 
         <div className="mt-6 text-center">
