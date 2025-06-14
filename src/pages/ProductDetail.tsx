@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductReviews from '../components/ProductReviews';
@@ -8,9 +7,11 @@ import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, ShoppingCart, Heart, Share2, ArrowLeft, Plus, Minus, Truck, Shield, RotateCcw } from 'lucide-react';
+import { Star, ShoppingCart, Heart, Share2, ArrowLeft, Plus, Minus, Truck, Shield, RotateCcw, LogIn } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useAdminMode } from '../contexts/AdminModeContext';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface DbProduct {
@@ -28,11 +29,14 @@ interface DbProduct {
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<DbProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { dispatch } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { canUseShoppingFeatures } = useAdminMode();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   
   const [selectedSize, setSelectedSize] = useState('');
@@ -76,8 +80,32 @@ const ProductDetail = () => {
     }
   };
 
+  const requireAuth = (action: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: `Please log in to ${action}.`,
+        variant: "destructive"
+      });
+      navigate('/login');
+      return false;
+    }
+    return true;
+  };
+
   const handleAddToCart = () => {
     if (!product) return;
+    
+    if (!requireAuth('add items to cart')) return;
+    
+    if (!canUseShoppingFeatures) {
+      toast({
+        title: "Shopping disabled",
+        description: "Switch to Customer Mode to use shopping features.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     dispatch({
       type: 'ADD_ITEM',
@@ -100,6 +128,17 @@ const ProductDetail = () => {
 
   const handleWishlist = () => {
     if (!product) return;
+
+    if (!requireAuth('manage your wishlist')) return;
+    
+    if (!canUseShoppingFeatures) {
+      toast({
+        title: "Shopping disabled",
+        description: "Switch to Customer Mode to use shopping features.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const wishlistProduct = {
       id: product.id,
@@ -314,28 +353,58 @@ const ProductDetail = () => {
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  size="lg" 
-                  onClick={handleAddToCart}
-                  disabled={product.stock <= 0}
-                  className="flex-1 rounded-xl bg-primary hover:bg-primary/90"
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  onClick={handleWishlist}
-                  className={`rounded-xl bg-background/80 border-border/50 ${
-                    isInWishlist(product.id) 
-                      ? 'bg-red-500 text-white hover:bg-red-600 border-red-500' 
-                      : ''
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 mr-2 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
-                  {isInWishlist(product.id) ? 'In Wishlist' : 'Wishlist'}
-                </Button>
+                {canUseShoppingFeatures && (
+                  <>
+                    {isAuthenticated ? (
+                      <Button 
+                        size="lg" 
+                        onClick={handleAddToCart}
+                        disabled={product.stock <= 0}
+                        className="flex-1 rounded-xl bg-primary hover:bg-primary/90"
+                      >
+                        <ShoppingCart className="w-5 h-5 mr-2" />
+                        {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                      </Button>
+                    ) : (
+                      <Button 
+                        size="lg"
+                        onClick={() => navigate('/login')}
+                        className="flex-1 rounded-xl bg-muted hover:bg-muted/80 text-muted-foreground"
+                        variant="outline"
+                      >
+                        <LogIn className="w-5 h-5 mr-2" />
+                        Login to Add to Cart
+                      </Button>
+                    )}
+                    
+                    {isAuthenticated ? (
+                      <Button 
+                        variant="outline" 
+                        size="lg"
+                        onClick={handleWishlist}
+                        className={`rounded-xl bg-background/80 border-border/50 ${
+                          isInWishlist(product.id) 
+                            ? 'bg-red-500 text-white hover:bg-red-600 border-red-500' 
+                            : ''
+                        }`}
+                      >
+                        <Heart className={`w-5 h-5 mr-2 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                        {isInWishlist(product.id) ? 'In Wishlist' : 'Wishlist'}
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="lg"
+                        onClick={() => navigate('/login')}
+                        className="rounded-xl bg-background/80 border-border/50"
+                      >
+                        <LogIn className="w-5 h-5 mr-2" />
+                        Login for Wishlist
+                      </Button>
+                    )}
+                  </>
+                )}
+                
                 <Button variant="outline" size="lg" className="rounded-xl bg-background/80 border-border/50">
                   <Share2 className="w-5 h-5" />
                 </Button>
