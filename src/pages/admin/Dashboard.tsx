@@ -170,11 +170,18 @@ const AdminDashboard = () => {
 
       console.log('Profiles data:', profilesData);
 
-      // Combine wishlist data with profile data
-      const enrichedWishlists = wishlistsData.map(wishlist => ({
-        ...wishlist,
-        profiles: profilesData?.find(p => p.id === wishlist.user_id) || null
-      }));
+      // Combine wishlist data with profile data - fix circular reference
+      const enrichedWishlists = wishlistsData.map(wishlist => {
+        const userProfile = profilesData?.find(p => p.id === wishlist.user_id);
+        return {
+          ...wishlist,
+          profiles: userProfile ? {
+            id: userProfile.id,
+            username: userProfile.username,
+            email: userProfile.email
+          } : null
+        };
+      });
 
       console.log('Enriched wishlists:', enrichedWishlists);
       setWishlists(enrichedWishlists);
