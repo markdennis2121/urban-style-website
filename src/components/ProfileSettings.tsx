@@ -10,9 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { User, Upload, Save, MapPin, Phone } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [username, setUsername] = useState(currentUser?.username || '');
@@ -25,38 +27,82 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
   const [postalCode, setPostalCode] = useState(currentUser?.postal_code || '');
   const [country, setCountry] = useState(currentUser?.country || 'Philippines');
   const fileInputRef = useRef(null);
+  const { toast } = useToast();
 
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      setLoading(true);
+      setUploadingImage(true);
       setError(null);
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        const errorMsg = "Please select an image file.";
+        setError(errorMsg);
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        const errorMsg = "Image must be less than 5MB.";
+        setError(errorMsg);
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
 
-      // Upload to Supabase storage
+      // Upload to Supabase storage - using avatars bucket
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
       setAvatarUrl(publicUrl);
       setSuccess('Profile picture uploaded successfully!');
+      
+      toast({
+        title: "Success",
+        description: "Profile picture uploaded successfully!",
+      });
+
     } catch (err) {
       console.error('Upload error:', err);
-      setError(err.message);
+      const errorMsg = "Failed to upload image. Please try again.";
+      setError(errorMsg);
+      toast({
+        title: "Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false);
+      setUploadingImage(false);
     }
   };
 
@@ -85,12 +131,23 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
 
       setSuccess('Profile updated successfully!');
       
+      toast({
+        title: "Success",
+        description: "Profile updated successfully!",
+      });
+      
       // Refresh profile data
       const updatedProfile = await getCurrentProfile();
       onProfileUpdate?.(updatedProfile);
     } catch (err) {
       console.error('Update error:', err);
-      setError(err.message);
+      const errorMsg = "Failed to update profile. Please try again.";
+      setError(errorMsg);
+      toast({
+        title: "Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -151,11 +208,11 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
-                    disabled={loading}
+                    disabled={uploadingImage || loading}
                     className="bg-background/50 border-border/50 text-foreground hover:bg-muted/50"
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    Upload Photo
+                    {uploadingImage ? 'Uploading...' : 'Upload Photo'}
                   </Button>
                 </div>
 
@@ -284,7 +341,7 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
           <div className="mt-8 pt-6 border-t border-border/10">
             <Button
               onClick={handleSaveProfile}
-              disabled={loading}
+              disabled={loading || uploadingImage}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Save className="h-4 w-4 mr-2" />
