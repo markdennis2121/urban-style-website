@@ -1,106 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { supabase, getCurrentProfile } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Package, 
-  Plus, 
-  Edit3, 
-  Trash2, 
-  Upload,
-  LogOut,
-  User,
-  Users,
-  BarChart3,
-  ShoppingCart,
-  TrendingUp,
-  DollarSign,
-  Shield,
-  Activity,
-  Clock
-} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Trash2, Edit, Package, Users, MessageSquare, Plus, Shield, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+const predefinedCategories = [
+  'Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Shoes', 'Accessories', 'Bags', 'Jewelry'
+];
+
 const SuperAdminDashboard = () => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [editingUser, setEditingUser] = useState(null);
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalUsers: 0,
-    totalValue: 0,
-    activeUsers: 0
-  });
-
-  const navigate = useNavigate();
-
-  const categories = [
-    'T-Shirts',
-    'Shirts', 
-    'Pants',
-    'Dresses',
-    'Shoes',
-    'Accessories',
-    'Jackets',
-    'Hoodies',
-    'Shorts',
-    'Skirts'
-  ];
-
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
     price: '',
     category: '',
-    stock: '',
-    image_url: ''
+    image_url: '',
+    stock: ''
   });
 
   useEffect(() => {
-    loadProfile();
     loadProducts();
     loadUsers();
-    loadStats();
+    loadMessages();
   }, []);
-
-  const loadProfile = async () => {
-    try {
-      const profile = await getCurrentProfile();
-      if (!profile || profile.role !== 'super_admin') {
-        navigate('/superadmin/login');
-        return;
-      }
-      setCurrentUser(profile);
-    } catch (err) {
-      console.error('Error loading profile:', err);
-      navigate('/superadmin/login');
-    }
-  };
 
   const loadProducts = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -110,9 +49,6 @@ const SuperAdminDashboard = () => {
       setProducts(data || []);
     } catch (err) {
       console.error('Error loading products:', err);
-      setError('Failed to load products');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -127,145 +63,120 @@ const SuperAdminDashboard = () => {
       setUsers(data || []);
     } catch (err) {
       console.error('Error loading users:', err);
-      setError('Failed to load users');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadStats = async () => {
+  const loadMessages = async () => {
     try {
-      const { data: products, error: productsError } = await supabase
-        .from('products')
-        .select('price, stock');
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const { data: users, error: usersError } = await supabase
-        .from('profiles')
-        .select('id, created_at');
-
-      if (productsError) throw productsError;
-      if (usersError) throw usersError;
-
-      const totalProducts = products.length;
-      const totalUsers = users.length;
-      const totalValue = products.reduce((sum, p) => sum + (parseFloat(p.price) * p.stock), 0);
-      const activeUsers = users.filter(u => {
-        const createdAt = new Date(u.created_at);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        return createdAt > thirtyDaysAgo;
-      }).length;
-
-      setStats({
-        totalProducts,
-        totalUsers,
-        totalValue,
-        activeUsers
-      });
+      if (error) throw error;
+      setMessages(data || []);
     } catch (err) {
-      console.error('Error loading stats:', err);
+      console.error('Error loading messages:', err);
     }
   };
 
-  const handleAddProduct = async (e) => {
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     try {
-      setLoading(true);
-      setError(null);
-
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .insert([{
           name: newProduct.name,
           description: newProduct.description,
           price: parseFloat(newProduct.price),
           category: newProduct.category,
-          stock: parseInt(newProduct.stock),
-          image_url: newProduct.image_url
-        }]);
+          image_url: newProduct.image_url,
+          stock: parseInt(newProduct.stock)
+        }])
+        .select();
 
       if (error) throw error;
 
-      setSuccess('Product added successfully!');
+      toast({
+        title: "Success!",
+        description: "Product added successfully.",
+      });
+
       setNewProduct({
         name: '',
         description: '',
         price: '',
         category: '',
-        stock: '',
-        image_url: ''
+        image_url: '',
+        stock: ''
       });
-      setShowAddProduct(false);
+
       loadProducts();
-      loadStats();
     } catch (err) {
       console.error('Error adding product:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to add product. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleUpdateProduct = async (e) => {
-    e.preventDefault();
+  const handleDeleteProduct = async (id: string) => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const { error } = await supabase
-        .from('products')
-        .update({
-          name: editingProduct.name,
-          description: editingProduct.description,
-          price: parseFloat(editingProduct.price),
-          category: editingProduct.category,
-          stock: parseInt(editingProduct.stock),
-          image_url: editingProduct.image_url
-        })
-        .eq('id', editingProduct.id);
-
-      if (error) throw error;
-
-      setSuccess('Product updated successfully!');
-      setEditingProduct(null);
-      loadProducts();
-      loadStats();
-    } catch (err) {
-      console.error('Error updating product:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteProduct = async (productId) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', productId);
+        .eq('id', id);
 
       if (error) throw error;
 
-      setSuccess('Product deleted successfully!');
+      toast({
+        title: "Success!",
+        description: "Product deleted successfully.",
+      });
+
       loadProducts();
-      loadStats();
     } catch (err) {
       console.error('Error deleting product:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleUpdateUserRole = async (userId, newRole) => {
+  const handleDeleteUser = async (id: string) => {
     try {
-      setLoading(true);
-      setError(null);
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
 
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "User deleted successfully.",
+      });
+
+      loadUsers();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+    try {
       const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
@@ -273,36 +184,19 @@ const SuperAdminDashboard = () => {
 
       if (error) throw error;
 
-      setSuccess('User role updated successfully!');
-      setEditingUser(null);
+      toast({
+        title: "Success!",
+        description: "User role updated successfully.",
+      });
+
       loadUsers();
     } catch (err) {
       console.error('Error updating user role:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteUser = async (userId) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-
-      if (error) throw error;
-
-      setSuccess('User deleted successfully!');
-      loadUsers();
-      loadStats();
-    } catch (err) {
-      console.error('Error deleting user:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to update user role. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -310,271 +204,235 @@ const SuperAdminDashboard = () => {
     try {
       await supabase.auth.signOut();
       navigate('/superadmin/login');
-    } catch (err) {
-      console.error('Error logging out:', err);
+    } catch (error) {
+      console.error('Error logging out:', error);
     }
   };
 
-  if (loading && !currentUser) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       {/* Header */}
-      <div className="border-b border-white/10 bg-white/5 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-600 rounded-xl flex items-center justify-center">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">Super Admin Dashboard</h1>
-                <p className="text-white/70">Welcome back, {currentUser?.username || currentUser?.email}</p>
-              </div>
+      <div className="bg-card/80 backdrop-blur-sm border-b border-border shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                Super Admin Dashboard
+              </h1>
+              <p className="text-muted-foreground mt-1">Complete platform management and control</p>
             </div>
             <Button 
               onClick={handleLogout}
-              variant="outline" 
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              variant="outline"
+              className="flex items-center gap-2 hover:bg-destructive hover:text-destructive-foreground border-border"
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="w-4 h-4" />
               Logout
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Alerts */}
-        {error && (
-          <Alert className="mb-6 bg-red-500/10 border-red-500/20 text-red-300">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert className="mb-6 bg-green-500/10 border-green-500/20 text-green-300">
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
-
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Total Products</CardTitle>
-              <Package className="h-4 w-4 text-blue-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.totalProducts}</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <Package className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Products</p>
+                  <p className="text-2xl font-bold text-foreground">{products.length}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-green-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
+          <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-secondary/10 rounded-full">
+                  <Users className="w-6 h-6 text-secondary-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-2xl font-bold text-foreground">{users.length}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Total Value</CardTitle>
-              <DollarSign className="h-4 w-4 text-purple-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">₱{stats.totalValue.toFixed(2)}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Active Users</CardTitle>
-              <Activity className="h-4 w-4 text-yellow-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stats.activeUsers}</div>
+          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20 hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-accent/10 rounded-full">
+                  <MessageSquare className="w-6 h-6 text-accent-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Messages</p>
+                  <p className="text-2xl font-bold text-foreground">{messages.length}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Main Content */}
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="bg-white/10 backdrop-blur-md border-white/20">
-            <TabsTrigger value="products" className="data-[state=active]:bg-white/20 text-white">
-              <Package className="w-4 h-4 mr-2" />
+          <TabsList className="bg-muted/50 p-1 rounded-xl">
+            <TabsTrigger value="products" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Package className="w-4 h-4" />
               Products
             </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-white/20 text-white">
-              <Users className="w-4 h-4 mr-2" />
+            <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Users className="w-4 h-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-white/20 text-white">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Analytics
+            <TabsTrigger value="messages" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <MessageSquare className="w-4 h-4" />
+              Messages
             </TabsTrigger>
           </TabsList>
 
+          {/* Products Tab */}
           <TabsContent value="products" className="space-y-6">
-            <Card className="bg-white/10 backdrop-blur-md border-white/20">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-white">Product Management</CardTitle>
-                    <CardDescription className="text-white/70">
-                      Manage your product inventory
-                    </CardDescription>
-                  </div>
-                  <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Product
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-slate-800 border-white/20 text-white">
-                      <DialogHeader>
-                        <DialogTitle>Add New Product</DialogTitle>
-                        <DialogDescription className="text-white/70">
-                          Create a new product in your inventory
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleAddProduct} className="space-y-4">
-                        <div>
-                          <Label htmlFor="name" className="text-white">Product Name</Label>
-                          <Input
-                            id="name"
-                            value={newProduct.name}
-                            onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                            className="bg-white/10 border-white/20 text-white"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="description" className="text-white">Description</Label>
-                          <Textarea
-                            id="description"
-                            value={newProduct.description}
-                            onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                            className="bg-white/10 border-white/20 text-white"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="category" className="text-white">Category</Label>
-                          <Select value={newProduct.category} onValueChange={(value) => setNewProduct({...newProduct, category: value})}>
-                            <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-white/20">
-                              {categories.map(category => (
-                                <SelectItem key={category} value={category} className="text-white hover:bg-white/10">
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="price" className="text-white">Price (₱)</Label>
-                            <Input
-                              id="price"
-                              type="number"
-                              step="0.01"
-                              value={newProduct.price}
-                              onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                              className="bg-white/10 border-white/20 text-white"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="stock" className="text-white">Stock</Label>
-                            <Input
-                              id="stock"
-                              type="number"
-                              value={newProduct.stock}
-                              onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                              className="bg-white/10 border-white/20 text-white"
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="image_url" className="text-white">Image URL</Label>
-                          <Input
-                            id="image_url"
-                            value={newProduct.image_url}
-                            onChange={(e) => setNewProduct({...newProduct, image_url: e.target.value})}
-                            className="bg-white/10 border-white/20 text-white"
-                          />
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                          <Button type="button" variant="outline" onClick={() => setShowAddProduct(false)}>
-                            Cancel
-                          </Button>
-                          <Button type="submit" disabled={loading}>
-                            {loading ? 'Adding...' : 'Add Product'}
-                          </Button>
-                        </div>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+            {/* Same product form and list as admin, keeping existing code */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
+              <CardHeader className="border-b border-border">
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <Plus className="w-5 h-5" />
+                  Add New Product
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-6">
+                <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="name">Product Name</Label>
+                    <Input
+                      id="name"
+                      value={newProduct.name}
+                      onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                      className="bg-background/80 border-border"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="price">Price (₱)</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={newProduct.price}
+                      onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+                      className="bg-background/80 border-border"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Select value={newProduct.category} onValueChange={(value) => setNewProduct({...newProduct, category: value})}>
+                      <SelectTrigger className="bg-background/80 border-border">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        {predefinedCategories.map(category => (
+                          <SelectItem key={category} value={category} className="hover:bg-muted">
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="stock">Stock</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      value={newProduct.stock}
+                      onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
+                      className="bg-background/80 border-border"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label htmlFor="image_url">Image URL</Label>
+                    <Input
+                      id="image_url"
+                      type="url"
+                      value={newProduct.image_url}
+                      onChange={(e) => setNewProduct({...newProduct, image_url: e.target.value})}
+                      className="bg-background/80 border-border"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newProduct.description}
+                      onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                      className="bg-background/80 border-border"
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+                      Add Product
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Products List - same as admin */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
+              <CardHeader className="border-b border-border">
+                <CardTitle className="text-foreground">Products ({products.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {products.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-                      <div className="flex items-center space-x-4">
-                        {product.image_url ? (
-                          <img 
-                            src={product.image_url} 
-                            alt={product.name}
-                            className="w-12 h-12 object-cover rounded-lg"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
-                            <Package className="w-6 h-6 text-white/50" />
-                          </div>
-                        )}
-                        <div>
-                          <h3 className="font-semibold text-white">{product.name}</h3>
-                          <p className="text-sm text-white/70">{product.category}</p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
-                              ₱{product.price}
-                            </Badge>
-                            <Badge variant="secondary" className="bg-green-500/20 text-green-300">
-                              Stock: {product.stock}
-                            </Badge>
-                          </div>
-                        </div>
+                    <div key={product.id} className="bg-background/50 border border-border rounded-lg p-4 hover:shadow-md transition-all duration-300">
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name}
+                        className="w-full h-32 object-cover rounded-md mb-3"
+                        onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
+                      />
+                      <h3 className="font-semibold text-foreground mb-1">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-bold text-primary">₱{product.price}</span>
+                        <Badge variant="outline" className="border-border">
+                          {product.category}
+                        </Badge>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Stock: {product.stock}</span>
                         <Button
+                          variant="destructive"
                           size="sm"
-                          variant="outline"
-                          onClick={() => setEditingProduct(product)}
-                          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
                           onClick={() => handleDeleteProduct(product.id)}
-                          className="bg-red-500/20 border-red-500/30 text-red-300 hover:bg-red-500/30"
+                          className="h-8 w-8 p-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -586,56 +444,53 @@ const SuperAdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-6">
-            <Card className="bg-white/10 backdrop-blur-md border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">User Management</CardTitle>
-                <CardDescription className="text-white/70">
-                  Manage user accounts and permissions
-                </CardDescription>
+          {/* Users Tab with enhanced permissions */}
+          <TabsContent value="users">
+            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
+              <CardHeader className="border-b border-border">
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <Shield className="w-5 h-5" />
+                  User Management ({users.length})
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {users.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
+                    <div key={user.id} className="bg-background/50 border border-border rounded-lg p-4 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Users className="w-5 h-5 text-primary" />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-white">{user.username || user.email}</h3>
-                          <p className="text-sm text-white/70">{user.email}</p>
-                          <Badge 
-                            variant="secondary" 
-                            className={`mt-1 ${
-                              user.role === 'super_admin' ? 'bg-red-500/20 text-red-300' :
-                              user.role === 'admin' ? 'bg-orange-500/20 text-orange-300' :
-                              'bg-blue-500/20 text-blue-300'
-                            }`}
-                          >
-                            {user.role}
-                          </Badge>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">{user.full_name || 'No name'}</h3>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Select value={user.role} onValueChange={(value) => handleUpdateUserRole(user.id, value)}>
-                          <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
+                      <div className="flex items-center justify-between mb-3">
+                        <Select
+                          value={user.role || 'user'}
+                          onValueChange={(value) => handleUpdateUserRole(user.id, value)}
+                        >
+                          <SelectTrigger className="w-32 h-8 text-xs bg-background/80 border-border">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-white/20">
-                            <SelectItem value="user" className="text-white hover:bg-white/10">User</SelectItem>
-                            <SelectItem value="admin" className="text-white hover:bg-white/10">Admin</SelectItem>
-                            <SelectItem value="super_admin" className="text-white hover:bg-white/10">Super Admin</SelectItem>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="user" className="hover:bg-muted">User</SelectItem>
+                            <SelectItem value="admin" className="hover:bg-muted">Admin</SelectItem>
+                            <SelectItem value="super_admin" className="hover:bg-muted">Super Admin</SelectItem>
                           </SelectContent>
                         </Select>
                         <Button
+                          variant="destructive"
                           size="sm"
-                          variant="outline"
                           onClick={() => handleDeleteUser(user.id)}
-                          className="bg-red-500/20 border-red-500/30 text-red-300 hover:bg-red-500/30"
+                          className="h-8 w-8 p-0"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3" />
                         </Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Created: {new Date(user.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   ))}
@@ -644,153 +499,40 @@ const SuperAdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                <CardHeader>
-                  <CardTitle className="text-white">System Overview</CardTitle>
-                  <CardDescription className="text-white/70">Key metrics and statistics</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70">Active Sessions</span>
-                    <Badge className="bg-green-500/20 text-green-300">Online</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70">Database Status</span>
-                    <Badge className="bg-green-500/20 text-green-300">Healthy</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70">Last Backup</span>
-                    <span className="text-white text-sm">2 hours ago</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                <CardHeader>
-                  <CardTitle className="text-white">Recent Activity</CardTitle>
-                  <CardDescription className="text-white/70">Latest system events</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <Clock className="w-4 h-4 text-blue-400" />
-                    <div>
-                      <p className="text-white text-sm">New user registered</p>
-                      <p className="text-white/50 text-xs">5 minutes ago</p>
+          {/* Messages Tab - same as admin */}
+          <TabsContent value="messages">
+            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
+              <CardHeader className="border-b border-border">
+                <CardTitle className="text-foreground">Contact Messages ({messages.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {messages.length > 0 ? (
+                    messages.map((message) => (
+                      <div key={message.id} className="bg-background/50 border border-border rounded-lg p-4 hover:shadow-md transition-all duration-300">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold text-foreground">{message.subject}</h3>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(message.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          From: {message.name} ({message.email})
+                        </p>
+                        <p className="text-sm text-foreground">{message.message}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No messages yet</p>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Package className="w-4 h-4 text-green-400" />
-                    <div>
-                      <p className="text-white text-sm">Product updated</p>
-                      <p className="text-white/50 text-xs">15 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <User className="w-4 h-4 text-purple-400" />
-                    <div>
-                      <p className="text-white text-sm">User role changed</p>
-                      <p className="text-white/50 text-xs">1 hour ago</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Edit Product Dialog */}
-        {editingProduct && (
-          <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
-            <DialogContent className="bg-slate-800 border-white/20 text-white">
-              <DialogHeader>
-                <DialogTitle>Edit Product</DialogTitle>
-                <DialogDescription className="text-white/70">
-                  Update product information
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpdateProduct} className="space-y-4">
-                <div>
-                  <Label htmlFor="edit-name" className="text-white">Product Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={editingProduct.name}
-                    onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-description" className="text-white">Description</Label>
-                  <Textarea
-                    id="edit-description"
-                    value={editingProduct.description}
-                    onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-category" className="text-white">Category</Label>
-                  <Select value={editingProduct.category} onValueChange={(value) => setEditingProduct({...editingProduct, category: value})}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-white/20">
-                      {categories.map(category => (
-                        <SelectItem key={category} value={category} className="text-white hover:bg-white/10">
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edit-price" className="text-white">Price (₱)</Label>
-                    <Input
-                      id="edit-price"
-                      type="number"
-                      step="0.01"
-                      value={editingProduct.price}
-                      onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-stock" className="text-white">Stock</Label>
-                    <Input
-                      id="edit-stock"
-                      type="number"
-                      value={editingProduct.stock}
-                      onChange={(e) => setEditingProduct({...editingProduct, stock: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="edit-image_url" className="text-white">Image URL</Label>
-                  <Input
-                    id="edit-image_url"
-                    value={editingProduct.image_url}
-                    onChange={(e) => setEditingProduct({...editingProduct, image_url: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white"
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setEditingProduct(null)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Updating...' : 'Update Product'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
     </div>
   );

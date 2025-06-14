@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -102,21 +101,21 @@ const Shop = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-background">
       <Header />
       
       {/* Page Header */}
-      <section className="pt-24 pb-8 bg-white/5 backdrop-blur-md border-b border-white/10">
+      <section className="pt-24 pb-8 bg-muted/50 backdrop-blur-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-4xl font-bold text-white mb-4">Shop</h1>
-          <p className="text-white/70">Discover our complete collection of fashion items</p>
+          <h1 className="text-4xl font-bold text-foreground mb-4">Shop</h1>
+          <p className="text-muted-foreground">Discover our complete collection of fashion items</p>
         </div>
       </section>
 
@@ -124,14 +123,14 @@ const Shop = () => {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <div className={`lg:w-80 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-            <div className="bg-white/10 backdrop-blur-md border-white/20 rounded-lg p-6 sticky top-24">
+            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 sticky top-24 shadow-lg">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">Filters</h3>
+                <h3 className="text-lg font-semibold text-foreground">Filters</h3>
                 <div className="flex items-center gap-2">
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">{activeFiltersCount}</Badge>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">{activeFiltersCount}</Badge>
                   )}
-                  <Button variant="ghost" size="sm" onClick={clearFilters} className="text-white hover:bg-white/10">
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
                     Clear All
                   </Button>
                 </div>
@@ -139,28 +138,28 @@ const Shop = () => {
 
               {/* Search */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-white">Search</label>
+                <label className="block text-sm font-medium mb-2 text-foreground">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder="Search products..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    className="pl-10 bg-background/80 border-border"
                   />
                 </div>
               </div>
 
               {/* Category */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-white">Category</label>
+                <label className="block text-sm font-medium mb-2 text-foreground">Category</label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                  <SelectTrigger className="bg-background/80 border-border">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-white/20">
+                  <SelectContent className="bg-card border-border">
                     {categories.map(category => (
-                      <SelectItem key={category} value={category} className="text-white hover:bg-white/10">
+                      <SelectItem key={category} value={category} className="hover:bg-muted">
                         {category}
                       </SelectItem>
                     ))}
@@ -170,14 +169,14 @@ const Shop = () => {
 
               {/* Brand */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-white">Brand</label>
+                <label className="block text-sm font-medium mb-2 text-foreground">Brand</label>
                 <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                  <SelectTrigger className="bg-background/80 border-border">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-white/20">
+                  <SelectContent className="bg-card border-border">
                     {brands.map(brand => (
-                      <SelectItem key={brand} value={brand} className="text-white hover:bg-white/10">
+                      <SelectItem key={brand} value={brand} className="hover:bg-muted">
                         {brand}
                       </SelectItem>
                     ))}
@@ -187,7 +186,7 @@ const Shop = () => {
 
               {/* Price Range */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-white">
+                <label className="block text-sm font-medium mb-2 text-foreground">
                   Price Range: ₱{priceRange[0]} - ₱{priceRange[1]}
                 </label>
                 <Slider
@@ -210,36 +209,36 @@ const Shop = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="lg:hidden bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  className="lg:hidden bg-card/50 border-border hover:bg-muted"
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   Filters
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-300">
+                    <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
                       {activeFiltersCount}
                     </Badge>
                   )}
                 </Button>
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-muted-foreground">
                   {filteredProducts.length} products found
                 </span>
               </div>
 
               <div className="flex items-center gap-4">
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white">
+                  <SelectTrigger className="w-48 bg-card/50 border-border">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-white/20">
-                    <SelectItem value="name" className="text-white hover:bg-white/10">Sort by Name</SelectItem>
-                    <SelectItem value="price-low" className="text-white hover:bg-white/10">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high" className="text-white hover:bg-white/10">Price: High to Low</SelectItem>
-                    <SelectItem value="rating" className="text-white hover:bg-white/10">Highest Rated</SelectItem>
-                    <SelectItem value="newest" className="text-white hover:bg-white/10">Newest First</SelectItem>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="name" className="hover:bg-muted">Sort by Name</SelectItem>
+                    <SelectItem value="price-low" className="hover:bg-muted">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high" className="hover:bg-muted">Price: High to Low</SelectItem>
+                    <SelectItem value="rating" className="hover:bg-muted">Highest Rated</SelectItem>
+                    <SelectItem value="newest" className="hover:bg-muted">Newest First</SelectItem>
                   </SelectContent>
                 </Select>
 
-                <div className="flex border border-white/20 rounded-md bg-white/10">
+                <div className="flex border border-border rounded-md bg-card/50">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
@@ -280,11 +279,11 @@ const Shop = () => {
             ) : (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold mb-2 text-white">No products found</h3>
-                <p className="text-white/70 mb-4">
+                <h3 className="text-xl font-semibold mb-2 text-foreground">No products found</h3>
+                <p className="text-muted-foreground mb-4">
                   Try adjusting your filters or search terms
                 </p>
-                <Button onClick={clearFilters} className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                <Button onClick={clearFilters} className="bg-primary hover:bg-primary/90">
                   Clear Filters
                 </Button>
               </div>
