@@ -54,14 +54,28 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
 
-      console.log('Uploading file:', fileName, 'to product-images bucket');
+      console.log('Uploading file:', fileName, 'to avatars bucket');
 
-      // Upload to Supabase storage - using product-images bucket which we know exists
+      // First, try to delete any existing avatar for this user
+      const { data: existingFiles } = await supabase.storage
+        .from('avatars')
+        .list('', {
+          search: currentUser.id
+        });
+
+      if (existingFiles && existingFiles.length > 0) {
+        for (const file of existingFiles) {
+          await supabase.storage
+            .from('avatars')
+            .remove([file.name]);
+        }
+      }
+
+      // Upload to Supabase storage - using dedicated avatars bucket
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(`avatars/${filePath}`, file, {
+        .from('avatars')
+        .upload(fileName, file, {
           cacheControl: '3600',
           upsert: true
         });
@@ -75,8 +89,8 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(`avatars/${filePath}`);
+        .from('avatars')
+        .getPublicUrl(fileName);
 
       console.log('Public URL:', publicUrl);
 
