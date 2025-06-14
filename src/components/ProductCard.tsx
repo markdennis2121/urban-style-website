@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingCart, Star, Package, Scale } from 'lucide-react';
+import { Heart, ShoppingCart, Star, Package, Scale, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -195,8 +196,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           )}
 
-          {/* Quick Add Button - show for everyone, but require auth for action */}
-          {canUseShoppingFeatures && product.inStock && (
+          {/* Quick Add Button - only show for authenticated users */}
+          {canUseShoppingFeatures && isAuthenticated && product.inStock && (
             <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <Button 
                 size="icon"
@@ -257,17 +258,35 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           </div>
 
-          {/* Add to Cart Button - show for everyone, but require auth for action */}
+          {/* Add to Cart Button - different behavior for authenticated vs unauthenticated users */}
           {canUseShoppingFeatures && (
-            <Button 
-              onClick={handleAddToCart}
-              disabled={!product.inStock}
-              className="w-full bg-primary hover:bg-primary/90 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-xl transition-colors duration-300"
-              size="sm"
-            >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              {product.inStock ? 'Add to Cart' : 'Out of Stock'}
-            </Button>
+            <>
+              {isAuthenticated ? (
+                <Button 
+                  onClick={handleAddToCart}
+                  disabled={!product.inStock}
+                  className="w-full bg-primary hover:bg-primary/90 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-xl transition-colors duration-300"
+                  size="sm"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigate('/login');
+                  }}
+                  className="w-full bg-muted hover:bg-muted/80 text-muted-foreground rounded-xl transition-colors duration-300"
+                  size="sm"
+                  variant="outline"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Login to Add to Cart
+                </Button>
+              )}
+            </>
           )}
         </CardContent>
       </Link>
