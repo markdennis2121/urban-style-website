@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
@@ -29,7 +30,8 @@ import {
   Mail,
   Calendar,
   User,
-  Zap
+  Zap,
+  Edit
 } from 'lucide-react';
 
 const SuperAdminDashboard = () => {
@@ -51,6 +53,16 @@ const SuperAdminDashboard = () => {
     username: '',
     role: 'admin'
   });
+
+  // User edit form
+  const [editUserForm, setEditUserForm] = useState({
+    id: '',
+    username: '',
+    email: '',
+    role: 'user',
+    full_name: ''
+  });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -223,6 +235,96 @@ const SuperAdminDashboard = () => {
       { id: 3, action: 'Failed Login Attempt', user: 'unknown@example.com', timestamp: new Date(Date.now() - 600000).toISOString(), status: 'error', details: 'Invalid credentials' },
       { id: 4, action: 'Admin Created', user: 'superadmin@example.com', timestamp: new Date(Date.now() - 900000).toISOString(), status: 'success', details: 'New admin account created' },
     ]);
+  };
+
+  const deleteUser = async (userId) => {
+    try {
+      // First check if the user being deleted is a super admin
+      const userToDelete = users.find(u => u.id === userId);
+      if (userToDelete?.role === 'super_admin') {
+        toast({
+          title: "Error",
+          description: "Cannot delete super admin accounts.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "User account deleted successfully.",
+      });
+
+      // Reload users
+      loadUsers();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete user account.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditDialog = (user) => {
+    setEditUserForm({
+      id: user.id,
+      username: user.username || '',
+      email: user.email || '',
+      role: user.role || 'user',
+      full_name: user.full_name || ''
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+
+      // Update profile in database
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: editUserForm.username,
+          role: editUserForm.role,
+          full_name: editUserForm.full_name
+        })
+        .eq('id', editUserForm.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "User account updated successfully.",
+      });
+
+      setEditDialogOpen(false);
+      setEditUserForm({
+        id: '',
+        username: '',
+        email: '',
+        role: 'user',
+        full_name: ''
+      });
+
+      // Reload users and admins
+      loadUsers();
+      loadAdmins();
+    } catch (err) {
+      console.error('Error updating user:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update user account.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deleteMessage = async (messageId) => {
@@ -719,6 +821,9 @@ const SuperAdminDashboard = () => {
                           <div>
                             <p className="font-semibold text-gray-900">{user.username || 'No username'}</p>
                             <p className="text-sm text-gray-600">{user.email}</p>
+                            <p className="text-xs text-gray-500">
+                              {user.full_name ? `Full name: ${user.full_name}` : 'No full name'}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -726,6 +831,28 @@ const SuperAdminDashboard = () => {
                           <span className="text-xs text-gray-500">
                             {new Date(user.created_at).toLocaleDateString()}
                           </span>
+                          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditDialog(user)}
+                                className="rounded-lg"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                          </Dialog>
+                          {user.role !== 'super_admin' && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteUser(user.id)}
+                              className="rounded-lg"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     )) : (
@@ -737,6 +864,69 @@ const SuperAdminDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Edit User Dialog */}
+              <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Edit User Account</DialogTitle>
+                    <DialogDescription>
+                      Update user information and role permissions.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleEditUser} className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-email" className="text-sm font-medium">Email (Read-only)</Label>
+                      <Input
+                        id="edit-email"
+                        type="email"
+                        value={editUserForm.email}
+                        disabled
+                        className="mt-1 bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-username" className="text-sm font-medium">Username</Label>
+                      <Input
+                        id="edit-username"
+                        value={editUserForm.username}
+                        onChange={(e) => setEditUserForm({...editUserForm, username: e.target.value})}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-full-name" className="text-sm font-medium">Full Name</Label>
+                      <Input
+                        id="edit-full-name"
+                        value={editUserForm.full_name}
+                        onChange={(e) => setEditUserForm({...editUserForm, full_name: e.target.value})}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-role" className="text-sm font-medium">Role</Label>
+                      <Select value={editUserForm.role} onValueChange={(value) => setEditUserForm({...editUserForm, role: value})}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="super_admin">Super Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={loading}>
+                        {loading ? 'Updating...' : 'Update User'}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             <TabsContent value="products">
