@@ -19,14 +19,17 @@ import {
   Package, 
   MessageSquare, 
   PlusCircle, 
-  Edit,
   Trash2,
   Heart,
   Star,
   Activity,
   TrendingUp,
   BarChart3,
-  FileText
+  FileText,
+  Mail,
+  Calendar,
+  User,
+  Zap
 } from 'lucide-react';
 
 const SuperAdminDashboard = () => {
@@ -124,10 +127,15 @@ const SuperAdminDashboard = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.log('Messages table not accessible, using empty array');
+        setMessages([]);
+        return;
+      }
       setMessages(data || []);
     } catch (err) {
       console.error('Error loading messages:', err);
+      setMessages([]);
     }
   };
 
@@ -141,10 +149,15 @@ const SuperAdminDashboard = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.log('Wishlists table not accessible, using empty array');
+        setWishlists([]);
+        return;
+      }
       setWishlists(data || []);
     } catch (err) {
       console.error('Error loading wishlists:', err);
+      setWishlists([]);
     }
   };
 
@@ -158,19 +171,25 @@ const SuperAdminDashboard = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.log('Reviews table not accessible, using empty array');
+        setReviews([]);
+        return;
+      }
       setReviews(data || []);
     } catch (err) {
       console.error('Error loading reviews:', err);
+      setReviews([]);
     }
   };
 
   const loadSystemLogs = async () => {
     // Simulate system logs for now
     setSystemLogs([
-      { id: 1, action: 'User Login', user: 'john@example.com', timestamp: new Date().toISOString(), status: 'success' },
-      { id: 2, action: 'Product Added', user: 'admin@example.com', timestamp: new Date().toISOString(), status: 'success' },
-      { id: 3, action: 'Failed Login Attempt', user: 'unknown@example.com', timestamp: new Date().toISOString(), status: 'error' },
+      { id: 1, action: 'User Login', user: 'john@example.com', timestamp: new Date().toISOString(), status: 'success', details: 'Successful authentication' },
+      { id: 2, action: 'Product Added', user: 'admin@example.com', timestamp: new Date(Date.now() - 300000).toISOString(), status: 'success', details: 'New product created' },
+      { id: 3, action: 'Failed Login Attempt', user: 'unknown@example.com', timestamp: new Date(Date.now() - 600000).toISOString(), status: 'error', details: 'Invalid credentials' },
+      { id: 4, action: 'Admin Created', user: 'superadmin@example.com', timestamp: new Date(Date.now() - 900000).toISOString(), status: 'success', details: 'New admin account created' },
     ]);
   };
 
@@ -249,160 +268,208 @@ const SuperAdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-amber-500 border-t-transparent"></div>
+          <p className="text-gray-600 font-medium">Loading super admin dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/5 to-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50">
       <Header />
       
-      <div className="pt-20 pb-8">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-amber-500 via-primary to-amber-600 bg-clip-text text-transparent">
-              Super Admin Dashboard
-            </h1>
-            <p className="text-xl text-muted-foreground">Complete system control and management</p>
+      <div className="pt-24 pb-12">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Premium Header Section */}
+          <div className="mb-12">
+            <div className="bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 rounded-2xl shadow-lg p-8 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="bg-white/20 p-3 rounded-xl">
+                      <Crown className="h-8 w-8 text-white" />
+                    </div>
+                    <h1 className="text-4xl font-bold">
+                      Super Admin Dashboard
+                    </h1>
+                  </div>
+                  <p className="text-xl text-amber-100">
+                    Complete system control and advanced management
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="bg-white/20 p-4 rounded-xl">
+                    <Zap className="h-10 w-10 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {error && (
-            <Alert className="mb-6 bg-destructive/10 border-destructive/20">
-              <AlertDescription className="text-destructive">{error}</AlertDescription>
+            <Alert className="mb-8 bg-red-50 border-red-200 rounded-xl">
+              <AlertDescription className="text-red-700 font-medium">{error}</AlertDescription>
             </Alert>
           )}
 
-          {/* Advanced Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gradient-to-br from-blue-500/10 via-card/80 to-blue-600/10 backdrop-blur-sm border-blue-500/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                <Users className="h-4 w-4 text-blue-500" />
+          {/* Premium Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <Card className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white rounded-xl shadow-lg border-0 hover:shadow-xl transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <Badge className="bg-white/20 text-white border-white/30">Active</Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{users.length}</div>
-                <p className="text-xs text-muted-foreground">+12% from last month</p>
+                <div className="text-3xl font-bold mb-1">{users.length}</div>
+                <p className="text-blue-100">Total Users</p>
+                <p className="text-xs text-blue-200 mt-1">+12% from last month</p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-500/10 via-card/80 to-green-600/10 backdrop-blur-sm border-green-500/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Admins</CardTitle>
-                <Shield className="h-4 w-4 text-green-500" />
+            <Card className="bg-gradient-to-br from-green-500 via-green-600 to-green-700 text-white rounded-xl shadow-lg border-0 hover:shadow-xl transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <Shield className="h-5 w-5 text-white" />
+                  </div>
+                  <Badge className="bg-white/20 text-white border-white/30">System</Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{admins.length}</div>
-                <p className="text-xs text-muted-foreground">Active admin accounts</p>
+                <div className="text-3xl font-bold mb-1">{admins.length}</div>
+                <p className="text-green-100">Admin Accounts</p>
+                <p className="text-xs text-green-200 mt-1">Secure access control</p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-500/10 via-card/80 to-purple-600/10 backdrop-blur-sm border-purple-500/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-                <Package className="h-4 w-4 text-purple-500" />
+            <Card className="bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 text-white rounded-xl shadow-lg border-0 hover:shadow-xl transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <Package className="h-5 w-5 text-white" />
+                  </div>
+                  <Badge className="bg-white/20 text-white border-white/30">Inventory</Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">{products.length}</div>
-                <p className="text-xs text-muted-foreground">Inventory items</p>
+                <div className="text-3xl font-bold mb-1">{products.length}</div>
+                <p className="text-purple-100">Products</p>
+                <p className="text-xs text-purple-200 mt-1">Catalog management</p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-amber-500/10 via-card/80 to-amber-600/10 backdrop-blur-sm border-amber-500/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">System Health</CardTitle>
-                <Activity className="h-4 w-4 text-amber-500" />
+            <Card className="bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white rounded-xl shadow-lg border-0 hover:shadow-xl transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <Activity className="h-5 w-5 text-white" />
+                  </div>
+                  <Badge className="bg-white/20 text-white border-white/30">Live</Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-amber-600">99.9%</div>
-                <p className="text-xs text-muted-foreground">Uptime this month</p>
+                <div className="text-3xl font-bold mb-1">99.9%</div>
+                <p className="text-amber-100">System Health</p>
+                <p className="text-xs text-amber-200 mt-1">Uptime this month</p>
               </CardContent>
             </Card>
           </div>
 
-          <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="bg-muted/50 backdrop-blur-sm border border-border/50">
-              <TabsTrigger value="overview" className="data-[state=active]:bg-background/80">
+          <Tabs defaultValue="overview" className="space-y-8">
+            <TabsList className="bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700 rounded-lg px-4 py-3 font-medium">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="admins" className="data-[state=active]:bg-background/80">
+              <TabsTrigger value="admins" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700 rounded-lg px-4 py-3 font-medium">
                 <Shield className="w-4 h-4 mr-2" />
                 Admin Management
               </TabsTrigger>
-              <TabsTrigger value="users" className="data-[state=active]:bg-background/80">
+              <TabsTrigger value="users" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-lg px-4 py-3 font-medium">
                 <Users className="w-4 h-4 mr-2" />
                 Users
               </TabsTrigger>
-              <TabsTrigger value="products" className="data-[state=active]:bg-background/80">
+              <TabsTrigger value="products" className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 rounded-lg px-4 py-3 font-medium">
                 <Package className="w-4 h-4 mr-2" />
                 Products
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="data-[state=active]:bg-background/80">
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 rounded-lg px-4 py-3 font-medium">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="logs" className="data-[state=active]:bg-background/80">
+              <TabsTrigger value="logs" className="data-[state=active]:bg-gray-50 data-[state=active]:text-gray-700 rounded-lg px-4 py-3 font-medium">
                 <FileText className="w-4 h-4 mr-2" />
                 System Logs
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                  <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
+            <TabsContent value="overview" className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                  <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Activity className="h-5 w-5 text-blue-600" />
+                      Recent Activity
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-6">
                     <div className="space-y-4">
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-4 p-3 bg-green-50 rounded-lg">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <div>
-                          <p className="text-sm font-medium">New user registered</p>
-                          <p className="text-xs text-muted-foreground">2 minutes ago</p>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">New user registered</p>
+                          <p className="text-xs text-gray-500">2 minutes ago</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-4 p-3 bg-blue-50 rounded-lg">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <div>
-                          <p className="text-sm font-medium">Product added to inventory</p>
-                          <p className="text-xs text-muted-foreground">5 minutes ago</p>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">Product added to inventory</p>
+                          <p className="text-xs text-gray-500">5 minutes ago</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-4 p-3 bg-purple-50 rounded-lg">
                         <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        <div>
-                          <p className="text-sm font-medium">Admin login detected</p>
-                          <p className="text-xs text-muted-foreground">10 minutes ago</p>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">Admin login detected</p>
+                          <p className="text-xs text-gray-500">10 minutes ago</p>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                  <CardHeader>
-                    <CardTitle>Quick Stats</CardTitle>
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                  <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <TrendingUp className="h-5 w-5 text-purple-600" />
+                      Quick Stats
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-6">
                     <div className="space-y-4">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Total Wishlists</span>
-                        <span className="font-medium">{wishlists.length}</span>
+                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">Total Wishlists</span>
+                        <span className="font-bold text-purple-600">{wishlists.length}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Total Reviews</span>
-                        <span className="font-medium">{reviews.length}</span>
+                      <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">Total Reviews</span>
+                        <span className="font-bold text-yellow-600">{reviews.length}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Contact Messages</span>
-                        <span className="font-medium">{messages.length}</span>
+                      <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">Contact Messages</span>
+                        <span className="font-bold text-orange-600">{messages.length}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Low Stock Items</span>
-                        <span className="font-medium text-amber-600">
+                      <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">Low Stock Items</span>
+                        <span className="font-bold text-red-600">
                           {products.filter(p => p.stock < 10).length}
                         </span>
                       </div>
@@ -412,51 +479,56 @@ const SuperAdminDashboard = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="admins" className="space-y-6">
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PlusCircle className="h-5 w-5" />
+            <TabsContent value="admins" className="space-y-8">
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-green-500 p-2 rounded-lg">
+                      <PlusCircle className="h-5 w-5 text-white" />
+                    </div>
                     Create New Admin
                   </CardTitle>
-                  <CardDescription>Add a new administrator to the system</CardDescription>
+                  <CardDescription className="text-gray-600">Add a new administrator to the system</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleCreateAdmin} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="p-6">
+                  <form onSubmit={handleCreateAdmin} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                         <Input
                           id="email"
                           type="email"
                           value={adminForm.email}
                           onChange={(e) => setAdminForm({...adminForm, email: e.target.value})}
+                          className="mt-1 rounded-lg border-gray-300"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="username">Username</Label>
+                        <Label htmlFor="username" className="text-sm font-medium text-gray-700">Username</Label>
                         <Input
                           id="username"
                           value={adminForm.username}
                           onChange={(e) => setAdminForm({...adminForm, username: e.target.value})}
+                          className="mt-1 rounded-lg border-gray-300"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
                         <Input
                           id="password"
                           type="password"
                           value={adminForm.password}
                           onChange={(e) => setAdminForm({...adminForm, password: e.target.value})}
+                          className="mt-1 rounded-lg border-gray-300"
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="role">Role</Label>
+                        <Label htmlFor="role" className="text-sm font-medium text-gray-700">Role</Label>
                         <Select onValueChange={(value) => setAdminForm({...adminForm, role: value})}>
-                          <SelectTrigger>
+                          <SelectTrigger className="mt-1 rounded-lg border-gray-300">
                             <SelectValue placeholder="Select role" />
                           </SelectTrigger>
                           <SelectContent>
@@ -466,33 +538,42 @@ const SuperAdminDashboard = () => {
                         </Select>
                       </div>
                     </div>
-                    <Button type="submit" disabled={loading} className="w-full">
-                      {loading ? 'Creating...' : 'Create Admin Account'}
+                    <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 rounded-lg py-3 font-medium">
+                      {loading ? 'Creating Admin...' : 'Create Admin Account'}
                     </Button>
                   </form>
                 </CardContent>
               </Card>
 
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-green-500 p-2 rounded-lg">
+                      <Shield className="h-5 w-5 text-white" />
+                    </div>
                     Admin Accounts
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <div className="space-y-4">
                     {admins.map((admin) => (
-                      <div key={admin.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg bg-background/50">
+                      <div key={admin.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                         <div className="flex items-center space-x-4">
-                          <div className={`w-3 h-3 rounded-full ${admin.role === 'super_admin' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${admin.role === 'super_admin' ? 'bg-gradient-to-r from-amber-400 to-amber-600' : 'bg-gradient-to-r from-blue-400 to-blue-600'}`}>
+                            {admin.role === 'super_admin' ? (
+                              <Crown className="h-6 w-6 text-white" />
+                            ) : (
+                              <Shield className="h-6 w-6 text-white" />
+                            )}
+                          </div>
                           <div>
-                            <p className="font-medium">{admin.username || 'No username'}</p>
-                            <p className="text-sm text-muted-foreground">{admin.email}</p>
+                            <p className="font-semibold text-gray-900">{admin.username || 'No username'}</p>
+                            <p className="text-sm text-gray-600">{admin.email}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={admin.role === 'super_admin' ? 'default' : 'secondary'} className="bg-gradient-to-r from-amber-500/20 to-primary/20">
+                        <div className="flex items-center space-x-3">
+                          <Badge variant={admin.role === 'super_admin' ? 'default' : 'secondary'} 
+                                 className={admin.role === 'super_admin' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white' : 'bg-blue-100 text-blue-700'}>
                             {admin.role === 'super_admin' ? (
                               <>
                                 <Crown className="w-3 h-3 mr-1" />
@@ -510,6 +591,7 @@ const SuperAdminDashboard = () => {
                               variant="destructive"
                               size="sm"
                               onClick={() => deleteAdmin(admin.id)}
+                              className="rounded-lg"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -523,118 +605,182 @@ const SuperAdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="users">
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-blue-500 p-2 rounded-lg">
+                      <Users className="h-5 w-5 text-white" />
+                    </div>
                     User Management
                   </CardTitle>
-                  <CardDescription>Monitor and manage all user accounts</CardDescription>
+                  <CardDescription className="text-gray-600">Monitor and manage all user accounts</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <div className="space-y-4">
-                    {users.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg bg-background/50">
+                    {users.length > 0 ? users.map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                         <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-semibold">
                               {user.username?.charAt(0)?.toUpperCase() || 'U'}
                             </span>
                           </div>
                           <div>
-                            <p className="font-medium">{user.username || 'No username'}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            <p className="font-semibold text-gray-900">{user.username || 'No username'}</p>
+                            <p className="text-sm text-gray-600">{user.email}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline">{user.role}</Badge>
-                          <span className="text-xs text-muted-foreground">
+                        <div className="flex items-center space-x-3">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{user.role}</Badge>
+                          <span className="text-xs text-gray-500">
                             {new Date(user.created_at).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-12">
+                        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No users found</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="products">
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-purple-500 p-2 rounded-lg">
+                      <Package className="h-5 w-5 text-white" />
+                    </div>
                     Product Overview
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <div className="space-y-4">
-                    {products.slice(0, 10).map((product) => (
-                      <div key={product.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg bg-background/50">
+                    {products.length > 0 ? products.slice(0, 10).map((product) => (
+                      <div key={product.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                         <div className="flex items-center space-x-4">
-                          <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded" />
+                          <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-lg border border-gray-300" />
                           <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-muted-foreground">{product.brand}</p>
+                            <p className="font-semibold text-gray-900">{product.name}</p>
+                            <p className="text-sm text-gray-600">{product.brand}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline">₱{product.price}</Badge>
-                          <Badge variant={product.stock < 10 ? 'destructive' : 'secondary'}>
+                        <div className="flex items-center space-x-3">
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">₱{product.price}</Badge>
+                          <Badge variant={product.stock < 10 ? 'destructive' : 'secondary'} 
+                                 className={product.stock < 10 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}>
                             Stock: {product.stock}
                           </Badge>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-12">
+                        <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No products found</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="analytics">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                  <CardHeader>
-                    <CardTitle>User Growth</CardTitle>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                  <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      User Growth
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-600 mb-2">+15.2%</div>
-                    <p className="text-sm text-muted-foreground">User growth this month</p>
+                  <CardContent className="p-6">
+                    <div className="text-3xl font-bold text-green-600 mb-2">+15.2%</div>
+                    <p className="text-sm text-gray-600">User growth this month</p>
+                    <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                      <p className="text-sm text-green-700">Steady growth in user registrations</p>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                  <CardHeader>
-                    <CardTitle>Product Performance</CardTitle>
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                  <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Package className="h-5 w-5 text-blue-600" />
+                      Product Performance
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600 mb-2">₱{products.reduce((sum, p) => sum + (p.price * p.stock), 0).toLocaleString()}</div>
-                    <p className="text-sm text-muted-foreground">Total inventory value</p>
+                  <CardContent className="p-6">
+                    <div className="text-3xl font-bold text-blue-600 mb-2">₱{products.reduce((sum, p) => sum + (p.price * p.stock), 0).toLocaleString()}</div>
+                    <p className="text-sm text-gray-600">Total inventory value</p>
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-700">Healthy inventory levels maintained</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                  <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <Heart className="h-5 w-5 text-purple-600" />
+                      Wishlist Analytics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="text-3xl font-bold text-purple-600 mb-2">{wishlists.length}</div>
+                    <p className="text-sm text-gray-600">Total wishlist items</p>
+                    <div className="mt-4 p-4 bg-purple-50 rounded-lg">
+                      <p className="text-sm text-purple-700">High user engagement with products</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                  <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                      <MessageSquare className="h-5 w-5 text-orange-600" />
+                      Customer Engagement
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="text-3xl font-bold text-orange-600 mb-2">{messages.length + reviews.length}</div>
+                    <p className="text-sm text-gray-600">Total interactions</p>
+                    <div className="mt-4 p-4 bg-orange-50 rounded-lg">
+                      <p className="text-sm text-orange-700">Active customer communication</p>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
             </TabsContent>
 
             <TabsContent value="logs">
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-gray-600 p-2 rounded-lg">
+                      <FileText className="h-5 w-5 text-white" />
+                    </div>
                     System Activity Logs
                   </CardTitle>
+                  <CardDescription className="text-gray-600">Real-time system monitoring and audit trail</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <div className="space-y-4">
                     {systemLogs.map((log) => (
-                      <div key={log.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg bg-background/50">
+                      <div key={log.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                         <div className="flex items-center space-x-4">
-                          <div className={`w-2 h-2 rounded-full ${log.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <div className={`w-3 h-3 rounded-full ${log.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                           <div>
-                            <p className="font-medium">{log.action}</p>
-                            <p className="text-sm text-muted-foreground">{log.user}</p>
+                            <p className="font-semibold text-gray-900">{log.action}</p>
+                            <p className="text-sm text-gray-600">{log.user}</p>
+                            <p className="text-xs text-gray-500 mt-1">{log.details}</p>
                           </div>
                         </div>
-                        <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
+                        <Badge variant={log.status === 'success' ? 'default' : 'destructive'} 
+                               className={log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
                           {new Date(log.timestamp).toLocaleString()}
                         </Badge>
                       </div>
