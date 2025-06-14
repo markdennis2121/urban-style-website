@@ -208,8 +208,8 @@ const Contact = () => {
                       <div>
                         <h3 className="font-semibold text-foreground mb-1">Our Address</h3>
                         <p className="text-muted-foreground">
-                          123 Fashion Street<br />
-                          Style District, Manila<br />
+                          Celine Homes<br />
+                          Bacolod City<br />
                           Philippines 1000
                         </p>
                       </div>
@@ -221,7 +221,7 @@ const Contact = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-foreground mb-1">Phone</h3>
-                        <p className="text-muted-foreground">+63 2 1234 5678</p>
+                        <p className="text-muted-foreground">+639709804794</p>
                       </div>
                     </div>
                     
@@ -231,7 +231,7 @@ const Contact = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-foreground mb-1">Email</h3>
-                        <p className="text-muted-foreground">support@fashionstore.com</p>
+                        <p className="text-muted-foreground">mmanangan021@gmail.com</p>
                       </div>
                     </div>
                     
