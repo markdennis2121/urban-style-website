@@ -1,5 +1,9 @@
 
--- Create contact_messages table
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Anyone can insert contact messages" ON contact_messages;
+DROP POLICY IF EXISTS "Admins can view all contact messages" ON contact_messages;
+
+-- Create contact_messages table only if it doesn't exist
 CREATE TABLE IF NOT EXISTS contact_messages (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
