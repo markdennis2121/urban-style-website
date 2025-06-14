@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { useWishlist } from '@/contexts/WishlistContext';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +41,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { toast } = useToast();
+  const { loadAllWishlists } = useWishlist();
 
   // Product form state
   const [productForm, setProductForm] = useState({
@@ -129,27 +131,18 @@ const AdminDashboard = () => {
 
   const loadWishlists = async () => {
     try {
-      console.log('Admin loading wishlists...');
+      console.log('Admin loading all wishlists...');
       
-      // First, get all wishlists
-      const { data: wishlistsData, error: wishlistsError } = await supabase
-        .from('wishlists')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (wishlistsError) {
-        console.error('Error loading wishlists:', wishlistsError);
-        setWishlists([]);
-        return;
-      }
-
-      console.log('Raw wishlist data:', wishlistsData);
-
+      // Use the new loadAllWishlists function from context
+      const wishlistsData = await loadAllWishlists();
+      
       if (!wishlistsData || wishlistsData.length === 0) {
         console.log('No wishlist data found');
         setWishlists([]);
         return;
       }
+
+      console.log('Raw wishlist data:', wishlistsData);
 
       // Get unique user IDs
       const userIds = [...new Set(wishlistsData.map(w => w.user_id))];
@@ -170,7 +163,7 @@ const AdminDashboard = () => {
 
       console.log('Profiles data:', profilesData);
 
-      // Combine wishlist data with profile data - fix circular reference
+      // Combine wishlist data with profile data
       const enrichedWishlists = wishlistsData.map(wishlist => {
         const userProfile = profilesData?.find(p => p.id === wishlist.user_id);
         return {
