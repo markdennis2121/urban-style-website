@@ -62,74 +62,101 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!requireAuth('add items to cart')) return;
-    
-    if (!canUseShoppingFeatures) {
+    try {
+      if (!requireAuth('add items to cart')) return;
+      
+      if (!canUseShoppingFeatures) {
+        toast({
+          title: "Shopping disabled",
+          description: "Switch to Customer Mode to use shopping features.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      dispatch({
+        type: 'ADD_ITEM',
+        payload: {
+          id: productIdString,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+        },
+      });
+
       toast({
-        title: "Shopping disabled",
-        description: "Switch to Customer Mode to use shopping features.",
+        title: "Added to cart!",
+        description: `${product.name} has been added to your cart.`,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
         variant: "destructive"
       });
-      return;
     }
-
-    dispatch({
-      type: 'ADD_ITEM',
-      payload: {
-        id: productIdString,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-      },
-    });
-
-    toast({
-      title: "Added to cart!",
-      description: `${product.name} has been added to your cart.`,
-    });
   };
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!requireAuth('manage your wishlist')) return;
-    
-    if (!canUseShoppingFeatures) {
+    try {
+      if (!requireAuth('manage your wishlist')) return;
+      
+      if (!canUseShoppingFeatures) {
+        toast({
+          title: "Shopping disabled",
+          description: "Switch to Customer Mode to use shopping features.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      addToWishlist(product);
+    } catch (error) {
+      console.error('Error managing wishlist:', error);
       toast({
-        title: "Shopping disabled",
-        description: "Switch to Customer Mode to use shopping features.",
+        title: "Error",
+        description: "Failed to update wishlist. Please try again.",
         variant: "destructive"
       });
-      return;
     }
-
-    addToWishlist(product);
   };
 
   const handleCompareToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!canUseShoppingFeatures) {
+    try {
+      if (!canUseShoppingFeatures) {
+        toast({
+          title: "Shopping disabled",
+          description: "Switch to Customer Mode to use shopping features.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      addToCompare({
+        id: productIdString,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        category: product.category,
+        brand: product.brand,
+        rating: product.rating,
+        description: product.description
+      });
+    } catch (error) {
+      console.error('Error managing comparison:', error);
       toast({
-        title: "Shopping disabled",
-        description: "Switch to Customer Mode to use shopping features.",
+        title: "Error",
+        description: "Failed to update comparison. Please try again.",
         variant: "destructive"
       });
-      return;
     }
-
-    addToCompare({
-      id: productIdString,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category,
-      brand: product.brand,
-      rating: product.rating,
-      description: product.description
-    });
   };
 
   const handleLoginRedirect = (e: React.MouseEvent) => {
@@ -137,6 +164,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.stopPropagation();
     navigate('/login');
   };
+
+  // Add safety checks
+  if (!product || !product.id) {
+    console.warn('ProductCard received invalid product data:', product);
+    return null;
+  }
 
   const isWishlisted = isAuthenticated && isInWishlist(productIdString);
   const isInComparison = isInCompare(productIdString);
