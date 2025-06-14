@@ -19,7 +19,7 @@ ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 -- Create policy to allow anyone (including anonymous users) to insert contact messages
 CREATE POLICY "Anyone can insert contact messages" ON contact_messages
     FOR INSERT 
-    TO public
+    TO anon, authenticated
     WITH CHECK (true);
 
 -- Create policy for admins to view all contact messages
