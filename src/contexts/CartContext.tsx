@@ -65,6 +65,7 @@ const saveToStorage = (state: CartState) => {
         itemCount: state.itemCount,
       };
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(stateToSave));
+      console.log('Cart saved to localStorage:', stateToSave);
     }
   } catch (error) {
     console.error('Error saving cart to localStorage:', error);
@@ -76,6 +77,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
   switch (action.type) {
     case 'LOAD_FROM_STORAGE':
+      console.log('Loading cart from storage:', action.payload);
       return action.payload;
 
     case 'SET_LOADED':
@@ -156,16 +158,27 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const loadedRef = useRef(false);
   
   useEffect(() => {
-    // Prevent multiple loads
-    if (loadedRef.current) return;
+    // Prevent multiple loads with stronger guard
+    if (loadedRef.current) {
+      console.log('Cart already loaded, skipping');
+      return;
+    }
+    
     loadedRef.current = true;
+    console.log('Initializing cart...');
 
     const savedCart = loadFromStorage();
     if (savedCart) {
+      console.log('Found saved cart:', savedCart);
       dispatch({ type: 'LOAD_FROM_STORAGE', payload: savedCart });
     } else {
+      console.log('No saved cart found, setting as loaded');
       dispatch({ type: 'SET_LOADED' });
     }
+
+    return () => {
+      loadedRef.current = false;
+    };
   }, []);
   
   return (
