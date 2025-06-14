@@ -13,7 +13,7 @@ export const useAuth = () => {
 
     const getInitialSession = async () => {
       try {
-        // Get the current session first
+        console.log('Getting initial session...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -27,13 +27,13 @@ export const useAuth = () => {
         }
 
         if (session?.user) {
-          // User has a valid session, get their profile
+          console.log('Session found, getting profile...');
           const userProfile = await getCurrentProfile();
           if (mounted) {
             setProfile(userProfile);
           }
         } else {
-          // No session, user is not authenticated
+          console.log('No session found');
           if (mounted) {
             setProfile(null);
           }
@@ -55,34 +55,47 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
+      if (!mounted) return;
+
       if (event === 'SIGNED_IN' && session?.user) {
+        console.log('User signed in, getting profile...');
+        setLoading(true);
         try {
           const userProfile = await getCurrentProfile();
           if (mounted) {
             setProfile(userProfile);
             setLoading(false);
+            setInitialized(true);
           }
         } catch (error) {
           console.error('Error getting profile after sign in:', error);
           if (mounted) {
             setProfile(null);
             setLoading(false);
+            setInitialized(true);
           }
         }
       } else if (event === 'SIGNED_OUT' || !session) {
+        console.log('User signed out');
         if (mounted) {
           setProfile(null);
           setLoading(false);
+          setInitialized(true);
         }
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-        // Token was refreshed, maintain the current profile
-        console.log('Token refreshed, maintaining session');
+        console.log('Token refreshed');
         if (mounted && !profile) {
           try {
             const userProfile = await getCurrentProfile();
-            setProfile(userProfile);
+            if (mounted) {
+              setProfile(userProfile);
+              setInitialized(true);
+            }
           } catch (error) {
             console.error('Error getting profile after token refresh:', error);
+            if (mounted) {
+              setInitialized(true);
+            }
           }
         }
       }
@@ -96,7 +109,7 @@ export const useAuth = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array to prevent re-running
 
   return {
     profile,
