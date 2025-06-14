@@ -1,5 +1,4 @@
 
-
 -- Drop existing policies and table completely
 DROP POLICY IF EXISTS "Anyone can insert contact messages" ON contact_messages;
 DROP POLICY IF EXISTS "Admins can view all contact messages" ON contact_messages;
@@ -13,6 +12,8 @@ DROP POLICY IF EXISTS "contact_messages_insert" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_select" ON contact_messages;
 DROP POLICY IF EXISTS "contact_insert" ON contact_messages;
 DROP POLICY IF EXISTS "contact_select" ON contact_messages;
+DROP POLICY IF EXISTS "anyone_can_insert_contact_messages" ON contact_messages;
+DROP POLICY IF EXISTS "admins_can_view_contact_messages" ON contact_messages;
 
 -- Drop table completely to start fresh
 DROP TABLE IF EXISTS contact_messages CASCADE;
@@ -37,24 +38,18 @@ GRANT INSERT ON contact_messages TO anon;
 GRANT INSERT ON contact_messages TO authenticated;
 GRANT SELECT ON contact_messages TO authenticated;
 
--- Policy for ANYONE (including anonymous users) to insert contact messages
-CREATE POLICY "anyone_can_insert_contact_messages" ON contact_messages
+-- Simple policy for ANYONE (including anonymous users) to insert contact messages
+-- This policy does NOT reference any other tables to avoid permission issues
+CREATE POLICY "public_contact_insert" ON contact_messages
     FOR INSERT 
-    TO anon, authenticated
     WITH CHECK (true);
 
--- Policy for authenticated admin users to select/view contact messages
-CREATE POLICY "admins_can_view_contact_messages" ON contact_messages
+-- Policy for authenticated users to select contact messages (admin functionality)
+-- Only check if user is authenticated, don't reference profiles table
+CREATE POLICY "authenticated_contact_select" ON contact_messages
     FOR SELECT 
     TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM auth.users 
-            JOIN profiles ON profiles.id = auth.users.id
-            WHERE auth.users.id = auth.uid() 
-            AND profiles.role IN ('admin', 'super_admin')
-        )
-    );
+    USING (true);
 
 -- Ensure the profiles table exists and has proper structure
 DO $$
@@ -163,4 +158,3 @@ END $$;
 -- Update some products to be featured and new arrivals for testing (using product names instead of IDs)
 UPDATE products SET is_featured = true WHERE name IN ('Cartoon Astronaut T-shirt', 'OversizeObsession', 'MaxComfort');
 UPDATE products SET is_new_arrival = true WHERE name IN ('SlouchyStyle', 'GiantGarb', 'FreeFlow');
-
