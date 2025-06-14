@@ -8,6 +8,8 @@ DROP POLICY IF EXISTS "allow_insert_contact_messages" ON contact_messages;
 DROP POLICY IF EXISTS "allow_select_contact_messages" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_public_insert" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_admin_select" ON contact_messages;
+DROP POLICY IF EXISTS "contact_messages_insert" ON contact_messages;
+DROP POLICY IF EXISTS "contact_messages_select" ON contact_messages;
 
 -- Drop table completely to start fresh
 DROP TABLE IF EXISTS contact_messages CASCADE;
@@ -25,29 +27,53 @@ CREATE TABLE contact_messages (
 -- Enable RLS
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Grant necessary permissions to anon and authenticated users
+-- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT INSERT ON contact_messages TO anon;
 GRANT INSERT ON contact_messages TO authenticated;
 GRANT SELECT ON contact_messages TO authenticated;
 
--- Create a simple insert policy that allows ANYONE (including anonymous users) to insert
-CREATE POLICY "contact_messages_insert" ON contact_messages
+-- Simple insert policy - allow anyone to insert
+CREATE POLICY "contact_insert" ON contact_messages
     FOR INSERT 
     WITH CHECK (true);
 
--- Create a select policy for authenticated admin users only  
-CREATE POLICY "contact_messages_select" ON contact_messages
+-- Simple select policy - allow authenticated users with admin/super_admin role
+CREATE POLICY "contact_select" ON contact_messages
     FOR SELECT 
     TO authenticated
     USING (
         EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.id = auth.uid() 
+            SELECT 1 FROM auth.users 
+            JOIN profiles ON profiles.id = auth.users.id
+            WHERE auth.users.id = auth.uid() 
             AND profiles.role IN ('admin', 'super_admin')
         )
     );
+
+-- Ensure the profiles table exists and has proper structure
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profiles') THEN
+        CREATE TABLE profiles (
+            id UUID REFERENCES auth.users(id) PRIMARY KEY,
+            username VARCHAR(50),
+            email VARCHAR(255) NOT NULL,
+            role VARCHAR(20) DEFAULT 'user',
+            full_name VARCHAR(255),
+            avatar_url TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        
+        ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+        
+        CREATE POLICY "profiles_select" ON profiles
+            FOR SELECT 
+            USING (true);
+    END IF;
+END $$;
 
 -- Fix the reviews functionality - create reviews table
 CREATE TABLE IF NOT EXISTS reviews (
@@ -70,6 +96,10 @@ GRANT INSERT ON reviews TO authenticated;
 GRANT UPDATE ON reviews TO authenticated;
 
 -- Create policies for reviews
+DROP POLICY IF EXISTS "reviews_select_policy" ON reviews;
+DROP POLICY IF EXISTS "reviews_insert_policy" ON reviews;
+DROP POLICY IF EXISTS "reviews_update_policy" ON reviews;
+
 CREATE POLICY "reviews_select_policy" ON reviews
     FOR SELECT 
     USING (true);
@@ -106,16 +136,25 @@ GRANT INSERT ON wishlists TO authenticated;
 GRANT DELETE ON wishlists TO authenticated;
 
 -- Create policies for wishlists
+DROP POLICY IF EXISTS "wishlists_policy" ON wishlists;
+
 CREATE POLICY "wishlists_policy" ON wishlists
     FOR ALL 
     TO authenticated
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
--- Add missing columns to products table
-ALTER TABLE products 
-ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS is_new_arrival BOOLEAN DEFAULT false;
+-- Add missing columns to products table if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'is_featured') THEN
+        ALTER TABLE products ADD COLUMN is_featured BOOLEAN DEFAULT false;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'is_new_arrival') THEN
+        ALTER TABLE products ADD COLUMN is_new_arrival BOOLEAN DEFAULT false;
+    END IF;
+END $$;
 
 -- Update some products to be featured and new arrivals for testing (using product names instead of IDs)
 UPDATE products SET is_featured = true WHERE name IN ('Cartoon Astronaut T-shirt', 'OversizeObsession', 'MaxComfort');
