@@ -127,7 +127,7 @@ export const useAuth = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Remove profile dependency to prevent loops
 
   return {
     profile,
