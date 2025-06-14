@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Truck, ShoppingCart, DollarSign, Gift, Headphones } from 'lucide-react';
+import { Truck, ShoppingCart, PhilippinePeso, Gift, Headphones } from 'lucide-react';
 
 const FeaturesSection = () => {
   const features = [
@@ -11,7 +11,9 @@ const FeaturesSection = () => {
     {
       icon: <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-primary" />,
       title: "Online Order",
-    },    {      icon: <DollarSign className="w-16 h-16 mx-auto mb-4 text-primary" />,
+    },
+    {
+      icon: <PhilippinePeso className="w-16 h-16 mx-auto mb-4 text-primary" />,
       title: "Save Money",
     },
     {
