@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Header from '../../components/Header';
@@ -104,16 +103,53 @@ const AdminDashboard = () => {
 
   const loadMessages = async () => {
     try {
+      console.log('=== LOADING CONTACT MESSAGES DEBUG ===');
+      
+      // First check current user auth
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user:', user?.id);
+      
+      // Check user profile and role
+      if (user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        console.log('User profile:', profile);
+        console.log('Profile error:', profileError);
+      }
+
+      // Try to fetch messages with detailed error logging
       const { data, error } = await supabase
         .from('contact_messages')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Messages query result:', { data, error });
+
       if (error) {
-        console.log('Messages table not accessible, using empty array');
-        setMessages([]);
-        return;
+        console.error('=== CONTACT MESSAGES ERROR ===');
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        
+        // If it's a permission error, set empty array but log it
+        if (error.code === '42501' || error.message.includes('permission denied')) {
+          console.log('Permission denied for contact_messages, using empty array');
+          setMessages([]);
+          return;
+        }
+        
+        throw error;
       }
+
+      console.log('=== CONTACT MESSAGES SUCCESS ===');
+      console.log('Loaded messages count:', data?.length || 0);
+      console.log('Messages data:', data);
+      
       setMessages(data || []);
     } catch (err) {
       console.error('Error loading messages:', err);
@@ -576,7 +612,7 @@ const AdminDashboard = () => {
                     <div className="bg-orange-500 p-2 rounded-lg">
                       <MessageSquare className="h-5 w-5 text-white" />
                     </div>
-                    Contact Messages
+                    Contact Messages ({messages.length})
                   </CardTitle>
                   <CardDescription className="text-gray-600">Customer inquiries and feedback</CardDescription>
                 </CardHeader>
@@ -607,6 +643,7 @@ const AdminDashboard = () => {
                       <div className="text-center py-12">
                         <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500">No messages found</p>
+                        <p className="text-sm text-gray-400 mt-2">Messages will appear here when customers contact you</p>
                       </div>
                     )}
                   </div>
