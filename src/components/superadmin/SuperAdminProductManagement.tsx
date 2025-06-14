@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,9 @@ const SuperAdminProductManagement: React.FC<SuperAdminProductManagementProps> = 
           description: productData.description,
           category: productData.category,
           stock: productData.stock,
-          image: productData.image || '/placeholder.svg'
+          image: productData.image || '/placeholder.svg',
+          is_featured: productData.is_featured || false,
+          is_new_arrival: productData.is_new_arrival || false
         }]);
 
       if (error) throw error;
@@ -74,7 +75,9 @@ const SuperAdminProductManagement: React.FC<SuperAdminProductManagementProps> = 
           description: productData.description,
           category: productData.category,
           stock: productData.stock,
-          image: productData.image || '/placeholder.svg'
+          image: productData.image || '/placeholder.svg',
+          is_featured: productData.is_featured || false,
+          is_new_arrival: productData.is_new_arrival || false
         })
         .eq('id', editingProduct.id);
 
