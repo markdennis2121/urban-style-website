@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase/client';
@@ -169,33 +168,33 @@ const UserLoginPage = () => {
   const passwordValidation = validatePassword(password);
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <Card className="w-full max-w-md p-8 bg-white/90 backdrop-blur-sm border border-gray-200 shadow-2xl rounded-2xl">
+    <div className="flex justify-center items-center min-h-screen bg-background">
+      <Card className="w-full max-w-md p-8 border shadow-lg">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center shadow-lg">
-              <Shield className="h-10 w-10 text-blue-600" />
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+              <Shield className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             Welcome Back
           </h1>
-          <p className="text-gray-600 text-lg">Sign in to your account</p>
+          <p className="text-muted-foreground">Sign in to your account</p>
         </div>
         
         {error && (
-          <Alert variant="destructive" className="mb-6 bg-red-50 border-red-200 rounded-xl">
-            <span className="text-red-700 font-medium">{error}</span>
+          <Alert variant="destructive" className="mb-6">
+            <span className="text-destructive-foreground font-medium">{error}</span>
           </Alert>
         )}
         
         {message && (
-          <Alert className="mb-6 bg-blue-50 border-blue-200 rounded-xl">
-            <span className="text-blue-700 font-medium">{message}</span>
+          <Alert className="mb-6 bg-muted border-border">
+            <span className="text-muted-foreground font-medium">{message}</span>
             {error?.includes('verify your email') && (
               <Button
                 variant="link"
-                className="mt-3 w-full text-blue-600 hover:text-blue-700 font-medium"
+                className="mt-3 w-full text-primary hover:text-primary/80 font-medium"
                 onClick={handleResendVerification}
                 disabled={loading}
               >
@@ -206,7 +205,7 @@ const UserLoginPage = () => {
         )}
 
         {rateLimited && (
-          <Alert variant="destructive" className="mb-6 rounded-xl">
+          <Alert variant="destructive" className="mb-6">
             <div className="space-y-3">
               <p className="font-medium">Account temporarily locked due to too many failed attempts.</p>
               <Progress value={(15 - remainingTime) / 15 * 100} className="w-full" />
@@ -223,7 +222,7 @@ const UserLoginPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full h-14 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-lg"
+              className="w-full h-12"
               disabled={loading || rateLimited}
             />
           </div>
@@ -235,7 +234,7 @@ const UserLoginPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full h-14 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-12 text-lg"
+              className="w-full h-12 pr-12"
               minLength={6}
               disabled={loading || rateLimited}
             />
@@ -243,16 +242,16 @@ const UserLoginPage = () => {
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-10 w-10 p-0 hover:bg-gray-100 rounded-lg"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
               onClick={() => setShowPassword(!showPassword)}
               disabled={loading}
             >
-              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
 
           {password && !passwordValidation.isValid && (
-            <div className="text-sm text-red-600 bg-red-50 p-4 rounded-xl space-y-2">
+            <div className="text-sm text-destructive bg-destructive/10 p-4 rounded-md space-y-2">
               <p className="font-semibold">Password requirements:</p>
               <ul className="list-disc list-inside space-y-1">
                 {passwordValidation.errors.map((error, index) => (
@@ -264,7 +263,7 @@ const UserLoginPage = () => {
 
           <Button
             type="submit"
-            className="w-full h-14 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             disabled={loading || rateLimited}
           >
             {loading ? 'Signing in...' : 'Sign In'}
@@ -275,7 +274,7 @@ const UserLoginPage = () => {
           <Button
             variant="link"
             onClick={() => navigate('/signup')}
-            className="text-blue-600 hover:text-blue-700 font-medium text-lg"
+            className="text-primary hover:text-primary/80 font-medium"
             disabled={loading}
           >
             Don't have an account? Sign up
@@ -283,7 +282,7 @@ const UserLoginPage = () => {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
             <Shield className="h-4 w-4" />
             Your data is protected with enterprise-grade security
           </p>
