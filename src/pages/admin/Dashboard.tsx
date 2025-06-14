@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Header from '../../components/Header';
@@ -127,44 +126,56 @@ const AdminDashboard = () => {
     try {
       console.log('Admin loading wishlists...');
       
-      // Get wishlists
-      const { data, error } = await supabase
+      // First, get all wishlists
+      const { data: wishlistsData, error: wishlistsError } = await supabase
         .from('wishlists')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error loading wishlists:', error);
+      if (wishlistsError) {
+        console.error('Error loading wishlists:', wishlistsError);
         setWishlists([]);
         return;
       }
 
-      console.log('Admin wishlist data:', data);
+      console.log('Raw wishlist data:', wishlistsData);
 
-      // Get user profiles separately
-      if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(w => w.user_id))];
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, username, email')
-          .in('id', userIds);
-
-        if (!profileError && profiles) {
-          // Combine the data
-          const enrichedWishlists = data.map(wishlist => ({
-            ...wishlist,
-            profiles: profiles.find(p => p.id === wishlist.user_id)
-          }));
-          
-          setWishlists(enrichedWishlists);
-        } else {
-          setWishlists(data);
-        }
-      } else {
+      if (!wishlistsData || wishlistsData.length === 0) {
+        console.log('No wishlist data found');
         setWishlists([]);
+        return;
       }
+
+      // Get unique user IDs
+      const userIds = [...new Set(wishlistsData.map(w => w.user_id))];
+      console.log('User IDs from wishlists:', userIds);
+
+      // Get user profiles for these user IDs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, email')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error loading profiles:', profilesError);
+        // Still show wishlists even if profiles fail
+        setWishlists(wishlistsData);
+        return;
+      }
+
+      console.log('Profiles data:', profilesData);
+
+      // Combine wishlist data with profile data
+      const enrichedWishlists = wishlistsData.map(wishlist => ({
+        ...wishlist,
+        profiles: profilesData?.find(p => p.id === wishlist.user_id) || null
+      }));
+
+      console.log('Enriched wishlists:', enrichedWishlists);
+      setWishlists(enrichedWishlists);
+
     } catch (err) {
-      console.error('Error loading wishlists:', err);
+      console.error('Error in loadWishlists:', err);
       setWishlists([]);
     }
   };
@@ -707,58 +718,79 @@ const AdminDashboard = () => {
                   <CardDescription className="text-gray-600">Monitor user wishlist items and preferences</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
+                  <div className="mb-4">
+                    <Button 
+                      onClick={loadWishlists} 
+                      variant="outline" 
+                      size="sm"
+                      className="mb-4"
+                    >
+                      Refresh Wishlists
+                    </Button>
+                  </div>
+                  
                   {wishlists.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead>Product</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead>Added Date</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {wishlists.map((wishlist) => (
-                          <TableRow key={wishlist.id}>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{wishlist.profiles?.username || 'Unknown User'}</p>
-                                <p className="text-sm text-gray-500">{wishlist.profiles?.email || 'No email'}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-3">
-                                <img 
-                                  src={wishlist.product_image || '/placeholder.svg'} 
-                                  alt={wishlist.product_name || 'Product'}
-                                  className="w-10 h-10 object-cover rounded border"
-                                  onError={(e) => {
-                                    e.currentTarget.src = '/placeholder.svg';
-                                  }}
-                                />
-                                <div>
-                                  <p className="font-medium">{wishlist.product_name || 'Unknown Product'}</p>
-                                  <p className="text-sm text-gray-500">ID: {wishlist.product_id}</p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-medium">₱{wishlist.product_price || 0}</TableCell>
-                            <TableCell>{new Date(wishlist.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => deleteWishlistItem(wishlist.id)}
-                                className="rounded-lg"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Product</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Added Date</TableHead>
+                            <TableHead>Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {wishlists.map((wishlist) => (
+                            <TableRow key={wishlist.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">
+                                    {wishlist.profiles?.username || 'Unknown User'}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {wishlist.profiles?.email || wishlist.user_id}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-3">
+                                  <img 
+                                    src={wishlist.product_image || '/placeholder.svg'} 
+                                    alt={wishlist.product_name || 'Product'}
+                                    className="w-10 h-10 object-cover rounded border"
+                                    onError={(e) => {
+                                      e.currentTarget.src = '/placeholder.svg';
+                                    }}
+                                  />
+                                  <div>
+                                    <p className="font-medium">{wishlist.product_name || 'Unknown Product'}</p>
+                                    <p className="text-sm text-gray-500">ID: {wishlist.product_id}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                ₱{wishlist.product_price || 0}
+                              </TableCell>
+                              <TableCell>
+                                {new Date(wishlist.created_at).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => deleteWishlistItem(wishlist.id)}
+                                  className="rounded-lg"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   ) : (
                     <div className="text-center py-12">
                       <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -766,6 +798,13 @@ const AdminDashboard = () => {
                       <p className="text-sm text-gray-400 mt-2">
                         Users haven't added any items to their wishlists yet
                       </p>
+                      <Button 
+                        onClick={loadWishlists} 
+                        variant="outline" 
+                        className="mt-4"
+                      >
+                        Refresh Data
+                      </Button>
                     </div>
                   )}
                 </CardContent>
