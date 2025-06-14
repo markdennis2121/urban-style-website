@@ -2,17 +2,17 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import { categories, brands } from '../data/products';
+import { categories, brands, products as existingProducts } from '../data/products';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Grid, List, X } from 'lucide-react';
+import { Search, Filter, Grid, List } from 'lucide-react';
 
 const Shop = () => {
-  const [products, setProducts] = useState([]);
+  const [dbProducts, setDbProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -32,6 +32,7 @@ const Shop = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .gt('stock', 0) // Only load products with stock > 0
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -40,16 +41,16 @@ const Shop = () => {
       const transformedProducts = data.map(product => ({
         ...product,
         image: product.image_url,
-        brand: product.brand || 'Generic',
-        rating: 4.5, // Default rating
-        reviews: 0, // Default reviews
-        isNew: false, // Default new status
-        isSale: false, // Default sale status
+        brand: 'Admin Added',
+        rating: 4.5,
+        reviews: 0,
+        isNew: product.is_new_arrival || false,
+        isSale: false,
         inStock: product.stock > 0,
         originalPrice: null
       }));
       
-      setProducts(transformedProducts);
+      setDbProducts(transformedProducts);
     } catch (err) {
       console.error('Error loading products:', err);
     } finally {
@@ -57,8 +58,14 @@ const Shop = () => {
     }
   };
 
+  // Combine existing products (filter out of stock) with database products
+  const allProducts = useMemo(() => {
+    const inStockExistingProducts = existingProducts.filter(product => product.inStock);
+    return [...inStockExistingProducts, ...dbProducts];
+  }, [dbProducts]);
+
   const filteredProducts = useMemo(() => {
-    return products
+    return allProducts
       .filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             product.category.toLowerCase().includes(searchTerm.toLowerCase());
@@ -82,7 +89,7 @@ const Shop = () => {
             return a.name.localeCompare(b.name);
         }
       });
-  }, [products, searchTerm, selectedCategory, selectedBrand, priceRange, sortBy]);
+  }, [allProducts, searchTerm, selectedCategory, selectedBrand, priceRange, sortBy]);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -108,14 +115,17 @@ const Shop = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background">
       <Header />
       
       {/* Page Header */}
-      <section className="pt-24 pb-8 bg-muted/50 backdrop-blur-sm border-b border-border">
+      <section className="pt-24 pb-8 bg-gradient-to-r from-muted/30 via-background to-muted/30 backdrop-blur-sm border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-4xl font-bold text-foreground mb-4">Shop</h1>
-          <p className="text-muted-foreground">Discover our complete collection of fashion items</p>
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent">
+            Shop Collection
+          </h1>
+          <div className="w-24 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50 mb-6 rounded-full"></div>
+          <p className="text-xl text-muted-foreground font-light">Discover our complete collection of fashion items</p>
         </div>
       </section>
 
@@ -123,12 +133,16 @@ const Shop = () => {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <div className={`lg:w-80 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 sticky top-24 shadow-lg">
+            <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-6 sticky top-24 shadow-xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-foreground">Filters</h3>
+                <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                  Filters
+                </h3>
                 <div className="flex items-center gap-2">
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="bg-primary/10 text-primary">{activeFiltersCount}</Badge>
+                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                      {activeFiltersCount}
+                    </Badge>
                   )}
                   <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
                     Clear All
@@ -138,28 +152,28 @@ const Shop = () => {
 
               {/* Search */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-foreground">Search</label>
+                <label className="block text-sm font-semibold mb-3 text-foreground">Search Products</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder="Search products..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-background/80 border-border"
+                    className="pl-10 bg-background/80 border-border/50 rounded-xl focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
 
               {/* Category */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-foreground">Category</label>
+                <label className="block text-sm font-semibold mb-3 text-foreground">Category</label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="bg-background/80 border-border">
+                  <SelectTrigger className="bg-background/80 border-border/50 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
+                  <SelectContent className="bg-card border-border rounded-xl">
                     {categories.map(category => (
-                      <SelectItem key={category} value={category} className="hover:bg-muted">
+                      <SelectItem key={category} value={category} className="hover:bg-muted rounded-lg">
                         {category}
                       </SelectItem>
                     ))}
@@ -169,14 +183,14 @@ const Shop = () => {
 
               {/* Brand */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-foreground">Brand</label>
+                <label className="block text-sm font-semibold mb-3 text-foreground">Brand</label>
                 <Select value={selectedBrand} onValueChange={setSelectedBrand}>
-                  <SelectTrigger className="bg-background/80 border-border">
+                  <SelectTrigger className="bg-background/80 border-border/50 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
+                  <SelectContent className="bg-card border-border rounded-xl">
                     {brands.map(brand => (
-                      <SelectItem key={brand} value={brand} className="hover:bg-muted">
+                      <SelectItem key={brand} value={brand} className="hover:bg-muted rounded-lg">
                         {brand}
                       </SelectItem>
                     ))}
@@ -186,7 +200,7 @@ const Shop = () => {
 
               {/* Price Range */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-foreground">
+                <label className="block text-sm font-semibold mb-3 text-foreground">
                   Price Range: ₱{priceRange[0]} - ₱{priceRange[1]}
                 </label>
                 <Slider
@@ -194,7 +208,7 @@ const Shop = () => {
                   onValueChange={setPriceRange}
                   max={10000}
                   step={500}
-                  className="mt-2"
+                  className="mt-3"
                 />
               </div>
             </div>
@@ -203,47 +217,47 @@ const Shop = () => {
           {/* Products Section */}
           <div className="flex-1">
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
               <div className="flex items-center gap-4">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="lg:hidden bg-card/50 border-border hover:bg-muted"
+                  className="lg:hidden bg-card/60 border-border/50 hover:bg-muted rounded-xl backdrop-blur-sm"
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   Filters
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
+                    <Badge variant="secondary" className="ml-2 bg-primary/20 text-primary border-primary/30">
                       {activeFiltersCount}
                     </Badge>
                   )}
                 </Button>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground font-medium">
                   {filteredProducts.length} products found
                 </span>
               </div>
 
               <div className="flex items-center gap-4">
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48 bg-card/50 border-border">
+                  <SelectTrigger className="w-48 bg-card/60 border-border/50 rounded-xl backdrop-blur-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="name" className="hover:bg-muted">Sort by Name</SelectItem>
-                    <SelectItem value="price-low" className="hover:bg-muted">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high" className="hover:bg-muted">Price: High to Low</SelectItem>
-                    <SelectItem value="rating" className="hover:bg-muted">Highest Rated</SelectItem>
-                    <SelectItem value="newest" className="hover:bg-muted">Newest First</SelectItem>
+                  <SelectContent className="bg-card border-border rounded-xl">
+                    <SelectItem value="name" className="hover:bg-muted rounded-lg">Sort by Name</SelectItem>
+                    <SelectItem value="price-low" className="hover:bg-muted rounded-lg">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high" className="hover:bg-muted rounded-lg">Price: High to Low</SelectItem>
+                    <SelectItem value="rating" className="hover:bg-muted rounded-lg">Highest Rated</SelectItem>
+                    <SelectItem value="newest" className="hover:bg-muted rounded-lg">Newest First</SelectItem>
                   </SelectContent>
                 </Select>
 
-                <div className="flex border border-border rounded-md bg-card/50">
+                <div className="flex border border-border/50 rounded-xl bg-card/60 backdrop-blur-sm">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('grid')}
-                    className="border-0"
+                    className="border-0 rounded-l-xl"
                   >
                     <Grid className="w-4 h-4" />
                   </Button>
@@ -251,7 +265,7 @@ const Shop = () => {
                     variant={viewMode === 'list' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('list')}
-                    className="border-0"
+                    className="border-0 rounded-r-xl"
                   >
                     <List className="w-4 h-4" />
                   </Button>
@@ -263,13 +277,13 @@ const Shop = () => {
             {filteredProducts.length > 0 ? (
               <div className={
                 viewMode === 'grid' 
-                  ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
-                  : 'space-y-4'
+                  ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8'
+                  : 'space-y-6'
               }>
                 {filteredProducts.map((product, index) => (
                   <div 
                     key={product.id}
-                    className="animate-fade-in"
+                    className="animate-fade-in hover:scale-105 transition-all duration-500"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <ProductCard product={product} />
@@ -277,14 +291,14 @@ const Shop = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold mb-2 text-foreground">No products found</h3>
-                <p className="text-muted-foreground mb-4">
+              <div className="text-center py-16">
+                <div className="text-8xl mb-6 opacity-50">🔍</div>
+                <h3 className="text-2xl font-bold mb-4 text-foreground">No products found</h3>
+                <p className="text-muted-foreground mb-6 text-lg">
                   Try adjusting your filters or search terms
                 </p>
-                <Button onClick={clearFilters} className="bg-primary hover:bg-primary/90">
-                  Clear Filters
+                <Button onClick={clearFilters} className="bg-primary hover:bg-primary/90 rounded-xl px-8 py-3">
+                  Clear All Filters
                 </Button>
               </div>
             )}

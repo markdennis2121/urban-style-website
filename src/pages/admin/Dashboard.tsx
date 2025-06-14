@@ -29,7 +29,9 @@ const AdminDashboard = () => {
     price: '',
     category: '',
     image_url: '',
-    stock: ''
+    stock: '',
+    is_featured: false,
+    is_new_arrival: false
   });
 
   useEffect(() => {
@@ -94,7 +96,9 @@ const AdminDashboard = () => {
           price: parseFloat(newProduct.price),
           category: newProduct.category,
           image_url: newProduct.image_url,
-          stock: parseInt(newProduct.stock)
+          stock: parseInt(newProduct.stock),
+          is_featured: newProduct.is_featured,
+          is_new_arrival: newProduct.is_new_arrival
         }])
         .select();
 
@@ -111,7 +115,9 @@ const AdminDashboard = () => {
         price: '',
         category: '',
         image_url: '',
-        stock: ''
+        stock: '',
+        is_featured: false,
+        is_new_arrival: false
       });
 
       loadProducts();
@@ -120,6 +126,56 @@ const AdminDashboard = () => {
       toast({
         title: "Error",
         description: "Failed to add product. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleFeature = async (productId: string, field: 'is_featured' | 'is_new_arrival', currentValue: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ [field]: !currentValue })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: `Product ${field === 'is_featured' ? 'featured status' : 'new arrival status'} updated.`,
+      });
+
+      loadProducts();
+    } catch (err) {
+      console.error('Error updating product:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update product. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateStock = async (productId: string, newStock: number) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Stock updated successfully.",
+      });
+
+      loadProducts();
+    } catch (err) {
+      console.error('Error updating stock:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update stock. Please try again.",
         variant: "destructive",
       });
     }
@@ -341,6 +397,32 @@ const AdminDashboard = () => {
                     />
                   </div>
 
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="is_featured"
+                        checked={newProduct.is_featured}
+                        onChange={(e) => setNewProduct({...newProduct, is_featured: e.target.checked})}
+                        className="rounded border-border"
+                      />
+                      <Label htmlFor="is_featured">Featured Product</Label>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="is_new_arrival"
+                        checked={newProduct.is_new_arrival}
+                        onChange={(e) => setNewProduct({...newProduct, is_new_arrival: e.target.checked})}
+                        className="rounded border-border"
+                      />
+                      <Label htmlFor="is_new_arrival">New Arrival</Label>
+                    </div>
+                  </div>
+
                   <div className="md:col-span-2">
                     <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
                       Add Product
@@ -375,8 +457,43 @@ const AdminDashboard = () => {
                           {product.category}
                         </Badge>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Stock: {product.stock}</span>
+                      
+                      {/* Stock Management */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-sm text-muted-foreground">Stock:</span>
+                        <Input
+                          type="number"
+                          value={product.stock}
+                          onChange={(e) => handleUpdateStock(product.id, parseInt(e.target.value))}
+                          className="w-20 h-8 text-sm"
+                          min="0"
+                        />
+                        {product.stock === 0 && (
+                          <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
+                        )}
+                      </div>
+
+                      {/* Feature Toggles */}
+                      <div className="flex gap-2 mb-3">
+                        <Button
+                          variant={product.is_featured ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleToggleFeature(product.id, 'is_featured', product.is_featured)}
+                          className="text-xs"
+                        >
+                          {product.is_featured ? '★ Featured' : '☆ Feature'}
+                        </Button>
+                        <Button
+                          variant={product.is_new_arrival ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleToggleFeature(product.id, 'is_new_arrival', product.is_new_arrival)}
+                          className="text-xs"
+                        >
+                          {product.is_new_arrival ? '🆕 New' : 'Mark New'}
+                        </Button>
+                      </div>
+
+                      <div className="flex justify-end">
                         <Button
                           variant="destructive"
                           size="sm"
