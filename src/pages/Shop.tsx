@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
@@ -68,8 +67,23 @@ const Shop = () => {
       
       const transformedProducts = data.map(product => {
         console.log('Transforming product:', product.name, 'Category:', product.category, 'Image field:', product.image);
+        
+        // Fix empty category field - assign "Shoes" category if the product name contains "shoe" or similar
+        let category = product.category;
+        if (!category || category.trim() === '') {
+          const productName = product.name.toLowerCase();
+          if (productName.includes('shoe') || productName.includes('sneaker') || productName.includes('boot')) {
+            category = 'Shoes';
+            console.log('Fixed empty category for:', product.name, 'assigned to Shoes');
+          } else {
+            category = 'Uncategorized';
+            console.log('Product has empty category:', product.name, 'assigned to Uncategorized');
+          }
+        }
+        
         return {
           ...product,
+          category: category,
           image: product.image || '/placeholder.svg',
           brand: product.brand || 'Admin Added',
           rating: 4.5,
@@ -116,7 +130,13 @@ const Shop = () => {
     // Apply category filter
     if (selectedCategory !== 'All') {
       const beforeCategoryFilter = filtered.length;
-      filtered = filtered.filter(product => product.category === selectedCategory);
+      filtered = filtered.filter(product => {
+        const matches = product.category === selectedCategory;
+        if (!matches) {
+          console.log(`Product "${product.name}" filtered out - category "${product.category}" doesn't match "${selectedCategory}"`);
+        }
+        return matches;
+      });
       console.log(`Category filter: ${beforeCategoryFilter} -> ${filtered.length} (looking for category: "${selectedCategory}")`);
     }
 
@@ -131,6 +151,9 @@ const Shop = () => {
     const beforePriceFilter = filtered.length;
     filtered = filtered.filter(product => {
       const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
+      if (!matchesPrice) {
+        console.log(`Product "${product.name}" filtered out by price - ₱${product.price} not in range ₱${priceRange[0]}-₱${priceRange[1]}`);
+      }
       return matchesPrice;
     });
     console.log(`Price filter: ${beforePriceFilter} -> ${filtered.length} (range: ${priceRange[0]}-${priceRange[1]})`);
