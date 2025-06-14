@@ -18,7 +18,7 @@ const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [dbProducts, setDbProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [priceRange, setPriceRange] = useState([0, 10000]);
@@ -30,24 +30,27 @@ const Shop = () => {
     loadProducts();
   }, []);
 
-  // Update search term when URL params change
+  // Initialize search term from URL params only once
   useEffect(() => {
     const urlSearch = searchParams.get('search');
-    if (urlSearch !== searchTerm) {
-      setSearchTerm(urlSearch || '');
+    if (urlSearch && urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
     }
   }, [searchParams]);
 
-  // Update URL when search term changes
+  // Update URL when search term changes (but not on initial load)
   useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    if (searchTerm.trim()) {
-      params.set('search', searchTerm);
-    } else {
-      params.delete('search');
+    const urlSearch = searchParams.get('search');
+    if (searchTerm !== urlSearch) {
+      const params = new URLSearchParams(searchParams);
+      if (searchTerm.trim()) {
+        params.set('search', searchTerm);
+      } else {
+        params.delete('search');
+      }
+      setSearchParams(params, { replace: true });
     }
-    setSearchParams(params, { replace: true });
-  }, [searchTerm, setSearchParams]);
+  }, [searchTerm]);
 
   const loadProducts = async () => {
     try {
@@ -86,11 +89,13 @@ const Shop = () => {
   }, [dbProducts]);
 
   const filteredProducts = useMemo(() => {
+    console.log('Filtering products with search term:', searchTerm);
     let filtered = allProducts;
 
     // Apply search filter using the search utility
     if (searchTerm.trim()) {
       filtered = searchItems(filtered, searchTerm, ['name', 'category', 'description', 'brand']);
+      console.log('Search results:', filtered.length, 'products found');
     }
 
     // Apply other filters

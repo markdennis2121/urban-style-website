@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { searchItems, SearchableItem } from '@/utils/searchUtils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface SearchResult extends SearchableItem {
   type: 'product' | 'user' | 'admin';
@@ -33,6 +33,7 @@ const GlobalSearch = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (searchTerm.trim() && items.length > 0) {
@@ -48,6 +49,14 @@ const GlobalSearch = ({
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     onSearch?.(value);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      // Navigate to shop page with search term
+      navigate(`/shop?search=${encodeURIComponent(searchTerm.trim())}`);
+      setIsOpen(false);
+    }
   };
 
   const clearSearch = () => {
@@ -66,6 +75,7 @@ const GlobalSearch = ({
           placeholder={placeholder}
           value={searchTerm}
           onChange={(e) => handleSearch(e.target.value)}
+          onKeyPress={handleKeyPress}
           className="pl-10 pr-10 bg-background/50 border-border/50 rounded-xl focus:ring-2 focus:ring-primary/20"
           onFocus={() => searchTerm && setIsOpen(true)}
         />
@@ -125,6 +135,16 @@ const GlobalSearch = ({
                 </div>
               </Link>
             ))}
+            {/* Show all results option */}
+            <div className="p-3 border-t border-border/30 bg-muted/20">
+              <Link
+                to={`/shop?search=${encodeURIComponent(searchTerm)}`}
+                onClick={() => setIsOpen(false)}
+                className="block text-center text-sm text-primary hover:text-primary/80 font-medium"
+              >
+                View all results for "{searchTerm}"
+              </Link>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -133,7 +153,14 @@ const GlobalSearch = ({
       {showResults && isOpen && searchTerm && results.length === 0 && (
         <Card className="absolute top-full left-0 right-0 mt-2 z-50 border border-border/50 shadow-xl">
           <CardContent className="p-4 text-center text-muted-foreground">
-            No results found for "{searchTerm}"
+            <p className="mb-2">No results found for "{searchTerm}"</p>
+            <Link
+              to={`/shop?search=${encodeURIComponent(searchTerm)}`}
+              onClick={() => setIsOpen(false)}
+              className="text-sm text-primary hover:text-primary/80 font-medium"
+            >
+              Search in all products
+            </Link>
           </CardContent>
         </Card>
       )}
