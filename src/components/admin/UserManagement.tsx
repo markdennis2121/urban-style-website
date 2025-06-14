@@ -1,8 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Users, User, Calendar, Edit, Trash2, Shield } from 'lucide-react';
 import { User as UserType } from '@/hooks/useAdminData';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,94 +24,203 @@ const UserManagement: React.FC<UserManagementProps> = ({
 }) => {
   const { profile } = useAuth();
   const isSuperAdmin = profile?.role === 'super_admin';
+  
+  const [editingUser, setEditingUser] = useState<UserType | null>(null);
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserType | null>(null);
+  const [editForm, setEditForm] = useState({ username: '', email: '', role: '' });
+
+  const handleEditUser = (user: UserType) => {
+    setEditingUser(user);
+    setEditForm({
+      username: user.username || '',
+      email: user.email,
+      role: user.role
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingUser && onUserUpdate) {
+      onUserUpdate(editingUser.id, {
+        username: editForm.username,
+        email: editForm.email,
+        role: editForm.role as any
+      });
+      setEditingUser(null);
+    }
+  };
+
+  const handleDeleteUser = () => {
+    if (deleteConfirmUser && onUserDelete) {
+      onUserDelete(deleteConfirmUser.id);
+      setDeleteConfirmUser(null);
+    }
+  };
 
   return (
-    <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
-      <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
-        <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
-          <div className="bg-blue-500 p-2 rounded-lg">
-            <Users className="h-5 w-5 text-white" />
-          </div>
-          User Management
+    <>
+      <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+        <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+          <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+            <div className="bg-blue-500 p-2 rounded-lg">
+              <Users className="h-5 w-5 text-white" />
+            </div>
+            User Management
+            {!isSuperAdmin && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                View Only
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription className="text-gray-600">
+            {isSuperAdmin 
+              ? "View and manage customer accounts" 
+              : "View customer accounts (editing restricted to super admins)"
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
           {!isSuperAdmin && (
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-              View Only
-            </Badge>
-          )}
-        </CardTitle>
-        <CardDescription className="text-gray-600">
-          {isSuperAdmin 
-            ? "View and manage customer accounts" 
-            : "View customer accounts (editing restricted to super admins)"
-          }
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-6">
-        {!isSuperAdmin && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2 text-blue-700">
-              <Shield className="h-4 w-4" />
-              <span className="font-medium">Admin Access Level</span>
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-700">
+                <Shield className="h-4 w-4" />
+                <span className="font-medium">Admin Access Level</span>
+              </div>
+              <p className="text-sm text-blue-600 mt-1">
+                User management operations are restricted to super administrators only.
+              </p>
             </div>
-            <p className="text-sm text-blue-600 mt-1">
-              User management operations are restricted to super administrators only.
-            </p>
+          )}
+          
+          <div className="space-y-4">
+            {users.length > 0 ? users.map((user) => (
+              <div key={user.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="flex items-center space-x-4">
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <User className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{user.username || 'No username'}</p>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                    <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
+                      {user.role}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="flex items-center text-sm text-gray-500 mb-1">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  {isSuperAdmin && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditUser(user)}
+                        className="rounded-lg"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeleteConfirmUser(user)}
+                        className="rounded-lg"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No users found</p>
+              </div>
+            )}
           </div>
-        )}
-        
-        <div className="space-y-4">
-          {users.length > 0 ? users.map((user) => (
-            <div key={user.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="flex items-center space-x-4">
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <User className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{user.username || 'No username'}</p>
-                  <p className="text-sm text-gray-600">{user.email}</p>
-                  <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
-                    {user.role}
-                  </Badge>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="flex items-center text-sm text-gray-500 mb-1">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-                {isSuperAdmin && onUserUpdate && onUserDelete && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onUserUpdate(user.id, {})}
-                      className="rounded-lg"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onUserDelete(user.id)}
-                      className="rounded-lg"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+        </CardContent>
+      </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Make changes to the user account. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="username" className="text-right">
+                Username
+              </Label>
+              <Input
+                id="username"
+                value={editForm.username}
+                onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                className="col-span-3"
+              />
             </div>
-          )) : (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No users found</p>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                className="col-span-3"
+              />
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="role" className="text-right">
+                Role
+              </Label>
+              <Select value={editForm.role} onValueChange={(value) => setEditForm({ ...editForm, role: value })}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={handleSaveEdit}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmUser} onOpenChange={() => setDeleteConfirmUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {deleteConfirmUser?.username || deleteConfirmUser?.email}? 
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmUser(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

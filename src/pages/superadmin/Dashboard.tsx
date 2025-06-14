@@ -25,7 +25,9 @@ const SuperAdminDashboard = () => {
     loadProducts,
     loadWishlistsData,
     deleteProduct,
-    deleteWishlistItem
+    deleteWishlistItem,
+    updateUser,
+    deleteUser
   } = useAdminData();
 
   if (loading) {
@@ -124,7 +126,11 @@ const SuperAdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="users">
-              <UserManagement users={users} />
+              <UserManagement 
+                users={users} 
+                onUserUpdate={updateUser}
+                onUserDelete={deleteUser}
+              />
             </TabsContent>
 
             <TabsContent value="wishlists">

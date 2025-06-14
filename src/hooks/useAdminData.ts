@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useWishlist } from '@/contexts/WishlistContext';
@@ -266,6 +265,63 @@ export const useAdminData = () => {
     }
   };
 
+  const updateUser = async (userId: string, updates: Partial<User>) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "User updated successfully.",
+      });
+
+      loadUsers();
+    } catch (err) {
+      console.error('Error updating user:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update user.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    try {
+      // First delete related wishlist items
+      await supabase
+        .from('wishlists')
+        .delete()
+        .eq('user_id', userId);
+
+      // Then delete the user profile
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "User deleted successfully.",
+      });
+
+      loadUsers();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete user.",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     loadAllData();
   }, []);
@@ -285,6 +341,8 @@ export const useAdminData = () => {
     loadReviews,
     loadAllData,
     deleteProduct,
-    deleteWishlistItem
+    deleteWishlistItem,
+    updateUser,
+    deleteUser
   };
 };
