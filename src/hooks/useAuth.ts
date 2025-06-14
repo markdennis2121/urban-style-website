@@ -13,9 +13,9 @@ export const useAuth = () => {
 
     const initializeAuth = async () => {
       try {
-        console.log('Fast auth initialization...');
+        console.log('Instant auth check...');
         
-        // Get current session immediately
+        // Get current session immediately - this is synchronous if cached
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -28,35 +28,36 @@ export const useAuth = () => {
           return;
         }
 
-        // Set loading to false immediately if no session
-        if (!session?.user) {
+        // If we have a session, immediately set loading to false and get profile
+        if (session?.user) {
+          console.log('User already authenticated, loading profile instantly...');
+          if (mounted) {
+            setLoading(false); // Set loading false immediately
+            setInitialized(true);
+          }
+          
+          try {
+            const userProfile = await getCurrentProfile();
+            if (mounted) {
+              console.log('Profile loaded:', userProfile);
+              setProfile(userProfile);
+            }
+          } catch (error) {
+            console.error('Error getting profile:', error);
+            if (mounted) {
+              setProfile(null);
+            }
+          }
+        } else {
           console.log('No session found');
           if (mounted) {
             setProfile(null);
             setLoading(false);
             setInitialized(true);
           }
-        } else {
-          console.log('Session found, loading profile for user:', session.user.id);
-          try {
-            const userProfile = await getCurrentProfile();
-            if (mounted) {
-              console.log('Profile loaded:', userProfile);
-              setProfile(userProfile);
-              setLoading(false);
-              setInitialized(true);
-            }
-          } catch (error) {
-            console.error('Error getting profile:', error);
-            if (mounted) {
-              setProfile(null);
-              setLoading(false);
-              setInitialized(true);
-            }
-          }
         }
 
-        // Set up auth state listener
+        // Set up auth state listener for future changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
           console.log('Auth state changed:', event);
           

@@ -153,7 +153,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           
           <ProductBadges product={product} />
 
-          {canUseShoppingFeatures && !loading && (
+          {canUseShoppingFeatures && (
             <ProductActionButtons
               isWishlisted={isWishlisted}
               isInComparison={isInComparison}
@@ -163,6 +163,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               onWishlistToggle={handleWishlistToggle}
               onCompareToggle={handleCompareToggle}
               onAddToCart={handleAddToCart}
+              loading={loading}
             />
           )}
         </div>
@@ -170,12 +171,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <CardContent className="p-4 sm:p-6">
           <ProductInfo product={product} />
 
-          {canUseShoppingFeatures && !loading && (
+          {canUseShoppingFeatures && (
             <ProductCartButton
               isAuthenticated={isAuthenticated}
               inStock={product.inStock}
               onAddToCart={handleAddToCart}
               onLoginRedirect={handleLoginRedirect}
+              loading={loading}
             />
           )}
         </CardContent>
