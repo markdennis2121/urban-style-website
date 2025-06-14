@@ -54,14 +54,16 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = `${fileName}`;
 
-      // Upload to Supabase storage - using avatars bucket
+      console.log('Uploading file:', fileName, 'to product-images bucket');
+
+      // Upload to Supabase storage - using product-images bucket which we know exists
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, {
+        .from('product-images')
+        .upload(`avatars/${filePath}`, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
 
       if (uploadError) {
@@ -69,10 +71,28 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
         throw uploadError;
       }
 
+      console.log('Upload successful:', uploadData);
+
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+        .from('product-images')
+        .getPublicUrl(`avatars/${filePath}`);
+
+      console.log('Public URL:', publicUrl);
+
+      // Update the profile in the database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentUser.id);
+
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
 
       onAvatarUpdate(publicUrl);
       onSuccess('Profile picture uploaded successfully!');
