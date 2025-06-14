@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Header from '../../components/Header';
@@ -11,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
@@ -191,6 +191,32 @@ const SuperAdminDashboard = () => {
       { id: 3, action: 'Failed Login Attempt', user: 'unknown@example.com', timestamp: new Date(Date.now() - 600000).toISOString(), status: 'error', details: 'Invalid credentials' },
       { id: 4, action: 'Admin Created', user: 'superadmin@example.com', timestamp: new Date(Date.now() - 900000).toISOString(), status: 'success', details: 'New admin account created' },
     ]);
+  };
+
+  const deleteMessage = async (messageId) => {
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Contact message deleted successfully.",
+      });
+
+      // Reload messages
+      loadMessages();
+    } catch (err) {
+      console.error('Error deleting message:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete message.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateAdmin = async (e) => {
@@ -399,6 +425,10 @@ const SuperAdminDashboard = () => {
               <TabsTrigger value="products" className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 rounded-lg px-4 py-3 font-medium">
                 <Package className="w-4 h-4 mr-2" />
                 Products
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 rounded-lg px-4 py-3 font-medium">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Contact Messages
               </TabsTrigger>
               <TabsTrigger value="analytics" className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 rounded-lg px-4 py-3 font-medium">
                 <TrendingUp className="w-4 h-4 mr-2" />
@@ -684,6 +714,62 @@ const SuperAdminDashboard = () => {
                       </div>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="messages" className="space-y-8">
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-orange-500 p-2 rounded-lg">
+                      <MessageSquare className="h-5 w-5 text-white" />
+                    </div>
+                    Contact Messages
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">View and manage customer contact messages</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {messages.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Subject</TableHead>
+                          <TableHead>Message</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {messages.map((message) => (
+                          <TableRow key={message.id}>
+                            <TableCell className="font-medium">{message.name}</TableCell>
+                            <TableCell>{message.email}</TableCell>
+                            <TableCell className="max-w-xs truncate">{message.subject}</TableCell>
+                            <TableCell className="max-w-md truncate">{message.message}</TableCell>
+                            <TableCell>{new Date(message.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => deleteMessage(message.id)}
+                                className="rounded-lg"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No contact messages found</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
