@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -8,12 +7,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, Lock, Truck, CheckCircle } from 'lucide-react';
+import { CreditCard, Lock, Truck, CheckCircle, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
 import { createOrder } from '@/lib/supabase/orders';
-import { sanitizeText, validateEmail } from '@/lib/security';
+import { 
+  sanitizeText, 
+  validateEmail, 
+  validateCreditCard, 
+  validatePhone,
+  checkoutRateLimiter 
+} from '@/lib/security';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
@@ -31,6 +37,7 @@ const Checkout = () => {
     state: '',
     zipCode: '',
     country: 'PH',
+    phone: '',
     cardNumber: '',
     expiryDate: '',
     cvv: '',
@@ -74,9 +81,15 @@ const Checkout = () => {
     if (!formData.zipCode.trim()) {
       newErrors.zipCode = 'ZIP code is required';
     }
-    if (!formData.cardNumber.replace(/\s/g, '').match(/^\d{16}$/)) {
-      newErrors.cardNumber = 'Please enter a valid 16-digit card number';
+    if (formData.phone && !validatePhone(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
     }
+    
+    const cardValidation = validateCreditCard(formData.cardNumber);
+    if (!cardValidation.isValid) {
+      newErrors.cardNumber = 'Please enter a valid credit card number';
+    }
+    
     if (!formData.expiryDate.match(/^\d{2}\/\d{2}$/)) {
       newErrors.expiryDate = 'Please enter a valid expiry date (MM/YY)';
     }
@@ -92,11 +105,9 @@ const Checkout = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    // Sanitize input
     const sanitizedValue = sanitizeText(value);
     setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
     
-    // Clear error for this field
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -104,6 +115,18 @@ const Checkout = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Rate limiting check
+    const userIdentifier = currentUser?.id || 'anonymous';
+    if (!checkoutRateLimiter.isAllowed(userIdentifier)) {
+      const remainingTime = Math.ceil(checkoutRateLimiter.getRemainingTime(userIdentifier) / 1000 / 60);
+      toast({
+        title: "Too Many Attempts",
+        description: `Please wait ${remainingTime} minutes before trying again`,
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!validateForm()) {
       toast({
@@ -127,10 +150,9 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
-      // Create order in database
       const orderData = {
         user_id: currentUser.id,
-        total_amount: state.total * 1.12, // Including tax
+        total_amount: state.total * 1.12,
         shipping_address: {
           name: `${formData.firstName} ${formData.lastName}`,
           address: formData.address,
@@ -138,6 +160,7 @@ const Checkout = () => {
           state: formData.state,
           zipCode: formData.zipCode,
           country: formData.country,
+          phone: formData.phone,
         },
         items: state.items.map(item => ({
           product_id: item.id,
@@ -156,10 +179,8 @@ const Checkout = () => {
         throw error;
       }
 
-      // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Update order status to paid
       await supabase
         .from('orders')
         .update({ 
@@ -168,7 +189,6 @@ const Checkout = () => {
         })
         .eq('id', order?.id);
 
-      // Clear cart
       dispatch({ type: 'CLEAR_CART' });
 
       toast({
@@ -176,7 +196,6 @@ const Checkout = () => {
         description: `Order #${order?.id.slice(0, 8)} has been created. You will receive a confirmation email shortly.`,
       });
 
-      // Redirect to success page or order confirmation
       navigate('/', { 
         state: { 
           message: `Order placed successfully! Order ID: ${order?.id.slice(0, 8)}` 
@@ -225,7 +244,10 @@ const Checkout = () => {
       
       <div className="pt-24 pb-16">
         <div className="max-w-6xl mx-auto px-4">
-          <h1 className="text-3xl font-bold mb-8">Secure Checkout</h1>
+          <div className="flex items-center gap-2 mb-8">
+            <Shield className="w-6 h-6 text-green-600" />
+            <h1 className="text-3xl font-bold">Secure Checkout</h1>
+          </div>
 
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -234,7 +256,7 @@ const Checkout = () => {
                 {/* Contact Information */}
                 <div>
                   <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="checkout-email">Email *</Label>
                       <Input
@@ -248,6 +270,19 @@ const Checkout = () => {
                         className={errors.email ? 'border-red-500' : ''}
                       />
                       {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="checkout-phone">Phone (Optional)</Label>
+                      <Input
+                        id="checkout-phone"
+                        name="phone"
+                        type="tel"
+                        autoComplete="tel"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        className={errors.phone ? 'border-red-500' : ''}
+                      />
+                      {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                     </div>
                   </div>
                 </div>
@@ -418,10 +453,16 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {/* Security Features */}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 p-4 rounded-lg border border-green-200">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-green-700">SSL encrypted • PCI compliant • Your data is secure</span>
+                {/* Enhanced Security Features */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 p-4 rounded-lg border border-green-200">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-green-700">SSL encrypted • PCI compliant • Your data is secure</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <Lock className="w-4 h-4 text-blue-600" />
+                    <span className="text-blue-700">256-bit encryption • Fraud protection • Secure processing</span>
+                  </div>
                 </div>
               </div>
 
@@ -482,7 +523,11 @@ const Checkout = () => {
                     className="w-full"
                     disabled={isProcessing}
                   >
-                    {isProcessing ? 'Processing...' : 'Place Order'}
+                    {isProcessing ? (
+                      <LoadingSpinner size="sm" message="Processing..." />
+                    ) : (
+                      'Place Order'
+                    )}
                   </Button>
 
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
