@@ -8,6 +8,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const initRef = useRef(false);
+  const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -18,13 +19,13 @@ export const useAuth = () => {
       initRef.current = true;
 
       try {
-        console.log('Checking auth state...');
+        console.log('Initializing auth...');
         
-        // Get session from local storage first for instant auth state
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // First check if we have a session immediately
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('Error getting session:', error);
+        if (sessionError) {
+          console.error('Session error:', sessionError);
           if (mounted) {
             setProfile(null);
             setLoading(false);
@@ -33,14 +34,13 @@ export const useAuth = () => {
           return;
         }
 
-        if (session?.user) {
-          console.log('User session found, fetching profile...');
-          // User is authenticated - set states immediately to prevent flash
-          if (mounted) {
-            setInitialized(true);
-            setLoading(false);
-          }
+        // If we have a session, immediately set as initialized to prevent flash
+        if (session?.user && mounted) {
+          console.log('Found existing session, setting initialized');
+          setInitialized(true);
+          setLoading(false);
           
+          // Load profile in background
           try {
             const userProfile = await getCurrentProfile();
             if (mounted && userProfile) {
@@ -48,13 +48,13 @@ export const useAuth = () => {
               setProfile(userProfile);
             }
           } catch (error) {
-            console.error('Error getting profile:', error);
+            console.error('Error loading profile:', error);
             if (mounted) {
               setProfile(null);
             }
           }
         } else {
-          console.log('No session found');
+          console.log('No existing session');
           if (mounted) {
             setProfile(null);
             setLoading(false);
@@ -62,40 +62,51 @@ export const useAuth = () => {
           }
         }
 
-        // Set up auth state listener for future changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-          console.log('Auth state changed:', event);
-          
-          if (!mounted) return;
+        // Set up auth state listener for future changes only
+        if (!subscriptionRef.current) {
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+            console.log('Auth state changed:', event, !!newSession);
+            
+            if (!mounted) return;
 
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            if (newSession?.user) {
-              setInitialized(true);
-              setLoading(false);
-              
+            if (event === 'SIGNED_IN' && newSession?.user) {
+              setLoading(true);
               try {
                 const userProfile = await getCurrentProfile();
                 if (mounted) {
                   setProfile(userProfile);
+                  setInitialized(true);
+                  setLoading(false);
                 }
               } catch (error) {
                 console.error('Error getting profile after sign in:', error);
                 if (mounted) {
                   setProfile(null);
+                  setLoading(false);
                 }
               }
+            } else if (event === 'SIGNED_OUT') {
+              console.log('User signed out');
+              if (mounted) {
+                setProfile(null);
+                setLoading(false);
+                setInitialized(true);
+              }
+            } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
+              // Don't change loading state on token refresh, just update profile if needed
+              try {
+                const userProfile = await getCurrentProfile();
+                if (mounted && userProfile) {
+                  setProfile(userProfile);
+                }
+              } catch (error) {
+                console.error('Error refreshing profile:', error);
+              }
             }
-          } else if (event === 'SIGNED_OUT') {
-            console.log('User signed out');
-            if (mounted) {
-              setProfile(null);
-              setLoading(false);
-              setInitialized(true);
-            }
-          }
-        });
+          });
 
-        return subscription;
+          subscriptionRef.current = subscription;
+        }
         
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -107,17 +118,14 @@ export const useAuth = () => {
       }
     };
 
-    // Start initialization
-    let subscription: any;
-    initializeAuth().then((sub) => {
-      subscription = sub;
-    });
+    initializeAuth();
 
     // Cleanup function
     return () => {
       mounted = false;
-      if (subscription) {
-        subscription.unsubscribe();
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
       }
     };
   }, []);
@@ -126,7 +134,7 @@ export const useAuth = () => {
     profile,
     loading,
     initialized,
-    isAuthenticated: !!profile && initialized,
+    isAuthenticated: !!profile,
     isSuperAdmin: profile?.role === 'super_admin',
     isAdmin: profile?.role === 'admin' || profile?.role === 'super_admin'
   };

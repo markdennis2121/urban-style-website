@@ -62,6 +62,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
+    // Don't proceed if still loading or not initialized
+    if (loading || !initialized) {
+      console.log('Auth not ready, skipping cart action');
+      return;
+    }
+    
     if (!requireAuth('add items to cart')) return;
     
     if (!canUseShoppingFeatures) {
@@ -93,6 +99,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
+    if (loading || !initialized) return;
+    
     if (!requireAuth('manage your wishlist')) return;
     
     if (!canUseShoppingFeatures) {
@@ -110,6 +118,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleCompareToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (loading || !initialized) return;
     
     if (!canUseShoppingFeatures) {
       toast({
@@ -141,8 +151,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isWishlisted = isAuthenticated && isInWishlist(productIdString);
   const isInComparison = isInCompare(productIdString);
 
-  // Only show loading state if not initialized yet
-  const showLoadingState = loading && !initialized;
+  // Only show loading state if auth is not initialized yet
+  const showLoadingState = !initialized;
 
   return (
     <Card className="group bg-card/60 backdrop-blur-md border border-border/50 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 sm:hover:-translate-y-2">
