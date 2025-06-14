@@ -108,7 +108,7 @@ const Footer = () => {
                   <img 
                     src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
                     alt="Download on the App Store"
-                    className="h-14 rounded-lg"
+                    className="h-14 w-auto rounded-lg"
                   />
                 </a>
                 <a href="https://play.google.com" target="_blank" rel="noopener noreferrer"
@@ -116,7 +116,7 @@ const Footer = () => {
                   <img 
                     src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
                     alt="Get it on Google Play"
-                    className="h-14 rounded-lg"
+                    className="h-14 w-auto rounded-lg"
                   />
                 </a>
               </div>
