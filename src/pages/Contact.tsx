@@ -26,23 +26,8 @@ const Contact = () => {
     setLoading(true);
 
     try {
-      console.log('=== CONTACT FORM SUBMISSION DEBUG ===');
-      console.log('Form data:', formData);
+      console.log('Submitting contact form with Supabase...');
       
-      // Check current user status
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      console.log('Current user:', user?.id || 'Anonymous');
-      console.log('User error:', userError);
-
-      // Test connection to Supabase
-      console.log('Testing Supabase connection...');
-      const { data: testData, error: testError } = await supabase
-        .from('contact_messages')
-        .select('count')
-        .limit(1);
-      console.log('Connection test result:', { testData, testError });
-
-      console.log('Attempting to insert contact message...');
       const { data, error } = await supabase
         .from('contact_messages')
         .insert([
@@ -55,20 +40,12 @@ const Contact = () => {
         ])
         .select();
 
-      console.log('Insert result:', { data, error });
-
       if (error) {
-        console.error('=== DETAILED ERROR INFO ===');
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
-        console.error('Full error object:', error);
+        console.error('Supabase error:', error);
         throw error;
       }
 
-      console.log('=== SUCCESS ===');
-      console.log('Message inserted successfully:', data);
+      console.log('Contact message sent successfully:', data);
 
       toast({
         title: "Message sent!",
@@ -83,9 +60,8 @@ const Contact = () => {
         message: ''
       });
 
-    } catch (error) {
-      console.error('=== CONTACT FORM ERROR ===');
-      console.error('Caught error:', error);
+    } catch (error: any) {
+      console.error('Contact form error:', error);
       
       toast({
         title: "Error",
