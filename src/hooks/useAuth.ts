@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 export const useAuth = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -20,6 +21,7 @@ export const useAuth = () => {
           if (mounted) {
             setProfile(null);
             setLoading(false);
+            setInitialized(true);
           }
           return;
         }
@@ -44,6 +46,7 @@ export const useAuth = () => {
       } finally {
         if (mounted) {
           setLoading(false);
+          setInitialized(true);
         }
       }
     };
@@ -97,7 +100,7 @@ export const useAuth = () => {
 
   return {
     profile,
-    loading,
+    loading: loading && !initialized,
     isAuthenticated: !!profile,
     isSuperAdmin: profile?.role === 'super_admin',
     isAdmin: profile?.role === 'admin' || profile?.role === 'super_admin'
