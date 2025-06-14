@@ -169,33 +169,33 @@ const UserLoginPage = () => {
   const passwordValidation = validatePassword(password);
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50">
-      <Card className="w-full max-w-md p-8 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-xl">
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
-              <Shield className="h-8 w-8 text-blue-600" />
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <Card className="w-full max-w-md p-8 bg-white/90 backdrop-blur-sm border border-gray-200 shadow-2xl rounded-2xl">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center shadow-lg">
+              <Shield className="h-10 w-10 text-blue-600" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
             Welcome Back
           </h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+          <p className="text-gray-600 text-lg">Sign in to your account</p>
         </div>
         
         {error && (
-          <Alert variant="destructive" className="mb-4 bg-red-50 border-red-200">
-            <span className="text-red-700">{error}</span>
+          <Alert variant="destructive" className="mb-6 bg-red-50 border-red-200 rounded-xl">
+            <span className="text-red-700 font-medium">{error}</span>
           </Alert>
         )}
         
         {message && (
-          <Alert className="mb-4 bg-blue-50 border-blue-200">
-            <span className="text-blue-700">{message}</span>
+          <Alert className="mb-6 bg-blue-50 border-blue-200 rounded-xl">
+            <span className="text-blue-700 font-medium">{message}</span>
             {error?.includes('verify your email') && (
               <Button
                 variant="link"
-                className="mt-2 w-full text-blue-600"
+                className="mt-3 w-full text-blue-600 hover:text-blue-700 font-medium"
                 onClick={handleResendVerification}
                 disabled={loading}
               >
@@ -206,16 +206,16 @@ const UserLoginPage = () => {
         )}
 
         {rateLimited && (
-          <Alert variant="destructive" className="mb-4">
-            <div className="space-y-2">
-              <p>Account temporarily locked due to too many failed attempts.</p>
+          <Alert variant="destructive" className="mb-6 rounded-xl">
+            <div className="space-y-3">
+              <p className="font-medium">Account temporarily locked due to too many failed attempts.</p>
               <Progress value={(15 - remainingTime) / 15 * 100} className="w-full" />
               <p className="text-sm">Unlocks in {remainingTime} minutes</p>
             </div>
           </Alert>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <Input
               type="email"
@@ -223,7 +223,7 @@ const UserLoginPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full h-12 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              className="w-full h-14 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-lg"
               disabled={loading || rateLimited}
             />
           </div>
@@ -235,7 +235,7 @@ const UserLoginPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full h-12 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-12"
+              className="w-full h-14 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-12 text-lg"
               minLength={6}
               disabled={loading || rateLimited}
             />
@@ -243,17 +243,17 @@ const UserLoginPage = () => {
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-10 w-10 p-0 hover:bg-gray-100 rounded-lg"
               onClick={() => setShowPassword(!showPassword)}
               disabled={loading}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </Button>
           </div>
 
           {password && !passwordValidation.isValid && (
-            <div className="text-sm text-red-600 space-y-1">
-              <p className="font-medium">Password requirements:</p>
+            <div className="text-sm text-red-600 bg-red-50 p-4 rounded-xl space-y-2">
+              <p className="font-semibold">Password requirements:</p>
               <ul className="list-disc list-inside space-y-1">
                 {passwordValidation.errors.map((error, index) => (
                   <li key={index}>{error}</li>
@@ -264,26 +264,29 @@ const UserLoginPage = () => {
 
           <Button
             type="submit"
-            className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold transition-all duration-200"
+            className="w-full h-14 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
             disabled={loading || rateLimited}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           <Button
             variant="link"
             onClick={() => navigate('/signup')}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-blue-600 hover:text-blue-700 font-medium text-lg"
             disabled={loading}
           >
             Don't have an account? Sign up
           </Button>
         </div>
 
-        <div className="mt-4 text-xs text-gray-500 text-center">
-          <p>🔒 Your data is protected with enterprise-grade security</p>
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+            <Shield className="h-4 w-4" />
+            Your data is protected with enterprise-grade security
+          </p>
         </div>
       </Card>
     </div>
