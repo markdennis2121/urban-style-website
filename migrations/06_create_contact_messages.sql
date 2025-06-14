@@ -1,4 +1,5 @@
 
+
 -- Drop existing policies and table completely
 DROP POLICY IF EXISTS "Anyone can insert contact messages" ON contact_messages;
 DROP POLICY IF EXISTS "Admins can view all contact messages" ON contact_messages;
@@ -10,6 +11,8 @@ DROP POLICY IF EXISTS "contact_messages_public_insert" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_admin_select" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_insert" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_select" ON contact_messages;
+DROP POLICY IF EXISTS "contact_insert" ON contact_messages;
+DROP POLICY IF EXISTS "contact_select" ON contact_messages;
 
 -- Drop table completely to start fresh
 DROP TABLE IF EXISTS contact_messages CASCADE;
@@ -27,20 +30,21 @@ CREATE TABLE contact_messages (
 -- Enable RLS
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Grant necessary permissions
+-- Grant necessary permissions - IMPORTANT: Grant to anon for contact form submissions
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT INSERT ON contact_messages TO anon;
 GRANT INSERT ON contact_messages TO authenticated;
 GRANT SELECT ON contact_messages TO authenticated;
 
--- Simple insert policy - allow anyone to insert
-CREATE POLICY "contact_insert" ON contact_messages
+-- Policy for ANYONE (including anonymous users) to insert contact messages
+CREATE POLICY "anyone_can_insert_contact_messages" ON contact_messages
     FOR INSERT 
+    TO anon, authenticated
     WITH CHECK (true);
 
--- Simple select policy - allow authenticated users with admin/super_admin role
-CREATE POLICY "contact_select" ON contact_messages
+-- Policy for authenticated admin users to select/view contact messages
+CREATE POLICY "admins_can_view_contact_messages" ON contact_messages
     FOR SELECT 
     TO authenticated
     USING (
@@ -159,3 +163,4 @@ END $$;
 -- Update some products to be featured and new arrivals for testing (using product names instead of IDs)
 UPDATE products SET is_featured = true WHERE name IN ('Cartoon Astronaut T-shirt', 'OversizeObsession', 'MaxComfort');
 UPDATE products SET is_new_arrival = true WHERE name IN ('SlouchyStyle', 'GiantGarb', 'FreeFlow');
+
