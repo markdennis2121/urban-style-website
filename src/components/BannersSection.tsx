@@ -1,8 +1,15 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const BannersSection = () => {
+  const navigate = useNavigate();
+
+  const handleExploreMore = () => {
+    navigate('/shop');
+  };
+
   return (
     <>
       {/* Repair Service Banner */}
@@ -19,7 +26,11 @@ const BannersSection = () => {
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-8">
             Up to <span className="text-red-500">70% off</span> - All t-shirts & Accessories
           </h2>
-          <Button size="lg" className="transform hover:scale-105 transition-transform duration-300">
+          <Button 
+            size="lg" 
+            className="transform hover:scale-105 transition-transform duration-300"
+            onClick={handleExploreMore}
+          >
             Explore More
           </Button>
         </div>
