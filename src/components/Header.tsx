@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Menu, X, User, LogOut, Heart } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -118,8 +117,8 @@ const Header = () => {
     { name: 'Shop', href: '/shop', isActive: location.pathname === '/shop' },
     { name: 'Blog', href: '/blog', isActive: location.pathname === '/blog' },
     { name: 'About', href: '/about', isActive: location.pathname === '/about' },
-    { name: 'Contact', href: '/contact', isActive: location.pathname === '/contact' },
-  ];
+    { name: 'Contact', href: '/contact', isActive: location.pathname === '/contact', requireCustomerMode: true },
+  ].filter(item => !item.requireCustomerMode || canUseShoppingFeatures);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg">

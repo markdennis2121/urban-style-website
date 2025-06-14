@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart, Star, Package } from 'lucide-react';
@@ -35,6 +34,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { canUseShoppingFeatures } = useAdminMode();
   const { toast } = useToast();
 
+  const productIdString = String(product.id);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -51,7 +52,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     dispatch({
       type: 'ADD_ITEM',
       payload: {
-        id: product.id,
+        id: productIdString,
         name: product.name,
         price: product.price,
         image: product.image,
@@ -80,11 +81,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     addToWishlist(product);
   };
 
-  const isWishlisted = isInWishlist(product.id);
+  const isWishlisted = isInWishlist(productIdString);
 
   return (
     <Card className="group bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/product/${productIdString}`} className="block">
         <div className="relative overflow-hidden">
           <img 
             src={product.image} 
