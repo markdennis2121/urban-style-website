@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { validateEmail, validatePassword, authRateLimiter, sanitizeText } from '@/lib/security';
-import { Shield, Eye, EyeOff } from 'lucide-react';
+import { Shield, Eye, EyeOff, KeyRound } from 'lucide-react';
 
 const UserLoginPage = () => {
   const navigate = useNavigate();
@@ -22,6 +23,13 @@ const UserLoginPage = () => {
   );
   const [rateLimited, setRateLimited] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
+  
+  // Forgot password states
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
+  const [forgotPasswordError, setForgotPasswordError] = useState<string | null>(null);
 
   const handleResendVerification = async () => {
     try {
@@ -35,6 +43,55 @@ const UserLoginPage = () => {
       setMessage('Verification email has been resent. Please check your inbox.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resend verification email');
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotPasswordLoading(true);
+    setForgotPasswordError(null);
+    setForgotPasswordMessage(null);
+
+    // Sanitize and validate email
+    const sanitizedEmail = sanitizeText(forgotPasswordEmail);
+    
+    if (!validateEmail(sanitizedEmail)) {
+      setForgotPasswordError('Please enter a valid email address');
+      setForgotPasswordLoading(false);
+      return;
+    }
+
+    // Check rate limiting for password reset
+    if (!authRateLimiter.isAllowed(`reset_${sanitizedEmail}`)) {
+      const remaining = authRateLimiter.getRemainingTime(`reset_${sanitizedEmail}`);
+      setForgotPasswordError(`Too many password reset attempts. Please try again in ${Math.ceil(remaining / 1000 / 60)} minutes.`);
+      setForgotPasswordLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Sending password reset email to:', sanitizedEmail);
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setForgotPasswordMessage('Password reset email sent! Please check your inbox and follow the instructions.');
+      
+      // Close dialog after a delay
+      setTimeout(() => {
+        setForgotPasswordOpen(false);
+        setForgotPasswordEmail('');
+        setForgotPasswordMessage(null);
+      }, 3000);
+
+    } catch (err) {
+      console.error('Password reset error:', err);
+      setForgotPasswordError(err instanceof Error ? err.message : 'Failed to send password reset email');
+    } finally {
+      setForgotPasswordLoading(false);
     }
   };
 
@@ -270,7 +327,67 @@ const UserLoginPage = () => {
           </Button>
         </form>
 
-        <div className="mt-8 text-center">
+        <div className="mt-6 text-center">
+          <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="link"
+                className="text-primary hover:text-primary/80 font-medium"
+                disabled={loading}
+              >
+                <KeyRound className="h-4 w-4 mr-2" />
+                Forgot your password?
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5" />
+                  Reset Password
+                </DialogTitle>
+              </DialogHeader>
+              
+              {forgotPasswordError && (
+                <Alert variant="destructive" className="mb-4">
+                  <span className="text-destructive-foreground font-medium">{forgotPasswordError}</span>
+                </Alert>
+              )}
+              
+              {forgotPasswordMessage && (
+                <Alert className="mb-4 bg-green-500/10 border-green-500/20 text-green-600">
+                  <span className="font-medium">{forgotPasswordMessage}</span>
+                </Alert>
+              )}
+
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <Input
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    required
+                    className="w-full"
+                    disabled={forgotPasswordLoading}
+                  />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    We'll send you a link to reset your password.
+                  </p>
+                </div>
+                
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={forgotPasswordLoading}
+                >
+                  {forgotPasswordLoading ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="mt-6 text-center">
           <Button
             variant="link"
             onClick={() => navigate('/signup')}
