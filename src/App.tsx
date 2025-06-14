@@ -25,30 +25,73 @@ import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 import { WishlistProvider } from "./contexts/WishlistContext";
 import Wishlist from "./pages/Wishlist";
 
-// Prevent any Firebase initialization from browser extensions or third-party code
+// Aggressively block Firebase initialization from ALL sources
 if (typeof window !== 'undefined') {
   // Block Firebase initialization attempts
   Object.defineProperty(window, 'firebase', {
     get: () => {
-      console.warn('Firebase initialization blocked - using Supabase only');
+      console.warn('Firebase access blocked - using Supabase only');
       return undefined;
     },
     set: () => {
       console.warn('Firebase initialization blocked - using Supabase only');
+      return false;
     },
-    configurable: false
+    configurable: false,
+    enumerable: false
   });
   
   // Block Firestore initialization
   Object.defineProperty(window, 'firestore', {
     get: () => {
-      console.warn('Firestore initialization blocked - using Supabase only');
+      console.warn('Firestore access blocked - using Supabase only');
       return undefined;
     },
     set: () => {
       console.warn('Firestore initialization blocked - using Supabase only');
+      return false;
     },
-    configurable: false
+    configurable: false,
+    enumerable: false
+  });
+
+  // Block other Firebase services
+  const firebaseServices = [
+    'FirebaseApp', 'FirebaseFirestore', 'FirebaseAuth', 
+    'FirebaseStorage', 'FirebaseFunctions', 'FirebaseMessaging'
+  ];
+  
+  firebaseServices.forEach(service => {
+    Object.defineProperty(window, service, {
+      get: () => {
+        console.warn(`${service} access blocked - using Supabase only`);
+        return undefined;
+      },
+      set: () => {
+        console.warn(`${service} initialization blocked - using Supabase only`);
+        return false;
+      },
+      configurable: false,
+      enumerable: false
+    });
+  });
+
+  // Override common Firebase initialization methods
+  const blockFirebaseInit = () => {
+    console.warn('Firebase initialization attempt blocked');
+    return { app: null, firestore: null, auth: null };
+  };
+
+  Object.defineProperty(window, 'initializeApp', {
+    value: blockFirebaseInit,
+    configurable: false,
+    writable: false
+  });
+
+  Object.defineProperty(window, 'getFirestore', {
+    value: blockFirebaseInit,
+    configurable: false,
+    writable: false
   });
 }
 
