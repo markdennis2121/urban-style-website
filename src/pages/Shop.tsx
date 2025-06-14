@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
@@ -63,9 +64,10 @@ const Shop = () => {
       if (error) throw error;
       
       console.log('Raw products from database:', data);
+      console.log('Number of products loaded:', data?.length || 0);
       
       const transformedProducts = data.map(product => {
-        console.log('Transforming product:', product.name, 'Image field:', product.image);
+        console.log('Transforming product:', product.name, 'Category:', product.category, 'Image field:', product.image);
         return {
           ...product,
           image: product.image || '/placeholder.svg',
@@ -80,6 +82,7 @@ const Shop = () => {
       });
       
       console.log('Transformed products:', transformedProducts);
+      console.log('Categories found in products:', [...new Set(transformedProducts.map(p => p.category))]);
       setDbProducts(transformedProducts);
     } catch (err) {
       console.error('Error loading products:', err);
@@ -90,30 +93,50 @@ const Shop = () => {
 
   // Only use database products now
   const allProducts = useMemo(() => {
+    console.log('All products before filtering:', dbProducts.length);
     return dbProducts;
   }, [dbProducts]);
 
   const filteredProducts = useMemo(() => {
-    console.log('Filtering products with search term:', searchTerm);
+    console.log('Starting filter process...');
+    console.log('Search term:', searchTerm);
+    console.log('Selected category:', selectedCategory);
+    console.log('Selected brand:', selectedBrand);
+    console.log('Price range:', priceRange);
+    
     let filtered = allProducts;
+    console.log('Products before any filtering:', filtered.length);
 
     // Apply search filter using the search utility
     if (searchTerm.trim()) {
       filtered = searchItems(filtered, searchTerm, ['name', 'category', 'description', 'brand']);
-      console.log('Search results:', filtered.length, 'products found');
+      console.log('After search filter:', filtered.length, 'products found');
     }
 
-    // Apply other filters
+    // Apply category filter
+    if (selectedCategory !== 'All') {
+      const beforeCategoryFilter = filtered.length;
+      filtered = filtered.filter(product => product.category === selectedCategory);
+      console.log(`Category filter: ${beforeCategoryFilter} -> ${filtered.length} (looking for category: "${selectedCategory}")`);
+    }
+
+    // Apply brand filter
+    if (selectedBrand !== 'All Brands') {
+      const beforeBrandFilter = filtered.length;
+      filtered = filtered.filter(product => product.brand === selectedBrand);
+      console.log(`Brand filter: ${beforeBrandFilter} -> ${filtered.length} (looking for brand: "${selectedBrand}")`);
+    }
+
+    // Apply price filter
+    const beforePriceFilter = filtered.length;
     filtered = filtered.filter(product => {
-      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-      const matchesBrand = selectedBrand === 'All Brands' || product.brand === selectedBrand;
       const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
-      
-      return matchesCategory && matchesBrand && matchesPrice;
+      return matchesPrice;
     });
+    console.log(`Price filter: ${beforePriceFilter} -> ${filtered.length} (range: ${priceRange[0]}-${priceRange[1]})`);
 
     // Apply sorting
-    return filtered.sort((a, b) => {
+    const sortedProducts = filtered.sort((a, b) => {
       switch (sortBy) {
         case 'price-low':
           return a.price - b.price;
@@ -127,6 +150,11 @@ const Shop = () => {
           return a.name.localeCompare(b.name);
       }
     });
+
+    console.log('Final filtered products:', sortedProducts.length);
+    console.log('Final filtered products details:', sortedProducts.map(p => ({ name: p.name, category: p.category, price: p.price })));
+    
+    return sortedProducts;
   }, [allProducts, searchTerm, selectedCategory, selectedBrand, priceRange, sortBy]);
 
   const clearFilters = () => {
