@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
@@ -21,6 +22,7 @@ const Shop = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [priceRange, setPriceRange] = useState([0, 5000]);
+  const [maxPrice, setMaxPrice] = useState(5000); // Dynamic max price
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -64,6 +66,17 @@ const Shop = () => {
       
       console.log('Raw products from database:', data);
       console.log('Number of products loaded:', data?.length || 0);
+      
+      // Calculate dynamic max price from products
+      const prices = data.map(product => product.price || 0);
+      const highestPrice = Math.max(...prices);
+      const dynamicMaxPrice = Math.ceil(highestPrice * 1.2); // Add 20% buffer
+      
+      console.log('Highest product price:', highestPrice);
+      console.log('Setting dynamic max price to:', dynamicMaxPrice);
+      
+      setMaxPrice(dynamicMaxPrice);
+      setPriceRange([0, dynamicMaxPrice]); // Update price range to include all products
       
       const transformedProducts = data.map(product => {
         console.log('Transforming product:', product.name, 'Category:', product.category, 'Image field:', product.image);
@@ -184,7 +197,7 @@ const Shop = () => {
     setSearchTerm('');
     setSelectedCategory('All');
     setSelectedBrand('All Brands');
-    setPriceRange([0, 5000]);
+    setPriceRange([0, maxPrice]); // Reset to full range
     setSortBy('name');
     // Clear URL params
     setSearchParams({}, { replace: true });
@@ -194,7 +207,7 @@ const Shop = () => {
     searchTerm,
     selectedCategory !== 'All' ? selectedCategory : null,
     selectedBrand !== 'All Brands' ? selectedBrand : null,
-    priceRange[0] !== 0 || priceRange[1] !== 5000 ? 'price' : null,
+    priceRange[0] !== 0 || priceRange[1] !== maxPrice ? 'price' : null,
   ].filter(Boolean).length;
 
   if (loading) {
@@ -303,14 +316,14 @@ const Shop = () => {
                   <Slider
                     value={priceRange}
                     onValueChange={setPriceRange}
-                    max={5000}
+                    max={maxPrice}
                     min={0}
                     step={100}
                     className="mt-3"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-2">
                     <span>₱0</span>
-                    <span>₱5,000</span>
+                    <span>₱{maxPrice.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
