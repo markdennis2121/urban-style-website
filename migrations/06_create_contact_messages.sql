@@ -1,12 +1,14 @@
 
--- Drop existing policies if they exist
+-- Drop existing policies and table completely
 DROP POLICY IF EXISTS "Anyone can insert contact messages" ON contact_messages;
 DROP POLICY IF EXISTS "Admins can view all contact messages" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_insert_policy" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_select_policy" ON contact_messages;
+DROP POLICY IF EXISTS "allow_insert_contact_messages" ON contact_messages;
+DROP POLICY IF EXISTS "allow_select_contact_messages" ON contact_messages;
 
--- Drop table if exists to recreate with proper setup
-DROP TABLE IF EXISTS contact_messages;
+-- Drop table completely to start fresh
+DROP TABLE IF EXISTS contact_messages CASCADE;
 
 -- Create contact_messages table
 CREATE TABLE contact_messages (
@@ -21,23 +23,21 @@ CREATE TABLE contact_messages (
 -- Enable RLS
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Grant all permissions to both anon and authenticated users
-GRANT ALL ON contact_messages TO anon;
-GRANT ALL ON contact_messages TO authenticated;
-GRANT ALL ON contact_messages TO public;
-
--- Grant schema usage to anon
+-- Grant necessary permissions to anon and authenticated users
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT INSERT ON contact_messages TO anon;
+GRANT INSERT ON contact_messages TO authenticated;
+GRANT SELECT ON contact_messages TO authenticated;
 
--- Create a permissive insert policy for everyone (anon and authenticated)
-CREATE POLICY "allow_insert_contact_messages" ON contact_messages
+-- Create a simple insert policy that allows ANYONE (including anonymous users) to insert
+CREATE POLICY "contact_messages_public_insert" ON contact_messages
     FOR INSERT 
-    TO anon, authenticated
+    TO public
     WITH CHECK (true);
 
--- Create policy for viewing messages (authenticated users only, and only admins)
-CREATE POLICY "allow_select_contact_messages" ON contact_messages
+-- Create a select policy for authenticated admin users only
+CREATE POLICY "contact_messages_admin_select" ON contact_messages
     FOR SELECT 
     TO authenticated
     USING (

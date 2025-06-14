@@ -29,51 +29,73 @@ const Contact = () => {
     setIsSubmitting(true);
     
     try {
-      console.log('Attempting to send message:', formData);
-      console.log('Supabase client config:', {
-        url: import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Not set',
-        key: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Not set'
-      });
+      console.log('=== CONTACT FORM SUBMISSION DEBUG ===');
+      console.log('Form data:', formData);
+      console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Not set');
+      console.log('Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
       
       // Validate form data
       if (!formData.name.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
         throw new Error('All fields are required');
       }
 
+      // Simple email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      console.log('Attempting to insert into contact_messages table...');
+      
+      const insertData = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        subject: formData.subject.trim(),
+        message: formData.message.trim()
+      };
+      
+      console.log('Insert data:', insertData);
+
       const { data, error } = await supabase
         .from('contact_messages')
-        .insert([{
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          subject: formData.subject.trim(),
-          message: formData.message.trim()
-        }])
+        .insert([insertData])
         .select();
 
       if (error) {
-        console.error('Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
+        console.error('=== SUPABASE ERROR ===');
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        console.error('Error code:', error.code);
+        console.error('Full error object:', error);
         throw error;
       }
 
-      console.log('Message sent successfully:', data);
+      console.log('=== SUCCESS ===');
+      console.log('Message sent successfully! Data:', data);
 
       toast({
-        title: "Message sent!",
+        title: "Message sent successfully!",
         description: "Thank you for contacting us. We'll get back to you soon.",
       });
       
+      // Reset form
       setFormData({ name: '', email: '', subject: '', message: '' });
+      
     } catch (err: any) {
-      console.error('Error sending message:', err);
+      console.error('=== SUBMISSION ERROR ===');
+      console.error('Error object:', err);
+      console.error('Error message:', err.message);
+      console.error('Error code:', err.code);
       
       let errorMessage = "Failed to send message. Please try again.";
+      
       if (err.message === 'All fields are required') {
         errorMessage = "Please fill in all fields.";
+      } else if (err.message === 'Please enter a valid email address') {
+        errorMessage = "Please enter a valid email address.";
+      } else if (err.code === '42501') {
+        errorMessage = "Database permission error. Please contact support.";
       } else if (err.code === '42P01') {
         errorMessage = "Database table not found. Please contact support.";
       } else if (err.message) {
@@ -81,7 +103,7 @@ const Contact = () => {
       }
       
       toast({
-        title: "Error",
+        title: "Error sending message",
         description: errorMessage,
         variant: "destructive",
       });
@@ -111,47 +133,51 @@ const Contact = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Name</Label>
+                    <Label htmlFor="name">Name *</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
                       className="bg-background/80 border-border"
+                      placeholder="Your full name"
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email *</Label>
                     <Input
                       id="email"
                       type="email"
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       className="bg-background/80 border-border"
+                      placeholder="your.email@example.com"
                       required
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <Label htmlFor="subject">Subject</Label>
+                  <Label htmlFor="subject">Subject *</Label>
                   <Input
                     id="subject"
                     value={formData.subject}
                     onChange={(e) => handleInputChange('subject', e.target.value)}
                     className="bg-background/80 border-border"
+                    placeholder="What is this about?"
                     required
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="message">Message</Label>
+                  <Label htmlFor="message">Message *</Label>
                   <Textarea
                     id="message"
                     rows={6}
                     value={formData.message}
                     onChange={(e) => handleInputChange('message', e.target.value)}
                     className="bg-background/80 border-border"
+                    placeholder="Tell us more about your inquiry..."
                     required
                   />
                 </div>
