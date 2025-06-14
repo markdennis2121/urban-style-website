@@ -142,13 +142,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isInComparison = isInCompare(productIdString);
 
   return (
-    <Card className="group bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+    <Card className="group bg-card/60 backdrop-blur-md border border-border/50 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 sm:hover:-translate-y-2">
       <Link to={`/product/${productIdString}`} className="block">
         <div className="relative overflow-hidden">
           <LazyImage 
             src={product.image} 
             alt={product.name}
-            className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-48 sm:h-64 object-cover group-hover:scale-110 transition-transform duration-500"
           />
           
           <ProductBadges product={product} />
@@ -167,7 +167,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
 
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <ProductInfo product={product} />
 
           {canUseShoppingFeatures && (
