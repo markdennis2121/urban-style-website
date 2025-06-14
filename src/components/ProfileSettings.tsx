@@ -71,22 +71,22 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background p-4">
-      <Card className="max-w-4xl mx-auto bg-card/80 backdrop-blur-md border border-border/50 shadow-xl">
-        <div className="p-8">
-          <div className="flex items-center space-x-2 mb-8">
-            <User className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold text-foreground">Profile Settings</h2>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background p-2 sm:p-4 md:p-6">
+      <Card className="max-w-5xl mx-auto bg-card/90 backdrop-blur-md border border-border/50 shadow-xl overflow-hidden">
+        <div className="p-4 sm:p-6 md:p-8">
+          <div className="flex items-center space-x-2 mb-6 sm:mb-8">
+            <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Profile Settings</h2>
           </div>
 
           {error && (
-            <Alert className="mb-6 bg-destructive/10 border-destructive/20 text-destructive">
+            <Alert className="mb-4 sm:mb-6 bg-destructive/10 border-destructive/20 text-destructive text-sm">
               {error}
             </Alert>
           )}
 
           {success && (
-            <Alert className="mb-6 bg-green-500/10 border-green-500/20 text-green-600">
+            <Alert className="mb-4 sm:mb-6 bg-green-500/10 border-green-500/20 text-green-600 text-sm">
               {success}
             </Alert>
           )}
@@ -115,11 +115,11 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
             onError={setError}
           />
 
-          <div className="mt-8 pt-6 border-t border-border/10">
+          <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border/20">
             <Button
               onClick={handleSaveProfile}
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-11 sm:h-12 text-sm sm:text-base font-medium transition-all duration-300 hover:shadow-lg"
             >
               <Save className="h-4 w-4 mr-2" />
               {loading ? 'Saving...' : 'Save All Changes'}

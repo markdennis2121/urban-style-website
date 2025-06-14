@@ -54,41 +54,53 @@ const ProfileTabs = ({
   onError
 }: ProfileTabsProps) => {
   return (
-    <Tabs defaultValue="personal" className="space-y-6">
-      <TabsList className="bg-muted/50 backdrop-blur-md border border-border/50">
-        <TabsTrigger value="personal" className="data-[state=active]:bg-background/80 text-foreground">
+    <Tabs defaultValue="personal" className="space-y-4 sm:space-y-6">
+      <TabsList className="bg-muted/60 backdrop-blur-md border border-border/50 w-full h-auto p-1 grid grid-cols-2 gap-1">
+        <TabsTrigger 
+          value="personal" 
+          className="data-[state=active]:bg-background/90 data-[state=active]:shadow-sm text-foreground text-sm sm:text-base py-2.5 sm:py-3 px-3 sm:px-4 rounded-md transition-all duration-300"
+        >
           <User className="w-4 h-4 mr-2" />
-          Personal Info
+          <span className="hidden sm:inline">Personal Info</span>
+          <span className="sm:hidden">Personal</span>
         </TabsTrigger>
-        <TabsTrigger value="shipping" className="data-[state=active]:bg-background/80 text-foreground">
+        <TabsTrigger 
+          value="shipping" 
+          className="data-[state=active]:bg-background/90 data-[state=active]:shadow-sm text-foreground text-sm sm:text-base py-2.5 sm:py-3 px-3 sm:px-4 rounded-md transition-all duration-300"
+        >
           <MapPin className="w-4 h-4 mr-2" />
-          Shipping Address
+          <span className="hidden sm:inline">Shipping Address</span>
+          <span className="sm:hidden">Address</span>
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="personal" className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <AvatarUpload
-            currentUser={currentUser}
-            avatarUrl={avatarUrl}
-            onAvatarUpdate={onAvatarUpdate}
-            onSuccess={onSuccess}
-            onError={onError}
-          />
+      <TabsContent value="personal" className="space-y-6 sm:space-y-8 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-start">
+          <div className="order-1 lg:order-1">
+            <AvatarUpload
+              currentUser={currentUser}
+              avatarUrl={avatarUrl}
+              onAvatarUpdate={onAvatarUpdate}
+              onSuccess={onSuccess}
+              onError={onError}
+            />
+          </div>
 
-          <PersonalInfoForm
-            currentUser={currentUser}
-            username={username}
-            fullName={fullName}
-            phone={phone}
-            onUsernameChange={onUsernameChange}
-            onFullNameChange={onFullNameChange}
-            onPhoneChange={onPhoneChange}
-          />
+          <div className="order-2 lg:order-2">
+            <PersonalInfoForm
+              currentUser={currentUser}
+              username={username}
+              fullName={fullName}
+              phone={phone}
+              onUsernameChange={onUsernameChange}
+              onFullNameChange={onFullNameChange}
+              onPhoneChange={onPhoneChange}
+            />
+          </div>
         </div>
       </TabsContent>
 
-      <TabsContent value="shipping" className="space-y-6">
+      <TabsContent value="shipping" className="space-y-6 mt-6">
         <ShippingAddressForm
           address={address}
           city={city}

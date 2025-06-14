@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload } from 'lucide-react';
+import { Upload, Camera, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AvatarUploadProps {
@@ -16,6 +16,7 @@ interface AvatarUploadProps {
 
 const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onError }: AvatarUploadProps) => {
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -50,6 +51,13 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
         });
         return;
       }
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
 
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
@@ -109,6 +117,7 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
       }
 
       onAvatarUpdate(publicUrl);
+      setImagePreview(null);
       onSuccess('Profile picture uploaded successfully!');
       
       toast({
@@ -118,6 +127,7 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
 
     } catch (err) {
       console.error('Upload error:', err);
+      setImagePreview(null);
       const errorMsg = "Failed to upload image. Please try again.";
       onError(errorMsg);
       toast({
@@ -130,32 +140,91 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
     }
   };
 
+  const clearPreview = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center space-y-6">
-      <Avatar className="h-32 w-32 border-4 border-border/50 shadow-lg">
-        <AvatarImage src={avatarUrl} alt={currentUser?.username} />
-        <AvatarFallback className="text-2xl bg-gradient-to-r from-primary/20 to-secondary/20 text-foreground">
-          {currentUser?.username?.charAt(0)?.toUpperCase() || 'U'}
-        </AvatarFallback>
-      </Avatar>
+    <div className="flex flex-col items-center space-y-4 sm:space-y-6 p-4 sm:p-6 bg-gradient-to-br from-background via-muted/20 to-background rounded-xl border border-border/50">
+      <div className="relative group">
+        <Avatar className="h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 border-4 border-border/50 shadow-xl ring-4 ring-primary/10 transition-all duration-300 group-hover:ring-primary/20">
+          <AvatarImage 
+            src={imagePreview || avatarUrl} 
+            alt={currentUser?.username}
+            className="object-cover object-center transition-all duration-300 group-hover:scale-105"
+          />
+          <AvatarFallback className="text-xl sm:text-2xl md:text-3xl bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 text-foreground font-semibold">
+            {currentUser?.username?.charAt(0)?.toUpperCase() || 'U'}
+          </AvatarFallback>
+        </Avatar>
+        
+        {/* Overlay camera icon on hover */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+             onClick={() => fileInputRef.current?.click()}>
+          <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+        </div>
+      </div>
+
+      {/* Preview controls */}
+      {imagePreview && (
+        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
+          <span className="text-sm text-muted-foreground">Preview ready</span>
+          <Button
+            onClick={clearPreview}
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
       
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
         onChange={handleFileUpload}
         className="hidden"
       />
       
-      <Button
-        onClick={() => fileInputRef.current?.click()}
-        variant="outline"
-        disabled={uploadingImage}
-        className="bg-background/50 border-border/50 text-foreground hover:bg-muted/50"
-      >
-        <Upload className="h-4 w-4 mr-2" />
-        {uploadingImage ? 'Uploading...' : 'Upload Photo'}
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full max-w-xs">
+        <Button
+          onClick={() => fileInputRef.current?.click()}
+          variant="outline"
+          disabled={uploadingImage}
+          className="flex-1 bg-background/80 border-border/50 text-foreground hover:bg-muted/80 hover:border-primary/50 transition-all duration-300 h-10 sm:h-11"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          {uploadingImage ? 'Uploading...' : 'Upload Photo'}
+        </Button>
+        
+        {avatarUrl && (
+          <Button
+            onClick={() => {
+              onAvatarUpdate('');
+              setImagePreview(null);
+            }}
+            variant="ghost"
+            className="text-muted-foreground hover:text-destructive transition-colors duration-300 h-10 sm:h-11"
+            disabled={uploadingImage}
+          >
+            Remove
+          </Button>
+        )}
+      </div>
+
+      <div className="text-center space-y-1">
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          Recommended: Square image, at least 400x400px
+        </p>
+        <p className="text-xs text-muted-foreground/80">
+          JPG, PNG or WebP. Max 5MB.
+        </p>
+      </div>
     </div>
   );
 };
