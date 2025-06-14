@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase/client';
@@ -149,16 +150,9 @@ const UserLoginPage = () => {
       console.log('Login successful, user role:', profileData.role);
 
       // Check if admin or super_admin is trying to login through user login
-      if (profileData.role === 'admin') {
+      if (profileData.role === 'admin' || profileData.role === 'super_admin') {
         await supabase.auth.signOut(); // Sign them out
-        setError('Admin accounts must use the admin login page.');
-        setLoading(false);
-        return;
-      }
-
-      if (profileData.role === 'super_admin') {
-        await supabase.auth.signOut(); // Sign them out
-        setError('Super admin accounts must use the super admin login page.');
+        setError('Please use the appropriate login page for your account type.');
         setLoading(false);
         return;
       }
@@ -196,24 +190,28 @@ const UserLoginPage = () => {
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
-            <span className="text-destructive-foreground font-medium">{error}</span>
+            <div className="ml-3">
+              <span className="font-medium text-destructive-foreground">{error}</span>
+            </div>
           </Alert>
         )}
         
         {message && (
           <Alert className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
             <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-blue-800 dark:text-blue-200 font-medium">{message}</span>
-            {error?.includes('verify your email') && (
-              <Button
-                variant="link"
-                className="mt-3 w-full text-primary hover:text-primary/80 font-medium"
-                onClick={handleResendVerification}
-                disabled={loading}
-              >
-                Resend verification email
-              </Button>
-            )}
+            <div className="ml-3">
+              <span className="font-medium text-blue-800 dark:text-blue-200">{message}</span>
+              {error?.includes('verify your email') && (
+                <Button
+                  variant="link"
+                  className="mt-3 w-full text-primary hover:text-primary/80 font-medium"
+                  onClick={handleResendVerification}
+                  disabled={loading}
+                >
+                  Resend verification email
+                </Button>
+              )}
+            </div>
           </Alert>
         )}
 

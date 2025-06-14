@@ -10,6 +10,7 @@ import { AdminModeProvider } from "./contexts/AdminModeContext";
 import { ProductComparisonProvider } from './contexts/ProductComparisonContext';
 import SecurityHeaders from "./components/SecurityHeaders";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ScrollToTop from "./components/ScrollToTop";
 import FloatingComparisonButton from "./components/FloatingComparisonButton";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
@@ -56,6 +57,7 @@ function App() {
                     <Toaster />
                     <Sonner />
                     <SecurityHeaders />
+                    <ScrollToTop />
                     <ErrorBoundary>
                       <Routes>
                         {/* Auth Routes */}

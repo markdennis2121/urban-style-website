@@ -6,17 +6,17 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 const TeamSection = () => {
   const teamMembers = [
     {
-      name: "Sarah Johnson",
+      name: "Mark Dennis V. Manangan",
       position: "Founder & CEO",
-      description: "With 10+ years in fashion retail, Sarah leads Urban's vision of making style accessible to everyone.",
-      initials: "SJ",
+      description: "With 10+ years in fashion retail, Mark leads Urban's vision of making style accessible to everyone.",
+      initials: "MM",
       image: null
     },
     {
-      name: "Michael Chen",
-      position: "Head of Design",
-      description: "Michael brings creative excellence to every collection, ensuring our products reflect the latest trends.",
-      initials: "MC",
+      name: "Micah Vivien S. Deocampo",
+      position: "Co-Founder",
+      description: "Micah brings creative excellence to every collection, ensuring our products reflect the latest trends.",
+      initials: "MD",
       image: null
     },
     {
