@@ -20,7 +20,7 @@ export const useAuth = () => {
       try {
         console.log('Checking auth state...');
         
-        // Get session synchronously from local storage first
+        // Get session from local storage first for instant auth state
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -35,7 +35,7 @@ export const useAuth = () => {
 
         if (session?.user) {
           console.log('User session found, fetching profile...');
-          // User is authenticated - set initialized immediately to prevent flash
+          // User is authenticated - set states immediately to prevent flash
           if (mounted) {
             setInitialized(true);
             setLoading(false);
@@ -125,6 +125,7 @@ export const useAuth = () => {
   return {
     profile,
     loading,
+    initialized,
     isAuthenticated: !!profile && initialized,
     isSuperAdmin: profile?.role === 'super_admin',
     isAdmin: profile?.role === 'admin' || profile?.role === 'super_admin'

@@ -141,7 +141,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isWishlisted = isAuthenticated && isInWishlist(productIdString);
   const isInComparison = isInCompare(productIdString);
 
-  // Don't show loading states if we're already initialized
+  // Only show loading state if not initialized yet
   const showLoadingState = loading && !initialized;
 
   return (
