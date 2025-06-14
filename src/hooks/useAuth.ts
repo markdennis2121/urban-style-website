@@ -14,14 +14,20 @@ export const useAuth = () => {
   const mountedRef = useRef(true);
 
   useEffect(() => {
+    // Reset mounted ref on mount
+    mountedRef.current = true;
+
     const initializeAuth = async () => {
-      // Prevent multiple initializations
-      if (initRef.current || !mountedRef.current) return;
+      // Prevent multiple initializations with stronger check
+      if (initRef.current) {
+        console.log('Auth already initialized, skipping');
+        return;
+      }
+      
       initRef.current = true;
+      console.log('Initializing auth...');
 
       try {
-        console.log('Initializing auth...');
-        
         // Get current session immediately
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -65,7 +71,8 @@ export const useAuth = () => {
         }
 
         // Set up auth state listener only once
-        if (!subscriptionRef.current) {
+        if (!subscriptionRef.current && mountedRef.current) {
+          console.log('Setting up auth state listener');
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
             console.log('Auth state changed:', event, !!newSession);
             
@@ -121,11 +128,14 @@ export const useAuth = () => {
     initializeAuth();
 
     return () => {
+      console.log('Auth hook cleanup');
       mountedRef.current = false;
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
+      // Reset init ref for potential remount
+      initRef.current = false;
     };
   }, []); // Empty dependency array to run only once
 

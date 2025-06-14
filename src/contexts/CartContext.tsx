@@ -15,6 +15,7 @@ interface CartState {
   items: CartItem[];
   total: number;
   itemCount: number;
+  isLoaded: boolean;
 }
 
 type CartAction = 
@@ -22,34 +23,51 @@ type CartAction =
   | { type: 'REMOVE_ITEM'; payload: string }
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
   | { type: 'CLEAR_CART' }
-  | { type: 'LOAD_FROM_STORAGE'; payload: CartState };
+  | { type: 'LOAD_FROM_STORAGE'; payload: CartState }
+  | { type: 'SET_LOADED' };
 
 const CART_STORAGE_KEY = 'lovable_cart';
 
 const getInitialState = (): CartState => {
+  return {
+    items: [],
+    total: 0,
+    itemCount: 0,
+    isLoaded: false,
+  };
+};
+
+const loadFromStorage = (): CartState | null => {
   try {
     const savedCart = localStorage.getItem(CART_STORAGE_KEY);
     if (savedCart) {
       const parsedCart = JSON.parse(savedCart);
       // Validate the structure
       if (parsedCart && Array.isArray(parsedCart.items)) {
-        return parsedCart;
+        return {
+          ...parsedCart,
+          isLoaded: true,
+        };
       }
     }
   } catch (error) {
     console.error('Error loading cart from localStorage:', error);
   }
   
-  return {
-    items: [],
-    total: 0,
-    itemCount: 0,
-  };
+  return null;
 };
 
 const saveToStorage = (state: CartState) => {
   try {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state));
+    // Only save if the cart is loaded to prevent overwriting with empty state
+    if (state.isLoaded) {
+      const stateToSave = {
+        items: state.items,
+        total: state.total,
+        itemCount: state.itemCount,
+      };
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(stateToSave));
+    }
   } catch (error) {
     console.error('Error saving cart to localStorage:', error);
   }
@@ -61,6 +79,12 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'LOAD_FROM_STORAGE':
       return action.payload;
+
+    case 'SET_LOADED':
+      return {
+        ...state,
+        isLoaded: true,
+      };
 
     case 'ADD_ITEM': {
       const existingItem = state.items.find(item => 
@@ -85,7 +109,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       const total = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
       
-      newState = { items: newItems, total, itemCount };
+      newState = { items: newItems, total, itemCount, isLoaded: state.isLoaded };
       break;
     }
     
@@ -94,7 +118,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       const total = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
       
-      newState = { items: newItems, total, itemCount };
+      newState = { items: newItems, total, itemCount, isLoaded: state.isLoaded };
       break;
     }
     
@@ -108,12 +132,12 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       const total = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
       
-      newState = { items: newItems, total, itemCount };
+      newState = { items: newItems, total, itemCount, isLoaded: state.isLoaded };
       break;
     }
     
     case 'CLEAR_CART':
-      newState = { items: [], total: 0, itemCount: 0 };
+      newState = { items: [], total: 0, itemCount: 0, isLoaded: state.isLoaded };
       break;
     
     default:
@@ -133,11 +157,13 @@ const CartContext = createContext<{
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(cartReducer, getInitialState());
   
-  // Load cart from localStorage on mount
+  // Load cart from localStorage on mount - only once
   useEffect(() => {
-    const savedCart = getInitialState();
-    if (savedCart.items.length > 0) {
+    const savedCart = loadFromStorage();
+    if (savedCart) {
       dispatch({ type: 'LOAD_FROM_STORAGE', payload: savedCart });
+    } else {
+      dispatch({ type: 'SET_LOADED' });
     }
   }, []);
   
