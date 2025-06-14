@@ -28,7 +28,7 @@ const Header = () => {
   const { state } = useCart();
   const { state: wishlistState } = useWishlist();
   const { canUseShoppingFeatures } = useAdminMode();
-  const { isAuthenticated, profile } = useAuth();
+  const { isAuthenticated, profile, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -209,8 +209,10 @@ const Header = () => {
               </Button>
             )}
 
-            {/* User Profile Dropdown or Login Button */}
-            {isAuthenticated ? (
+            {/* User Profile Dropdown or Login Button - Show loading state while determining auth */}
+            {loading ? (
+              <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+            ) : isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -316,7 +318,11 @@ const Header = () => {
                     showResults={false}
                   />
                 </div>
-                {isAuthenticated ? (
+                {loading ? (
+                  <div className="px-5 py-3">
+                    <div className="w-full h-8 bg-muted animate-pulse rounded" />
+                  </div>
+                ) : isAuthenticated ? (
                   <button 
                     onClick={handleLogout}
                     className="block w-full text-left px-5 py-3 text-primary hover:bg-muted/50 transition-colors"
@@ -339,6 +345,82 @@ const Header = () => {
       </div>
     </header>
   );
+};
+
+const loadSearchData = async () => {
+  try {
+    // Load products from database
+    const { data: dbProducts } = await supabase
+      .from('products')
+      .select('*')
+      .gt('stock', 0);
+
+    // Combine static and database products
+    const allProducts = [
+      ...products.filter(p => p.inStock).map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        description: p.description,
+        type: 'product' as const,
+        url: `/product/${p.id}`,
+        image: p.image,
+        price: p.price
+      })),
+      ...(dbProducts || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        description: p.description,
+        type: 'product' as const,
+        url: `/product/${p.id}`,
+        image: p.image_url,
+        price: p.price
+      }))
+    ];
+
+    return allProducts;
+  } catch (error) {
+    console.error('Error loading search data:', error);
+    return [];
+  }
+};
+
+const handleSearch = (term: string, navigate: any) => {
+  if (term.trim()) {
+    navigate(`/shop?search=${encodeURIComponent(term)}`);
+  }
+};
+
+const handleAuthAction = (isAuthenticated: boolean, navigate: any) => (action: string) => {
+  if (!isAuthenticated) {
+    navigate('/login');
+    return false;
+  }
+  return true;
+};
+
+const handleCartClick = (isAuthenticated: boolean, navigate: any) => () => {
+  if (!handleAuthAction(isAuthenticated, navigate)('access cart')) return;
+  navigate('/cart');
+};
+
+const handleWishlistClick = (isAuthenticated: boolean, navigate: any) => () => {
+  if (!handleAuthAction(isAuthenticated, navigate)('access wishlist')) return;
+  navigate('/wishlist');
+};
+
+const handleLogout = async (navigate: any) => {
+  try {
+    console.log('User logging out...');
+    await supabase.auth.signOut();
+    // Don't manually navigate - let the auth state change handle it
+    // The useAuth hook will detect the sign out and update the state
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Only navigate on error as fallback
+    navigate('/');
+  }
 };
 
 export default Header;

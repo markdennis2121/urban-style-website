@@ -126,7 +126,7 @@ export const useAuth = () => {
 
   return {
     profile,
-    loading: loading && !initialized,
+    loading,
     isAuthenticated: !!profile && initialized,
     isSuperAdmin: profile?.role === 'super_admin',
     isAdmin: profile?.role === 'admin' || profile?.role === 'super_admin'
