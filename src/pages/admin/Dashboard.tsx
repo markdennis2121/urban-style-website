@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Header from '../../components/Header';
@@ -11,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
@@ -24,7 +26,10 @@ import {
   TrendingUp,
   BarChart3,
   Upload,
-  Edit
+  Edit,
+  User,
+  Calendar,
+  Mail
 } from 'lucide-react';
 
 const AdminDashboard = () => {
