@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase/client';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { validateEmail, authRateLimiter, sanitizeText } from '@/lib/security';
-import { Shield } from 'lucide-react';
+import { Shield, AlertCircle } from 'lucide-react';
 import LoginForm from './LoginForm';
 import ForgotPasswordDialog from './ForgotPasswordDialog';
 import RateLimitAlert from './RateLimitAlert';
@@ -196,13 +195,15 @@ const UserLoginPage = () => {
         
         {error && (
           <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
             <span className="text-destructive-foreground font-medium">{error}</span>
           </Alert>
         )}
         
         {message && (
-          <Alert className="mb-6 bg-muted border-border">
-            <span className="text-muted-foreground font-medium">{message}</span>
+          <Alert className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-blue-800 dark:text-blue-200 font-medium">{message}</span>
             {error?.includes('verify your email') && (
               <Button
                 variant="link"
