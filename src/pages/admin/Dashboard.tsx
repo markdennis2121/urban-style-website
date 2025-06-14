@@ -76,13 +76,18 @@ const AdminDashboard = () => {
 
   const loadUsers = async () => {
     try {
+      console.log('Admin loading all users...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'user')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading users:', error);
+        return;
+      }
+      
+      console.log('Admin loaded users:', data);
       setUsers(data || []);
     } catch (err) {
       console.error('Error loading users:', err);
