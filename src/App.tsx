@@ -7,7 +7,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { CartProvider } from "./contexts/CartContext";
 import { WishlistProvider } from "./contexts/WishlistContext";
 import { AdminModeProvider } from "./contexts/AdminModeContext";
-import { AuthProvider } from "./contexts/AuthContext";
 import { ProductComparisonProvider } from './contexts/ProductComparisonContext';
 import SecurityHeaders from "./components/SecurityHeaders";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -49,131 +48,129 @@ function App() {
     <Router>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AuthProvider>
-            <AdminModeProvider>
-              <CartProvider>
-                <WishlistProvider>
-                  <ProductComparisonProvider>
-                    <div className="min-h-screen bg-background font-sans antialiased">
-                      <Toaster />
-                      <Sonner />
-                      <SecurityHeaders />
-                      <ErrorBoundary>
-                        <Routes>
-                          {/* Auth Routes - These should be accessible without login */}
-                          <Route path="/signup" element={<SignUpPage />} />
-                          <Route path="/login" element={<UserLoginPage />} />
-                          <Route path="/admin/login" element={<AdminLoginPage />} />
-                          <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
-                          <Route path="/auth/callback" element={<AuthCallback />} />
+          <AdminModeProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <ProductComparisonProvider>
+                  <div className="min-h-screen bg-background font-sans antialiased">
+                    <Toaster />
+                    <Sonner />
+                    <SecurityHeaders />
+                    <ErrorBoundary>
+                      <Routes>
+                        {/* Auth Routes - These should be accessible without login */}
+                        <Route path="/signup" element={<SignUpPage />} />
+                        <Route path="/login" element={<UserLoginPage />} />
+                        <Route path="/admin/login" element={<AdminLoginPage />} />
+                        <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
+                        <Route path="/auth/callback" element={<AuthCallback />} />
 
-                          {/* All other routes require authentication */}
-                          <Route
-                            path="/"
-                            element={
-                              <ProtectedRoute>
-                                <Index />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/shop"
-                            element={
-                              <ProtectedRoute>
-                                <Shop />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/product/:id"
-                            element={
-                              <ProtectedRoute>
-                                <ProductDetail />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/about"
-                            element={
-                              <ProtectedRoute>
-                                <About />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/blog"
-                            element={
-                              <ProtectedRoute>
-                                <Blog />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/contact"
-                            element={
-                              <ProtectedRoute>
-                                <Contact />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/cart"
-                            element={
-                              <ProtectedRoute>
-                                <Cart />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/checkout"
-                            element={
-                              <ProtectedRoute>
-                                <Checkout />
-                              </ProtectedRoute>
-                            }
-                          />
+                        {/* All other routes require authentication */}
+                        <Route
+                          path="/"
+                          element={
+                            <ProtectedRoute>
+                              <Index />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/shop"
+                          element={
+                            <ProtectedRoute>
+                              <Shop />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/product/:id"
+                          element={
+                            <ProtectedRoute>
+                              <ProductDetail />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/about"
+                          element={
+                            <ProtectedRoute>
+                              <About />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/blog"
+                          element={
+                            <ProtectedRoute>
+                              <Blog />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/contact"
+                          element={
+                            <ProtectedRoute>
+                              <Contact />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/cart"
+                          element={
+                            <ProtectedRoute>
+                              <Cart />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/checkout"
+                          element={
+                            <ProtectedRoute>
+                              <Checkout />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                          {/* Protected Admin Routes */}
-                          <Route
-                            path="/admin/dashboard"
-                            element={
-                              <ProtectedRoute requiredRole="admin">
-                                <AdminDashboard />
-                              </ProtectedRoute>
-                            }
-                          />
+                        {/* Protected Admin Routes */}
+                        <Route
+                          path="/admin/dashboard"
+                          element={
+                            <ProtectedRoute requiredRole="admin">
+                              <AdminDashboard />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                          {/* Protected Super Admin Routes */}
-                          <Route
-                            path="/superadmin/dashboard"
-                            element={
-                              <ProtectedRoute requiredRole="super_admin">
-                                <SuperAdminDashboard />
-                              </ProtectedRoute>
-                            }
-                          />
+                        {/* Protected Super Admin Routes */}
+                        <Route
+                          path="/superadmin/dashboard"
+                          element={
+                            <ProtectedRoute requiredRole="super_admin">
+                              <SuperAdminDashboard />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                          {/* Wishlist Route */}
-                          <Route 
-                            path="/wishlist" 
-                            element={
-                              <ProtectedRoute>
-                                <Wishlist />
-                              </ProtectedRoute>
-                            } 
-                          />
+                        {/* Wishlist Route */}
+                        <Route 
+                          path="/wishlist" 
+                          element={
+                            <ProtectedRoute>
+                              <Wishlist />
+                            </ProtectedRoute>
+                          } 
+                        />
 
-                          {/* 404 Route */}
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                        <FloatingComparisonButton />
-                      </ErrorBoundary>
-                    </div>
-                  </ProductComparisonProvider>
-                </WishlistProvider>
-              </CartProvider>
-            </AdminModeProvider>
-          </AuthProvider>
+                        {/* 404 Route */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                      <FloatingComparisonButton />
+                    </ErrorBoundary>
+                  </div>
+                </ProductComparisonProvider>
+              </WishlistProvider>
+            </CartProvider>
+          </AdminModeProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </Router>
