@@ -2,6 +2,8 @@
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Anyone can insert contact messages" ON contact_messages;
 DROP POLICY IF EXISTS "Admins can view all contact messages" ON contact_messages;
+DROP POLICY IF EXISTS "contact_messages_insert_policy" ON contact_messages;
+DROP POLICY IF EXISTS "contact_messages_select_policy" ON contact_messages;
 
 -- Drop table if exists to recreate with proper setup
 DROP TABLE IF EXISTS contact_messages;
@@ -19,17 +21,23 @@ CREATE TABLE contact_messages (
 -- Enable RLS
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Grant permissions first
-GRANT ALL ON contact_messages TO anon, authenticated;
-GRANT USAGE ON SCHEMA public TO anon;
+-- Grant all permissions to both anon and authenticated users
+GRANT ALL ON contact_messages TO anon;
+GRANT ALL ON contact_messages TO authenticated;
+GRANT ALL ON contact_messages TO public;
 
--- Create policy to allow anyone (including anonymous users) to insert contact messages
-CREATE POLICY "contact_messages_insert_policy" ON contact_messages
+-- Grant schema usage to anon
+GRANT USAGE ON SCHEMA public TO anon;
+GRANT USAGE ON SCHEMA public TO authenticated;
+
+-- Create a permissive insert policy for everyone (anon and authenticated)
+CREATE POLICY "allow_insert_contact_messages" ON contact_messages
     FOR INSERT 
+    TO anon, authenticated
     WITH CHECK (true);
 
--- Create policy for admins to view all contact messages
-CREATE POLICY "contact_messages_select_policy" ON contact_messages
+-- Create policy for viewing messages (authenticated users only, and only admins)
+CREATE POLICY "allow_select_contact_messages" ON contact_messages
     FOR SELECT 
     TO authenticated
     USING (
