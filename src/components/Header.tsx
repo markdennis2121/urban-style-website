@@ -28,25 +28,18 @@ const Header = () => {
   const { state } = useCart();
   const { state: wishlistState } = useWishlist();
   const { canUseShoppingFeatures } = useAdminMode();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadCurrentUser();
+    if (isAuthenticated && profile) {
+      setCurrentUser(profile);
+    } else {
+      setCurrentUser(null);
     }
     loadSearchData();
-  }, [isAuthenticated]);
-
-  const loadCurrentUser = async () => {
-    try {
-      const profile = await getCurrentProfile();
-      setCurrentUser(profile);
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    }
-  };
+  }, [isAuthenticated, profile]);
 
   const loadSearchData = async () => {
     try {
@@ -112,24 +105,13 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      console.log('User logging out, role:', currentUser?.role);
+      console.log('User logging out...');
       await supabase.auth.signOut();
-      setCurrentUser(null);
-      
-      // Redirect based on user role
-      switch (currentUser?.role) {
-        case 'super_admin':
-          navigate('/superadmin/login');
-          break;
-        case 'admin':
-          navigate('/admin/login');
-          break;
-        default:
-          navigate('/');
-          break;
-      }
+      // Don't manually navigate - let the auth state change handle it
+      // The useAuth hook will detect the sign out and update the state
     } catch (error) {
       console.error('Logout error:', error);
+      // Only navigate on error as fallback
       navigate('/');
     }
   };
