@@ -25,118 +25,155 @@ import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 import { WishlistProvider } from "./contexts/WishlistContext";
 import Wishlist from "./pages/Wishlist";
 
-const queryClient = new QueryClient();
+// Prevent any Firebase initialization from browser extensions or third-party code
+if (typeof window !== 'undefined') {
+  // Block Firebase initialization attempts
+  Object.defineProperty(window, 'firebase', {
+    get: () => {
+      console.warn('Firebase initialization blocked - using Supabase only');
+      return undefined;
+    },
+    set: () => {
+      console.warn('Firebase initialization blocked - using Supabase only');
+    },
+    configurable: false
+  });
+  
+  // Block Firestore initialization
+  Object.defineProperty(window, 'firestore', {
+    get: () => {
+      console.warn('Firestore initialization blocked - using Supabase only');
+      return undefined;
+    },
+    set: () => {
+      console.warn('Firestore initialization blocked - using Supabase only');
+    },
+    configurable: false
+  });
+}
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <CartProvider>
-        <WishlistProvider>
-          <Router>
-            <Routes>
-              {/* Auth Routes - These should be accessible without login */}
-              <Route path="/signup" element={<SignUpPage />} />
-              <Route path="/login" element={<UserLoginPage />} />
-              <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
+      <TooltipProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <Router>
+              <Routes>
+                {/* Auth Routes - These should be accessible without login */}
+                <Route path="/signup" element={<SignUpPage />} />
+                <Route path="/login" element={<UserLoginPage />} />
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
 
-              {/* All other routes require authentication */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/shop"
-                element={
-                  <ProtectedRoute>
-                    <Shop />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/product/:id"
-                element={
-                  <ProtectedRoute>
-                    <ProductDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/about"
-                element={
-                  <ProtectedRoute>
-                    <About />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/blog"
-                element={
-                  <ProtectedRoute>
-                    <Blog />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/contact"
-                element={
-                  <ProtectedRoute>
-                    <Contact />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/cart"
-                element={
-                  <ProtectedRoute>
-                    <Cart />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/checkout"
-                element={
-                  <ProtectedRoute>
-                    <Checkout />
-                  </ProtectedRoute>
-                }
-              />
+                {/* All other routes require authentication */}
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop"
+                  element={
+                    <ProtectedRoute>
+                      <Shop />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/product/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ProductDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/about"
+                  element={
+                    <ProtectedRoute>
+                      <About />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/blog"
+                  element={
+                    <ProtectedRoute>
+                      <Blog />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/contact"
+                  element={
+                    <ProtectedRoute>
+                      <Contact />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cart"
+                  element={
+                    <ProtectedRoute>
+                      <Cart />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/checkout"
+                  element={
+                    <ProtectedRoute>
+                      <Checkout />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Protected Admin Routes */}
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Admin Routes */}
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Protected Super Admin Routes */}
-              <Route
-                path="/superadmin/dashboard"
-                element={
-                  <ProtectedRoute requiredRole="super_admin">
-                    <SuperAdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Super Admin Routes */}
+                <Route
+                  path="/superadmin/dashboard"
+                  element={
+                    <ProtectedRoute requiredRole="super_admin">
+                      <SuperAdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Wishlist Route */}
-              <Route path="/wishlist" element={<Wishlist />} />
+                {/* Wishlist Route */}
+                <Route path="/wishlist" element={<Wishlist />} />
 
-              {/* 404 Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Router>
-          <Toaster />
-        </WishlistProvider>
-      </CartProvider>
+                {/* 404 Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Router>
+            <Toaster />
+            <Sonner />
+          </WishlistProvider>
+        </CartProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

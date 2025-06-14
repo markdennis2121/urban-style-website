@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -20,6 +20,28 @@ const Contact = () => {
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Log that we're using Supabase only
+    console.log('Contact page loaded - using Supabase backend only');
+    
+    // Check if Firebase is being loaded by extensions or other scripts
+    if (typeof window !== 'undefined') {
+      const checkForFirebase = () => {
+        if ((window as any).firebase) {
+          console.warn('Firebase detected in window object - this may be from a browser extension');
+        }
+        if ((window as any).firestore) {
+          console.warn('Firestore detected in window object - this may be from a browser extension');
+        }
+      };
+      
+      checkForFirebase();
+      
+      // Check again after a short delay
+      setTimeout(checkForFirebase, 1000);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
