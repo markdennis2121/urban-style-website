@@ -7,26 +7,27 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  
+  // Use refs to prevent multiple initializations
   const initRef = useRef(false);
   const subscriptionRef = useRef<any>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    let mounted = true;
-
     const initializeAuth = async () => {
       // Prevent multiple initializations
-      if (initRef.current) return;
+      if (initRef.current || !mountedRef.current) return;
       initRef.current = true;
 
       try {
         console.log('Initializing auth...');
         
-        // First check if we have a session immediately
+        // Get current session immediately
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error('Session error:', sessionError);
-          if (mounted) {
+          if (mountedRef.current) {
             setProfile(null);
             setLoading(false);
             setInitialized(true);
@@ -34,69 +35,68 @@ export const useAuth = () => {
           return;
         }
 
-        // If we have a session, immediately set as initialized to prevent flash
-        if (session?.user && mounted) {
-          console.log('Found existing session, setting initialized');
-          setInitialized(true);
-          setLoading(false);
+        if (session?.user) {
+          console.log('Found existing session');
           
-          // Load profile in background
+          // Load profile
           try {
             const userProfile = await getCurrentProfile();
-            if (mounted && userProfile) {
+            if (mountedRef.current) {
               console.log('Profile loaded:', userProfile);
               setProfile(userProfile);
+              setLoading(false);
+              setInitialized(true);
             }
           } catch (error) {
             console.error('Error loading profile:', error);
-            if (mounted) {
+            if (mountedRef.current) {
               setProfile(null);
+              setLoading(false);
+              setInitialized(true);
             }
           }
         } else {
           console.log('No existing session');
-          if (mounted) {
+          if (mountedRef.current) {
             setProfile(null);
             setLoading(false);
             setInitialized(true);
           }
         }
 
-        // Set up auth state listener for future changes only
+        // Set up auth state listener only once
         if (!subscriptionRef.current) {
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
             console.log('Auth state changed:', event, !!newSession);
             
-            if (!mounted) return;
+            if (!mountedRef.current) return;
 
             if (event === 'SIGNED_IN' && newSession?.user) {
               setLoading(true);
               try {
                 const userProfile = await getCurrentProfile();
-                if (mounted) {
+                if (mountedRef.current) {
                   setProfile(userProfile);
-                  setInitialized(true);
                   setLoading(false);
                 }
               } catch (error) {
                 console.error('Error getting profile after sign in:', error);
-                if (mounted) {
+                if (mountedRef.current) {
                   setProfile(null);
                   setLoading(false);
                 }
               }
             } else if (event === 'SIGNED_OUT') {
               console.log('User signed out');
-              if (mounted) {
+              if (mountedRef.current) {
                 setProfile(null);
                 setLoading(false);
-                setInitialized(true);
               }
             } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
-              // Don't change loading state on token refresh, just update profile if needed
+              // Don't change loading state on token refresh
               try {
                 const userProfile = await getCurrentProfile();
-                if (mounted && userProfile) {
+                if (mountedRef.current && userProfile) {
                   setProfile(userProfile);
                 }
               } catch (error) {
@@ -110,7 +110,7 @@ export const useAuth = () => {
         
       } catch (error) {
         console.error('Error initializing auth:', error);
-        if (mounted) {
+        if (mountedRef.current) {
           setProfile(null);
           setLoading(false);
           setInitialized(true);
@@ -120,15 +120,14 @@ export const useAuth = () => {
 
     initializeAuth();
 
-    // Cleanup function
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
     };
-  }, []);
+  }, []); // Empty dependency array to run only once
 
   return {
     profile,
