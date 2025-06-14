@@ -3,8 +3,11 @@
 DROP POLICY IF EXISTS "Anyone can insert contact messages" ON contact_messages;
 DROP POLICY IF EXISTS "Admins can view all contact messages" ON contact_messages;
 
--- Create contact_messages table only if it doesn't exist
-CREATE TABLE IF NOT EXISTS contact_messages (
+-- Drop table if exists to recreate with proper setup
+DROP TABLE IF EXISTS contact_messages;
+
+-- Create contact_messages table
+CREATE TABLE contact_messages (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -16,14 +19,17 @@ CREATE TABLE IF NOT EXISTS contact_messages (
 -- Enable RLS
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
+-- Grant permissions first
+GRANT ALL ON contact_messages TO anon, authenticated;
+GRANT USAGE ON SCHEMA public TO anon;
+
 -- Create policy to allow anyone (including anonymous users) to insert contact messages
-CREATE POLICY "Anyone can insert contact messages" ON contact_messages
+CREATE POLICY "contact_messages_insert_policy" ON contact_messages
     FOR INSERT 
-    TO anon, authenticated
     WITH CHECK (true);
 
 -- Create policy for admins to view all contact messages
-CREATE POLICY "Admins can view all contact messages" ON contact_messages
+CREATE POLICY "contact_messages_select_policy" ON contact_messages
     FOR SELECT 
     TO authenticated
     USING (
@@ -33,7 +39,3 @@ CREATE POLICY "Admins can view all contact messages" ON contact_messages
             AND profiles.role IN ('admin', 'super_admin')
         )
     );
-
--- Grant necessary permissions
-GRANT INSERT ON contact_messages TO anon, authenticated;
-GRANT SELECT ON contact_messages TO authenticated;
