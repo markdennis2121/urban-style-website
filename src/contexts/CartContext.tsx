@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useRef } from 'react';
 
 export interface CartItem {
   id: string;
@@ -42,7 +42,6 @@ const loadFromStorage = (): CartState | null => {
     const savedCart = localStorage.getItem(CART_STORAGE_KEY);
     if (savedCart) {
       const parsedCart = JSON.parse(savedCart);
-      // Validate the structure
       if (parsedCart && Array.isArray(parsedCart.items)) {
         return {
           ...parsedCart,
@@ -59,7 +58,6 @@ const loadFromStorage = (): CartState | null => {
 
 const saveToStorage = (state: CartState) => {
   try {
-    // Only save if the cart is loaded to prevent overwriting with empty state
     if (state.isLoaded) {
       const stateToSave = {
         items: state.items,
@@ -144,7 +142,6 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       return state;
   }
 
-  // Save to localStorage after each change
   saveToStorage(newState);
   return newState;
 };
@@ -156,9 +153,13 @@ const CartContext = createContext<{
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(cartReducer, getInitialState());
+  const loadedRef = useRef(false);
   
-  // Load cart from localStorage on mount - only once
   useEffect(() => {
+    // Prevent multiple loads
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+
     const savedCart = loadFromStorage();
     if (savedCart) {
       dispatch({ type: 'LOAD_FROM_STORAGE', payload: savedCart });
