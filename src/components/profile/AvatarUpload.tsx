@@ -219,10 +219,10 @@ const AvatarUpload = ({ currentUser, avatarUrl, onAvatarUpdate, onSuccess, onErr
 
       <div className="text-center space-y-1">
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Recommended: Square image, at least 400x400px
+          JPG, PNG or WebP files accepted
         </p>
         <p className="text-xs text-muted-foreground/80">
-          JPG, PNG or WebP. Max 5MB.
+          Maximum file size: 5MB
         </p>
       </div>
     </div>

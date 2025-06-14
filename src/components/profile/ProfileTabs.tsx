@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, MapPin } from 'lucide-react';
+import { User, MapPin, Lock } from 'lucide-react';
 import AvatarUpload from './AvatarUpload';
 import PersonalInfoForm from './PersonalInfoForm';
 import ShippingAddressForm from './ShippingAddressForm';
+import PasswordChangeForm from './PasswordChangeForm';
 
 interface ProfileTabsProps {
   currentUser: any;
@@ -55,22 +56,30 @@ const ProfileTabs = ({
 }: ProfileTabsProps) => {
   return (
     <Tabs defaultValue="personal" className="space-y-4 sm:space-y-6">
-      <TabsList className="bg-muted/60 backdrop-blur-md border border-border/50 w-full h-auto p-1 grid grid-cols-2 gap-1">
+      <TabsList className="bg-muted/60 backdrop-blur-md border border-border/50 w-full h-auto p-1 grid grid-cols-3 gap-1">
         <TabsTrigger 
           value="personal" 
-          className="data-[state=active]:bg-background/90 data-[state=active]:shadow-sm text-foreground text-sm sm:text-base py-2.5 sm:py-3 px-3 sm:px-4 rounded-md transition-all duration-300"
+          className="data-[state=active]:bg-background/90 data-[state=active]:shadow-sm text-foreground text-xs sm:text-sm py-2.5 sm:py-3 px-2 sm:px-4 rounded-md transition-all duration-300"
         >
-          <User className="w-4 h-4 mr-2" />
+          <User className="w-4 h-4 mr-1 sm:mr-2" />
           <span className="hidden sm:inline">Personal Info</span>
           <span className="sm:hidden">Personal</span>
         </TabsTrigger>
         <TabsTrigger 
           value="shipping" 
-          className="data-[state=active]:bg-background/90 data-[state=active]:shadow-sm text-foreground text-sm sm:text-base py-2.5 sm:py-3 px-3 sm:px-4 rounded-md transition-all duration-300"
+          className="data-[state=active]:bg-background/90 data-[state=active]:shadow-sm text-foreground text-xs sm:text-sm py-2.5 sm:py-3 px-2 sm:px-4 rounded-md transition-all duration-300"
         >
-          <MapPin className="w-4 h-4 mr-2" />
-          <span className="hidden sm:inline">Shipping Address</span>
+          <MapPin className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Address</span>
           <span className="sm:hidden">Address</span>
+        </TabsTrigger>
+        <TabsTrigger 
+          value="security" 
+          className="data-[state=active]:bg-background/90 data-[state=active]:shadow-sm text-foreground text-xs sm:text-sm py-2.5 sm:py-3 px-2 sm:px-4 rounded-md transition-all duration-300"
+        >
+          <Lock className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Security</span>
+          <span className="sm:hidden">Security</span>
         </TabsTrigger>
       </TabsList>
 
@@ -113,6 +122,10 @@ const ProfileTabs = ({
           onPostalCodeChange={onPostalCodeChange}
           onCountryChange={onCountryChange}
         />
+      </TabsContent>
+
+      <TabsContent value="security" className="space-y-6 mt-6">
+        <PasswordChangeForm />
       </TabsContent>
     </Tabs>
   );
