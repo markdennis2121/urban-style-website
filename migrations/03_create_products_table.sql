@@ -3,11 +3,12 @@
 CREATE TABLE products (
     id UUID DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    brand VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10,2) NOT NULL,
     category VARCHAR(100) NOT NULL,
     stock INTEGER NOT NULL DEFAULT 0,
-    image_url TEXT,
+    image TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -45,10 +46,10 @@ CREATE TRIGGER update_products_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert some sample products
-INSERT INTO products (name, description, price, category, stock, image_url) VALUES
-('Cartoon Astronaut T-shirt', 'Comfortable cotton t-shirt with cartoon astronaut print', 80.00, 'T-Shirts', 50, '/images/fe/6.jpg'),
-('OversizeObsession', 'Trendy oversized t-shirt for casual wear', 80.00, 'T-Shirts', 30, '/images/fe/1.jpg'),
-('MaxComfort', 'Ultra-soft cotton blend t-shirt for maximum comfort', 80.00, 'T-Shirts', 45, '/images/fe/2.jpg'),
-('SlouchyStyle', 'Relaxed fit t-shirt with modern design', 80.00, 'T-Shirts', 25, '/images/new/6.jpg'),
-('GiantGarb', 'Extra large fit t-shirt for comfortable wearing', 80.00, 'T-Shirts', 35, '/images/fe/4.jpg'),
-('FreeFlow', 'Lightweight and breathable t-shirt for active lifestyle', 80.00, 'T-Shirts', 40, '/images/fe/5.jpg');
+INSERT INTO products (name, brand, description, price, category, stock, image) VALUES
+('Cartoon Astronaut T-shirt', 'StyleCo', 'Comfortable cotton t-shirt with cartoon astronaut print', 80.00, 'T-Shirts', 50, '/images/fe/6.jpg'),
+('OversizeObsession', 'TrendWear', 'Trendy oversized t-shirt for casual wear', 80.00, 'T-Shirts', 30, '/images/fe/1.jpg'),
+('MaxComfort', 'ComfortCo', 'Ultra-soft cotton blend t-shirt for maximum comfort', 80.00, 'T-Shirts', 45, '/images/fe/2.jpg'),
+('SlouchyStyle', 'RelaxWear', 'Relaxed fit t-shirt with modern design', 80.00, 'T-Shirts', 25, '/images/new/6.jpg'),
+('GiantGarb', 'BigStyle', 'Extra large fit t-shirt for comfortable wearing', 80.00, 'T-Shirts', 35, '/images/fe/4.jpg'),
+('FreeFlow', 'ActiveWear', 'Lightweight and breathable t-shirt for active lifestyle', 80.00, 'T-Shirts', 40, '/images/fe/5.jpg');
