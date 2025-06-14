@@ -20,7 +20,7 @@ const Shop = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
-  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [priceRange, setPriceRange] = useState([0, 5000]);
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -133,7 +133,7 @@ const Shop = () => {
     setSearchTerm('');
     setSelectedCategory('All');
     setSelectedBrand('All Brands');
-    setPriceRange([0, 10000]);
+    setPriceRange([0, 5000]);
     setSortBy('name');
     // Clear URL params
     setSearchParams({}, { replace: true });
@@ -143,7 +143,7 @@ const Shop = () => {
     searchTerm,
     selectedCategory !== 'All' ? selectedCategory : null,
     selectedBrand !== 'All Brands' ? selectedBrand : null,
-    priceRange[0] !== 0 || priceRange[1] !== 10000 ? 'price' : null,
+    priceRange[0] !== 0 || priceRange[1] !== 5000 ? 'price' : null,
   ].filter(Boolean).length;
 
   if (loading) {
@@ -246,15 +246,22 @@ const Shop = () => {
               {/* Price Range */}
               <div className="mb-6">
                 <label className="block text-sm font-semibold mb-3 text-foreground">
-                  Price Range: ₱{priceRange[0]} - ₱{priceRange[1]}
+                  Price Range: ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}
                 </label>
-                <Slider
-                  value={priceRange}
-                  onValueChange={setPriceRange}
-                  max={10000}
-                  step={500}
-                  className="mt-3"
-                />
+                <div className="px-2">
+                  <Slider
+                    value={priceRange}
+                    onValueChange={setPriceRange}
+                    max={5000}
+                    min={0}
+                    step={100}
+                    className="mt-3"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>₱0</span>
+                    <span>₱5,000</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
