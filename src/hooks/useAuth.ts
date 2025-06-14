@@ -11,9 +11,11 @@ export const useAuth = () => {
   useEffect(() => {
     let mounted = true;
 
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
-        console.log('Getting initial session...');
+        console.log('Initializing auth...');
+        
+        // Get the current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -28,34 +30,49 @@ export const useAuth = () => {
 
         if (session?.user) {
           console.log('Session found, getting profile...');
-          const userProfile = await getCurrentProfile();
-          if (mounted) {
-            setProfile(userProfile);
+          try {
+            const userProfile = await getCurrentProfile();
+            if (mounted) {
+              setProfile(userProfile);
+              setLoading(false);
+              setInitialized(true);
+            }
+          } catch (error) {
+            console.error('Error getting profile:', error);
+            if (mounted) {
+              setProfile(null);
+              setLoading(false);
+              setInitialized(true);
+            }
           }
         } else {
           console.log('No session found');
           if (mounted) {
             setProfile(null);
+            setLoading(false);
+            setInitialized(true);
           }
         }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        console.error('Error initializing auth:', error);
         if (mounted) {
           setProfile(null);
-        }
-      } finally {
-        if (mounted) {
           setLoading(false);
           setInitialized(true);
         }
       }
     };
 
-    // Listen to auth changes
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
       if (!mounted) return;
+
+      // Skip initial session event since we handle it manually
+      if (event === 'INITIAL_SESSION') {
+        return;
+      }
 
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('User signed in, getting profile...');
@@ -84,6 +101,7 @@ export const useAuth = () => {
         }
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         console.log('Token refreshed');
+        // Don't change loading state for token refresh, just update profile if needed
         if (mounted && !profile) {
           try {
             const userProfile = await getCurrentProfile();
@@ -101,15 +119,15 @@ export const useAuth = () => {
       }
     });
 
-    // Get initial session
-    getInitialSession();
+    // Initialize authentication
+    initializeAuth();
 
     // Cleanup
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array to prevent re-running
+  }, []);
 
   return {
     profile,
