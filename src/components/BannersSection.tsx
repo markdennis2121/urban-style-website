@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,18 @@ const BannersSection = () => {
 
   const handleExploreMore = () => {
     navigate('/shop');
+  };
+
+  const handleLearnMore = () => {
+    navigate('/shop');
+  };
+
+  const handleCollection = () => {
+    navigate('/shop');
+  };
+
+  const handleBannerClick = (category: string) => {
+    navigate(`/shop?category=${category.toLowerCase()}`);
   };
 
   return (
@@ -39,7 +50,10 @@ const BannersSection = () => {
       {/* Two Column Banners */}
       <section className="py-16 px-4 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer">
+          <div 
+            className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer"
+            onClick={() => handleBannerClick('dresses')}
+          >
             <div 
               className="absolute inset-0 bg-cover bg-center"
               style={{
@@ -51,12 +65,22 @@ const BannersSection = () => {
               <h4 className="text-lg font-semibold mb-2">crazy deals</h4>
               <h2 className="text-3xl font-bold mb-2 drop-shadow-lg">buy 1 get 1 free</h2>
               <span className="text-sm mb-4 text-gray-100">The best classic dress is on sale at urban</span>
-              <Button variant="secondary" className="transform hover:scale-105 transition-transform duration-300">
+              <Button 
+                variant="secondary" 
+                className="transform hover:scale-105 transition-transform duration-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLearnMore();
+                }}
+              >
                 Learn More
               </Button>
             </div>
           </div>
-          <div className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer">
+          <div 
+            className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer"
+            onClick={() => handleBannerClick('summer')}
+          >
             <div 
               className="absolute inset-0 bg-cover bg-center"
               style={{
@@ -68,7 +92,14 @@ const BannersSection = () => {
               <h4 className="text-lg font-semibold mb-2">spring/summer</h4>
               <h2 className="text-3xl font-bold mb-2 drop-shadow-lg">upcoming season</h2>
               <span className="text-sm mb-4 text-gray-100">The best classic dress is on sale at urban</span>
-              <Button variant="secondary" className="transform hover:scale-105 transition-transform duration-300">
+              <Button 
+                variant="secondary" 
+                className="transform hover:scale-105 transition-transform duration-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCollection();
+                }}
+              >
                 Collection
               </Button>
             </div>
@@ -78,7 +109,10 @@ const BannersSection = () => {
 
       {/* Three Column Banners */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 sm:px-8 py-16 max-w-7xl mx-auto">
-        <div className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer">
+        <div 
+          className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer"
+          onClick={() => handleBannerClick('sale')}
+        >
           <div 
             className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-700"
             style={{
@@ -93,7 +127,10 @@ const BannersSection = () => {
           </div>
         </div>
         
-        <div className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer">
+        <div 
+          className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer"
+          onClick={() => handleBannerClick('footwear')}
+        >
           <div 
             className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-700"
             style={{
@@ -108,7 +145,10 @@ const BannersSection = () => {
           </div>
         </div>
         
-        <div className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer">
+        <div 
+          className="banner-box relative overflow-hidden rounded-2xl group cursor-pointer"
+          onClick={() => handleBannerClick('t-shirts')}
+        >
           <div 
             className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-700"
             style={{
