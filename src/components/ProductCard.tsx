@@ -1,13 +1,16 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart, Star, Package } from 'lucide-react';
+import { Heart, ShoppingCart, Star, Package, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useProductComparison } from '../contexts/ProductComparisonContext';
 import { useAdminMode } from '../contexts/AdminModeContext';
 import { useToast } from '@/hooks/use-toast';
+import LazyImage from '@/components/ui/LazyImage';
 
 interface Product {
   id: string | number;
@@ -22,6 +25,7 @@ interface Product {
   originalPrice?: number;
   inStock?: boolean;
   brand?: string;
+  description?: string;
 }
 
 interface ProductCardProps {
@@ -31,6 +35,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { dispatch } = useCart();
   const { addToWishlist, isInWishlist } = useWishlist();
+  const { addToCompare, isInCompare, canAddToCompare } = useProductComparison();
   const { canUseShoppingFeatures } = useAdminMode();
   const { toast } = useToast();
 
@@ -81,19 +86,42 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     addToWishlist(product);
   };
 
+  const handleCompareToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!canUseShoppingFeatures) {
+      toast({
+        title: "Shopping disabled",
+        description: "Switch to Customer Mode to use shopping features.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    addToCompare({
+      id: productIdString,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      category: product.category,
+      brand: product.brand,
+      rating: product.rating,
+      description: product.description
+    });
+  };
+
   const isWishlisted = isInWishlist(productIdString);
+  const isInComparison = isInCompare(productIdString);
 
   return (
     <Card className="group bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
       <Link to={`/product/${productIdString}`} className="block">
         <div className="relative overflow-hidden">
-          <img 
+          <LazyImage 
             src={product.image} 
             alt={product.name}
             className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
-            onError={(e) => {
-              e.currentTarget.src = '/placeholder.svg';
-            }}
           />
           
           {/* Badges */}
@@ -116,9 +144,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             )}
           </div>
 
-          {/* Wishlist Button - only show if shopping features are enabled */}
+          {/* Action Buttons - only show if shopping features are enabled */}
           {canUseShoppingFeatures && (
-            <div className="absolute top-3 right-3">
+            <div className="absolute top-3 right-3 flex flex-col gap-2">
               <Button 
                 size="icon" 
                 variant="ghost" 
@@ -130,6 +158,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 onClick={handleWishlistToggle}
               >
                 <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+              </Button>
+
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className={`w-10 h-10 rounded-full backdrop-blur-sm transition-all duration-300 ${
+                  isInComparison 
+                    ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-500' 
+                    : 'bg-white/20 hover:bg-white/30 text-white hover:text-blue-500'
+                } ${!canAddToCompare && !isInComparison ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={handleCompareToggle}
+                disabled={!canAddToCompare && !isInComparison}
+              >
+                <Scale className={`w-5 h-5 ${isInComparison ? 'fill-current' : ''}`} />
               </Button>
             </div>
           )}

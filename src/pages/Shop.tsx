@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
+import FloatingComparisonButton from '../components/FloatingComparisonButton';
 import { categories, brands } from '../data/products';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Search, Filter, Grid, List } from 'lucide-react';
 import { searchItems } from '@/utils/searchUtils';
 
@@ -22,10 +25,12 @@ const Shop = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [priceRange, setPriceRange] = useState([0, 5000]);
-  const [maxPrice, setMaxPrice] = useState(5000); // Dynamic max price
+  const [maxPrice, setMaxPrice] = useState(5000);
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     loadProducts();
@@ -53,6 +58,11 @@ const Shop = () => {
     }
   }, [searchTerm]);
 
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedBrand, priceRange, sortBy]);
+
   const loadProducts = async () => {
     try {
       setLoading(true);
@@ -70,18 +80,17 @@ const Shop = () => {
       // Calculate dynamic max price from products
       const prices = data.map(product => product.price || 0);
       const highestPrice = Math.max(...prices);
-      const dynamicMaxPrice = Math.ceil(highestPrice * 1.2); // Add 20% buffer
+      const dynamicMaxPrice = Math.ceil(highestPrice * 1.2);
       
       console.log('Highest product price:', highestPrice);
       console.log('Setting dynamic max price to:', dynamicMaxPrice);
       
       setMaxPrice(dynamicMaxPrice);
-      setPriceRange([0, dynamicMaxPrice]); // Update price range to include all products
+      setPriceRange([0, dynamicMaxPrice]);
       
       const transformedProducts = data.map(product => {
         console.log('Transforming product:', product.name, 'Category:', product.category, 'Image field:', product.image);
         
-        // Fix empty category field - assign "Shoes" category if the product name contains "shoe" or similar
         let category = product.category;
         if (!category || category.trim() === '') {
           const productName = product.name.toLowerCase();
@@ -118,7 +127,6 @@ const Shop = () => {
     }
   };
 
-  // Only use database products now
   const allProducts = useMemo(() => {
     console.log('All products before filtering:', dbProducts.length);
     return dbProducts;
@@ -193,13 +201,19 @@ const Shop = () => {
     return sortedProducts;
   }, [allProducts, searchTerm, selectedCategory, selectedBrand, priceRange, sortBy]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('All');
     setSelectedBrand('All Brands');
-    setPriceRange([0, maxPrice]); // Reset to full range
+    setPriceRange([0, maxPrice]);
     setSortBy('name');
-    // Clear URL params
+    setCurrentPage(1);
     setSearchParams({}, { replace: true });
   };
 
@@ -210,10 +224,64 @@ const Shop = () => {
     priceRange[0] !== 0 || priceRange[1] !== maxPrice ? 'price' : null,
   ].filter(Boolean).length;
 
+  // Loading skeleton component
+  const ProductSkeleton = () => (
+    <div className="animate-pulse">
+      <Skeleton className="w-full h-64 rounded-2xl mb-4" />
+      <Skeleton className="h-4 w-3/4 mb-2" />
+      <Skeleton className="h-4 w-1/2 mb-2" />
+      <Skeleton className="h-6 w-20" />
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background">
+        <Header />
+        
+        {/* Page Header Skeleton */}
+        <section className="pt-24 pb-8 bg-gradient-to-r from-muted/30 via-background to-muted/30 backdrop-blur-sm border-b border-border/50">
+          <div className="max-w-7xl mx-auto px-4">
+            <Skeleton className="h-12 w-64 mb-4" />
+            <Skeleton className="h-1 w-24 mb-6" />
+            <Skeleton className="h-6 w-96" />
+          </div>
+        </section>
+
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Filters Sidebar Skeleton */}
+            <div className="lg:w-80">
+              <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-6 sticky top-24">
+                <Skeleton className="h-6 w-20 mb-6" />
+                <div className="space-y-6">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i}>
+                      <Skeleton className="h-4 w-24 mb-3" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Products Grid Skeleton */}
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-8">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-10 w-48" />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                {[...Array(9)].map((_, i) => (
+                  <ProductSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Footer />
       </div>
     );
   }
@@ -352,6 +420,11 @@ const Shop = () => {
                 <span className="text-sm text-muted-foreground font-medium">
                   {filteredProducts.length} products found
                   {searchTerm && ` for "${searchTerm}"`}
+                  {totalPages > 1 && (
+                    <span className="ml-2">
+                      (Page {currentPage} of {totalPages})
+                    </span>
+                  )}
                 </span>
               </div>
 
@@ -391,22 +464,73 @@ const Shop = () => {
             </div>
 
             {/* Products Grid */}
-            {filteredProducts.length > 0 ? (
-              <div className={
-                viewMode === 'grid' 
-                  ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8'
-                  : 'space-y-6'
-              }>
-                {filteredProducts.map((product, index) => (
-                  <div 
-                    key={product.id}
-                    className="animate-fade-in hover:scale-105 transition-all duration-500"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <ProductCard product={product} />
+            {paginatedProducts.length > 0 ? (
+              <>
+                <div className={
+                  viewMode === 'grid' 
+                    ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8'
+                    : 'space-y-6'
+                }>
+                  {paginatedProducts.map((product, index) => (
+                    <div 
+                      key={product.id}
+                      className="animate-fade-in hover:scale-105 transition-all duration-500"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <ProductCard product={product} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-12">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        
+                        {[...Array(totalPages)].map((_, i) => {
+                          const page = i + 1;
+                          const isCurrentPage = page === currentPage;
+                          const shouldShow = page === 1 || page === totalPages || 
+                                           (page >= currentPage - 1 && page <= currentPage + 1);
+                          
+                          if (!shouldShow) {
+                            if (page === currentPage - 2 || page === currentPage + 2) {
+                              return <span key={page} className="px-2">...</span>;
+                            }
+                            return null;
+                          }
+                          
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={isCurrentPage}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-16">
                 <div className="text-8xl mb-6 opacity-50">🔍</div>
@@ -426,6 +550,7 @@ const Shop = () => {
         </div>
       </div>
 
+      <FloatingComparisonButton />
       <Footer />
     </div>
   );
