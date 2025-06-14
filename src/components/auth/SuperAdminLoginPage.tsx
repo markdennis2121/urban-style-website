@@ -78,21 +78,23 @@ const SuperAdminLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-md w-full space-y-8 p-8 bg-black/40 backdrop-blur-xl border-amber-500/20">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-background py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="max-w-md w-full space-y-8 p-8 bg-card/80 backdrop-blur-md border border-border/50 shadow-xl">
         <div className="text-center">
           <div className="flex justify-center">
-            <Crown className="h-12 w-12 text-amber-400 mb-4" />
+            <div className="w-16 h-16 bg-gradient-to-r from-amber-500/20 to-primary/20 rounded-full flex items-center justify-center mb-4">
+              <Crown className="h-8 w-8 text-amber-500" />
+            </div>
           </div>
-          <h2 className="text-3xl font-extrabold bg-gradient-to-r from-amber-400 to-purple-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-extrabold bg-gradient-to-r from-amber-500 via-primary to-amber-600 bg-clip-text text-transparent">
             Super Admin Login
           </h2>
-          <p className="mt-2 text-gray-400">Access the super admin dashboard</p>
+          <p className="mt-2 text-muted-foreground">Access the super admin dashboard</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           {error && (
-            <Alert variant="destructive" className="bg-red-900/50 border-red-500/50 text-red-200">
-              {error}
+            <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
+              <span className="text-destructive">{error}</span>
             </Alert>
           )}
           <div className="space-y-4">
@@ -103,7 +105,7 @@ const SuperAdminLoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email address"
-                className="bg-slate-800 border-amber-500/30 text-white placeholder-gray-400"
+                className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div>
@@ -113,7 +115,7 @@ const SuperAdminLoginPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="bg-slate-800 border-amber-500/30 text-white placeholder-gray-400"
+                className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
               />
             </div>
           </div>
@@ -121,7 +123,7 @@ const SuperAdminLoginPage = () => {
           <div>
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-amber-600 to-purple-600 hover:from-amber-700 hover:to-purple-700"
+              className="w-full bg-gradient-to-r from-amber-500 to-primary hover:from-amber-600 hover:to-primary/90 text-white"
               disabled={loading}
             >
               {loading ? 'Signing in...' : 'Sign in'}

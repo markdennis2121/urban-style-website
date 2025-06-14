@@ -33,7 +33,7 @@ const wishlistReducer = (state: WishlistState, action: WishlistAction): Wishlist
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
     case 'SET_ITEMS':
-      return { ...state, items: action.payload };
+      return { ...state, items: action.payload, loading: false };
     case 'ADD_ITEM':
       return { ...state, items: [...state.items, action.payload] };
     case 'REMOVE_ITEM':
@@ -73,12 +73,16 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading wishlist:', error);
+        dispatch({ type: 'SET_ITEMS', payload: [] });
+        return;
+      }
+
       dispatch({ type: 'SET_ITEMS', payload: data || [] });
     } catch (err) {
       console.error('Error loading wishlist:', err);
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      dispatch({ type: 'SET_ITEMS', payload: [] });
     }
   };
 
@@ -91,6 +95,15 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           title: "Please login",
           description: "You need to login to add items to wishlist.",
           variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if already in wishlist
+      if (isInWishlist(product.id)) {
+        toast({
+          title: "Already in wishlist",
+          description: `${product.name} is already in your wishlist.`,
         });
         return;
       }
@@ -145,6 +158,11 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
     } catch (err) {
       console.error('Error removing from wishlist:', err);
+      toast({
+        title: "Error",
+        description: "Failed to remove item from wishlist.",
+        variant: "destructive",
+      });
     }
   };
 

@@ -1,44 +1,107 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Edit, Package, Users, MessageSquare, Plus, Shield, LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-
-const predefinedCategories = [
-  'Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Shoes', 'Accessories', 'Bags', 'Jewelry'
-];
+import { 
+  Users, 
+  Shield, 
+  Crown,
+  Package, 
+  MessageSquare, 
+  PlusCircle, 
+  Edit,
+  Trash2,
+  Heart,
+  Star,
+  Activity,
+  TrendingUp,
+  BarChart3,
+  FileText
+} from 'lucide-react';
 
 const SuperAdminDashboard = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
+  const [admins, setAdmins] = useState([]);
+  const [products, setProducts] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [wishlists, setWishlists] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [systemLogs, setSystemLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    description: '',
-    price: '',
-    category: '',
-    image_url: '',
-    stock: '',
-    is_featured: false,
-    is_new_arrival: false
+  const [error, setError] = useState(null);
+  const { toast } = useToast();
+
+  // Admin creation form
+  const [adminForm, setAdminForm] = useState({
+    email: '',
+    password: '',
+    username: '',
+    role: 'admin'
   });
 
   useEffect(() => {
-    loadProducts();
-    loadUsers();
-    loadMessages();
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        loadUsers(),
+        loadAdmins(),
+        loadProducts(), 
+        loadMessages(),
+        loadWishlists(),
+        loadReviews(),
+        loadSystemLogs()
+      ]);
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'user')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err) {
+      console.error('Error loading users:', err);
+    }
+  };
+
+  const loadAdmins = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ['admin', 'super_admin'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAdmins(data || []);
+    } catch (err) {
+      console.error('Error loading admins:', err);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -51,22 +114,6 @@ const SuperAdminDashboard = () => {
       setProducts(data || []);
     } catch (err) {
       console.error('Error loading products:', err);
-    }
-  };
-
-  const loadUsers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (err) {
-      console.error('Error loading users:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -84,182 +131,117 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const loadWishlists = async () => {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .insert([{
-          name: newProduct.name,
-          description: newProduct.description,
-          price: parseFloat(newProduct.price),
-          category: newProduct.category,
-          image_url: newProduct.image_url,
-          stock: parseInt(newProduct.stock),
-          is_featured: newProduct.is_featured,
-          is_new_arrival: newProduct.is_new_arrival
-        }])
-        .select();
+        .from('wishlists')
+        .select(`
+          *,
+          profiles:user_id (username, email)
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Product added successfully.",
-      });
-
-      setNewProduct({
-        name: '',
-        description: '',
-        price: '',
-        category: '',
-        image_url: '',
-        stock: '',
-        is_featured: false,
-        is_new_arrival: false
-      });
-
-      loadProducts();
+      setWishlists(data || []);
     } catch (err) {
-      console.error('Error adding product:', err);
-      toast({
-        title: "Error",
-        description: "Failed to add product. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Error loading wishlists:', err);
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
+  const loadReviews = async () => {
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+          *,
+          profiles:user_id (username, email)
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Product deleted successfully.",
-      });
-
-      loadProducts();
+      setReviews(data || []);
     } catch (err) {
-      console.error('Error deleting product:', err);
-      toast({
-        title: "Error",
-        description: "Failed to delete product. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Error loading reviews:', err);
     }
   };
 
-  const handleDeleteUser = async (id: string) => {
+  const loadSystemLogs = async () => {
+    // Simulate system logs for now
+    setSystemLogs([
+      { id: 1, action: 'User Login', user: 'john@example.com', timestamp: new Date().toISOString(), status: 'success' },
+      { id: 2, action: 'Product Added', user: 'admin@example.com', timestamp: new Date().toISOString(), status: 'success' },
+      { id: 3, action: 'Failed Login Attempt', user: 'unknown@example.com', timestamp: new Date().toISOString(), status: 'error' },
+    ]);
+  };
+
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
     try {
-      const { error } = await supabase
+      setLoading(true);
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: adminForm.email,
+        password: adminForm.password,
+        email_confirm: true
+      });
+
+      if (authError) throw authError;
+
+      // Update profile with admin role
+      const { error: profileError } = await supabase
         .from('profiles')
-        .delete()
-        .eq('id', id);
+        .update({
+          username: adminForm.username,
+          role: adminForm.role
+        })
+        .eq('id', authData.user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
       toast({
         title: "Success!",
-        description: "User deleted successfully.",
+        description: "Admin account created successfully.",
       });
 
-      loadUsers();
+      // Reset form
+      setAdminForm({
+        email: '',
+        password: '',
+        username: '',
+        role: 'admin'
+      });
+
+      // Reload admins
+      loadAdmins();
     } catch (err) {
-      console.error('Error deleting user:', err);
+      console.error('Error creating admin:', err);
       toast({
         title: "Error",
-        description: "Failed to delete user. Please try again.",
+        description: "Failed to create admin account.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+  const deleteAdmin = async (id) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
-
+      const { error } = await supabase.auth.admin.deleteUser(id);
       if (error) throw error;
 
       toast({
         title: "Success!",
-        description: "User role updated successfully.",
+        description: "Admin account deleted successfully.",
       });
 
-      loadUsers();
+      loadAdmins();
     } catch (err) {
-      console.error('Error updating user role:', err);
+      console.error('Error deleting admin:', err);
       toast({
         title: "Error",
-        description: "Failed to update user role. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate('/superadmin/login');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
-  };
-
-  const handleToggleFeature = async (productId: string, field: 'is_featured' | 'is_new_arrival', currentValue: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ [field]: !currentValue })
-        .eq('id', productId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: `Product ${field === 'is_featured' ? 'featured status' : 'new arrival status'} updated.`,
-      });
-
-      loadProducts();
-    } catch (err) {
-      console.error('Error updating product:', err);
-      toast({
-        title: "Error",
-        description: "Failed to update product. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdateStock = async (productId: string, newStock: number) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ stock: newStock })
-        .eq('id', productId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Stock updated successfully.",
-      });
-
-      loadProducts();
-    } catch (err) {
-      console.error('Error updating stock:', err);
-      toast({
-        title: "Error",
-        description: "Failed to update stock. Please try again.",
+        description: "Failed to delete admin account.",
         variant: "destructive",
       });
     }
@@ -274,383 +256,398 @@ const SuperAdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
-      {/* Header */}
-      <div className="bg-card/80 backdrop-blur-sm border-b border-border shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                Super Admin Dashboard
-              </h1>
-              <p className="text-muted-foreground mt-1">Complete platform management and control</p>
-            </div>
-            <Button 
-              onClick={handleLogout}
-              variant="outline"
-              className="flex items-center gap-2 hover:bg-destructive hover:text-destructive-foreground border-border"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/5 to-background">
+      <Header />
+      
+      <div className="pt-20 pb-8">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-amber-500 via-primary to-amber-600 bg-clip-text text-transparent">
+              Super Admin Dashboard
+            </h1>
+            <p className="text-xl text-muted-foreground">Complete system control and management</p>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <Package className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Products</p>
-                  <p className="text-2xl font-bold text-foreground">{products.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {error && (
+            <Alert className="mb-6 bg-destructive/10 border-destructive/20">
+              <AlertDescription className="text-destructive">{error}</AlertDescription>
+            </Alert>
+          )}
 
-          <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-secondary/10 rounded-full">
-                  <Users className="w-6 h-6 text-secondary-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Users</p>
-                  <p className="text-2xl font-bold text-foreground">{users.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-accent/10 rounded-full">
-                  <MessageSquare className="w-6 h-6 text-accent-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Messages</p>
-                  <p className="text-2xl font-bold text-foreground">{messages.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content */}
-        <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1 rounded-xl">
-            <TabsTrigger value="products" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Package className="w-4 h-4" />
-              Products
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Users className="w-4 h-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="messages" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <MessageSquare className="w-4 h-4" />
-              Messages
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Products Tab */}
-          <TabsContent value="products" className="space-y-6">
-            {/* Same product form and list as admin, keeping existing code */}
-            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
-              <CardHeader className="border-b border-border">
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Plus className="w-5 h-5" />
-                  Add New Product
-                </CardTitle>
+          {/* Advanced Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-gradient-to-br from-blue-500/10 via-card/80 to-blue-600/10 backdrop-blur-sm border-blue-500/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users className="h-4 w-4 text-blue-500" />
               </CardHeader>
-              <CardContent className="p-6">
-                <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="name">Product Name</Label>
-                    <Input
-                      id="name"
-                      value={newProduct.name}
-                      onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                      className="bg-background/80 border-border"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="price">Price (₱)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={newProduct.price}
-                      onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                      className="bg-background/80 border-border"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Select value={newProduct.category} onValueChange={(value) => setNewProduct({...newProduct, category: value})}>
-                      <SelectTrigger className="bg-background/80 border-border">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        {predefinedCategories.map(category => (
-                          <SelectItem key={category} value={category} className="hover:bg-muted">
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="stock">Stock</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      value={newProduct.stock}
-                      onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                      className="bg-background/80 border-border"
-                      required
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Label htmlFor="image_url">Image URL</Label>
-                    <Input
-                      id="image_url"
-                      type="url"
-                      value={newProduct.image_url}
-                      onChange={(e) => setNewProduct({...newProduct, image_url: e.target.value})}
-                      className="bg-background/80 border-border"
-                      required
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={newProduct.description}
-                      onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                      className="bg-background/80 border-border"
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="is_featured"
-                        checked={newProduct.is_featured}
-                        onChange={(e) => setNewProduct({...newProduct, is_featured: e.target.checked})}
-                        className="rounded border-border"
-                      />
-                      <Label htmlFor="is_featured">Featured Product</Label>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="is_new_arrival"
-                        checked={newProduct.is_new_arrival}
-                        onChange={(e) => setNewProduct({...newProduct, is_new_arrival: e.target.checked})}
-                        className="rounded border-border"
-                      />
-                      <Label htmlFor="is_new_arrival">New Arrival</Label>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                      Add Product
-                    </Button>
-                  </div>
-                </form>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{users.length}</div>
+                <p className="text-xs text-muted-foreground">+12% from last month</p>
               </CardContent>
             </Card>
 
-            {/* Products List - same as admin */}
-            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
-              <CardHeader className="border-b border-border">
-                <CardTitle className="text-foreground">Products ({products.length})</CardTitle>
+            <Card className="bg-gradient-to-br from-green-500/10 via-card/80 to-green-600/10 backdrop-blur-sm border-green-500/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Admins</CardTitle>
+                <Shield className="h-4 w-4 text-green-500" />
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((product) => (
-                    <div key={product.id} className="bg-background/50 border border-border rounded-lg p-4 hover:shadow-md transition-all duration-300">
-                      <img 
-                        src={product.image_url} 
-                        alt={product.name}
-                        className="w-full h-32 object-cover rounded-md mb-3"
-                        onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                          e.currentTarget.src = '/placeholder.svg';
-                        }}
-                      />
-                      <h3 className="font-semibold text-foreground mb-1">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-bold text-primary">₱{product.price}</span>
-                        <Badge variant="outline" className="border-border">
-                          {product.category}
-                        </Badge>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{admins.length}</div>
+                <p className="text-xs text-muted-foreground">Active admin accounts</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-500/10 via-card/80 to-purple-600/10 backdrop-blur-sm border-purple-500/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+                <Package className="h-4 w-4 text-purple-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{products.length}</div>
+                <p className="text-xs text-muted-foreground">Inventory items</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-amber-500/10 via-card/80 to-amber-600/10 backdrop-blur-sm border-amber-500/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">System Health</CardTitle>
+                <Activity className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600">99.9%</div>
+                <p className="text-xs text-muted-foreground">Uptime this month</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="bg-muted/50 backdrop-blur-sm border border-border/50">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-background/80">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="admins" className="data-[state=active]:bg-background/80">
+                <Shield className="w-4 h-4 mr-2" />
+                Admin Management
+              </TabsTrigger>
+              <TabsTrigger value="users" className="data-[state=active]:bg-background/80">
+                <Users className="w-4 h-4 mr-2" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="products" className="data-[state=active]:bg-background/80">
+                <Package className="w-4 h-4 mr-2" />
+                Products
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-background/80">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="logs" className="data-[state=active]:bg-background/80">
+                <FileText className="w-4 h-4 mr-2" />
+                System Logs
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div>
+                          <p className="text-sm font-medium">New user registered</p>
+                          <p className="text-xs text-muted-foreground">2 minutes ago</p>
+                        </div>
                       </div>
-                      
-                      {/* Stock Management */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-sm text-muted-foreground">Stock:</span>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div>
+                          <p className="text-sm font-medium">Product added to inventory</p>
+                          <p className="text-xs text-muted-foreground">5 minutes ago</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <div>
+                          <p className="text-sm font-medium">Admin login detected</p>
+                          <p className="text-xs text-muted-foreground">10 minutes ago</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                  <CardHeader>
+                    <CardTitle>Quick Stats</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Total Wishlists</span>
+                        <span className="font-medium">{wishlists.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Total Reviews</span>
+                        <span className="font-medium">{reviews.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Contact Messages</span>
+                        <span className="font-medium">{messages.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Low Stock Items</span>
+                        <span className="font-medium text-amber-600">
+                          {products.filter(p => p.stock < 10).length}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="admins" className="space-y-6">
+              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PlusCircle className="h-5 w-5" />
+                    Create New Admin
+                  </CardTitle>
+                  <CardDescription>Add a new administrator to the system</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreateAdmin} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="email">Email</Label>
                         <Input
-                          type="number"
-                          value={product.stock}
-                          onChange={(e) => handleUpdateStock(product.id, parseInt(e.target.value))}
-                          className="w-20 h-8 text-sm"
-                          min="0"
+                          id="email"
+                          type="email"
+                          value={adminForm.email}
+                          onChange={(e) => setAdminForm({...adminForm, email: e.target.value})}
+                          required
                         />
-                        {product.stock === 0 && (
-                          <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
-                        )}
                       </div>
-
-                      {/* Feature Toggles */}
-                      <div className="flex gap-2 mb-3">
-                        <Button
-                          variant={product.is_featured ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleToggleFeature(product.id, 'is_featured', product.is_featured)}
-                          className="text-xs"
-                        >
-                          {product.is_featured ? '★ Featured' : '☆ Feature'}
-                        </Button>
-                        <Button
-                          variant={product.is_new_arrival ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleToggleFeature(product.id, 'is_new_arrival', product.is_new_arrival)}
-                          className="text-xs"
-                        >
-                          {product.is_new_arrival ? '🆕 New' : 'Mark New'}
-                        </Button>
+                      <div>
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          value={adminForm.username}
+                          onChange={(e) => setAdminForm({...adminForm, username: e.target.value})}
+                          required
+                        />
                       </div>
-
-                      <div className="flex justify-end">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <div>
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={adminForm.password}
+                          onChange={(e) => setAdminForm({...adminForm, password: e.target.value})}
+                          required
+                        />
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Users Tab with enhanced permissions */}
-          <TabsContent value="users">
-            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
-              <CardHeader className="border-b border-border">
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Shield className="w-5 h-5" />
-                  User Management ({users.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {users.map((user) => (
-                    <div key={user.id} className="bg-background/50 border border-border rounded-lg p-4 hover:shadow-md transition-all duration-300">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          <Users className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-foreground">{user.full_name || 'No name'}</h3>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mb-3">
-                        <Select
-                          value={user.role || 'user'}
-                          onValueChange={(value) => handleUpdateUserRole(user.id, value)}
-                        >
-                          <SelectTrigger className="w-32 h-8 text-xs bg-background/80 border-border">
-                            <SelectValue />
+                      <div>
+                        <Label htmlFor="role">Role</Label>
+                        <Select onValueChange={(value) => setAdminForm({...adminForm, role: value})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
                           </SelectTrigger>
-                          <SelectContent className="bg-card border-border">
-                            <SelectItem value="user" className="hover:bg-muted">User</SelectItem>
-                            <SelectItem value="admin" className="hover:bg-muted">Admin</SelectItem>
-                            <SelectItem value="super_admin" className="hover:bg-muted">Super Admin</SelectItem>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="super_admin">Super Admin</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Created: {new Date(user.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    <Button type="submit" disabled={loading} className="w-full">
+                      {loading ? 'Creating...' : 'Create Admin Account'}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
 
-          {/* Messages Tab - same as admin */}
-          <TabsContent value="messages">
-            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
-              <CardHeader className="border-b border-border">
-                <CardTitle className="text-foreground">Contact Messages ({messages.length})</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {messages.length > 0 ? (
-                    messages.map((message) => (
-                      <div key={message.id} className="bg-background/50 border border-border rounded-lg p-4 hover:shadow-md transition-all duration-300">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-foreground">{message.subject}</h3>
+              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Admin Accounts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {admins.map((admin) => (
+                      <div key={admin.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg bg-background/50">
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-3 h-3 rounded-full ${admin.role === 'super_admin' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
+                          <div>
+                            <p className="font-medium">{admin.username || 'No username'}</p>
+                            <p className="text-sm text-muted-foreground">{admin.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant={admin.role === 'super_admin' ? 'default' : 'secondary'} className="bg-gradient-to-r from-amber-500/20 to-primary/20">
+                            {admin.role === 'super_admin' ? (
+                              <>
+                                <Crown className="w-3 h-3 mr-1" />
+                                Super Admin
+                              </>
+                            ) : (
+                              <>
+                                <Shield className="w-3 h-3 mr-1" />
+                                Admin
+                              </>
+                            )}
+                          </Badge>
+                          {admin.role !== 'super_admin' && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteAdmin(admin.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="users">
+              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    User Management
+                  </CardTitle>
+                  <CardDescription>Monitor and manage all user accounts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {users.map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg bg-background/50">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium">
+                              {user.username?.charAt(0)?.toUpperCase() || 'U'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{user.username || 'No username'}</p>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">{user.role}</Badge>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(message.created_at).toLocaleDateString()}
+                            {new Date(user.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          From: {message.name} ({message.email})
-                        </p>
-                        <p className="text-sm text-foreground">{message.message}</p>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No messages yet</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="products">
+              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Product Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {products.slice(0, 10).map((product) => (
+                      <div key={product.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg bg-background/50">
+                        <div className="flex items-center space-x-4">
+                          <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded" />
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-sm text-muted-foreground">{product.brand}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">₱{product.price}</Badge>
+                          <Badge variant={product.stock < 10 ? 'destructive' : 'secondary'}>
+                            Stock: {product.stock}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="analytics">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                  <CardHeader>
+                    <CardTitle>User Growth</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600 mb-2">+15.2%</div>
+                    <p className="text-sm text-muted-foreground">User growth this month</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                  <CardHeader>
+                    <CardTitle>Product Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600 mb-2">₱{products.reduce((sum, p) => sum + (p.price * p.stock), 0).toLocaleString()}</div>
+                    <p className="text-sm text-muted-foreground">Total inventory value</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="logs">
+              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    System Activity Logs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {systemLogs.map((log) => (
+                      <div key={log.id} className="flex items-center justify-between p-4 border border-border/50 rounded-lg bg-background/50">
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-2 h-2 rounded-full ${log.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <div>
+                            <p className="font-medium">{log.action}</p>
+                            <p className="text-sm text-muted-foreground">{log.user}</p>
+                          </div>
+                        </div>
+                        <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
+                          {new Date(log.timestamp).toLocaleString()}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
+
+      <Footer />
     </div>
   );
 };

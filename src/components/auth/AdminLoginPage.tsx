@@ -64,21 +64,23 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-md w-full space-y-8 p-8 bg-black/40 backdrop-blur-xl border-purple-500/20">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-background py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="max-w-md w-full space-y-8 p-8 bg-card/80 backdrop-blur-md border border-border/50 shadow-xl">
         <div className="text-center">
           <div className="flex justify-center">
-            <Shield className="h-12 w-12 text-purple-400 mb-4" />
+            <div className="w-16 h-16 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full flex items-center justify-center mb-4">
+              <Shield className="h-8 w-8 text-primary" />
+            </div>
           </div>
-          <h2 className="text-3xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent">
             Admin Login
           </h2>
-          <p className="mt-2 text-gray-400">Access the admin dashboard</p>
+          <p className="mt-2 text-muted-foreground">Access the admin dashboard</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           {error && (
-            <Alert variant="destructive" className="bg-red-900/50 border-red-500/50 text-red-200">
-              {error}
+            <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
+              <span className="text-destructive">{error}</span>
             </Alert>
           )}
           <div className="space-y-4">
@@ -89,7 +91,7 @@ const AdminLoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email address"
-                className="bg-slate-800 border-purple-500/30 text-white placeholder-gray-400"
+                className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div>
@@ -99,7 +101,7 @@ const AdminLoginPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="bg-slate-800 border-purple-500/30 text-white placeholder-gray-400"
+                className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
               />
             </div>
           </div>
@@ -107,7 +109,7 @@ const AdminLoginPage = () => {
           <div>
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={loading}
             >
               {loading ? 'Signing in...' : 'Sign in'}

@@ -97,33 +97,33 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
-      <Card className="max-w-4xl mx-auto bg-white/10 backdrop-blur-md border-white/20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background p-4">
+      <Card className="max-w-4xl mx-auto bg-card/80 backdrop-blur-md border border-border/50 shadow-xl">
         <div className="p-8">
           <div className="flex items-center space-x-2 mb-8">
-            <User className="h-6 w-6 text-white" />
-            <h2 className="text-2xl font-bold text-white">Profile Settings</h2>
+            <User className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">Profile Settings</h2>
           </div>
 
           {error && (
-            <Alert className="mb-6 bg-red-500/10 border-red-500/20 text-red-300">
+            <Alert className="mb-6 bg-destructive/10 border-destructive/20 text-destructive">
               {error}
             </Alert>
           )}
 
           {success && (
-            <Alert className="mb-6 bg-green-500/10 border-green-500/20 text-green-300">
+            <Alert className="mb-6 bg-green-500/10 border-green-500/20 text-green-600">
               {success}
             </Alert>
           )}
 
           <Tabs defaultValue="personal" className="space-y-6">
-            <TabsList className="bg-white/10 backdrop-blur-md border-white/20">
-              <TabsTrigger value="personal" className="data-[state=active]:bg-white/20 text-white">
+            <TabsList className="bg-muted/50 backdrop-blur-md border border-border/50">
+              <TabsTrigger value="personal" className="data-[state=active]:bg-background/80 text-foreground">
                 <User className="w-4 h-4 mr-2" />
                 Personal Info
               </TabsTrigger>
-              <TabsTrigger value="shipping" className="data-[state=active]:bg-white/20 text-white">
+              <TabsTrigger value="shipping" className="data-[state=active]:bg-background/80 text-foreground">
                 <MapPin className="w-4 h-4 mr-2" />
                 Shipping Address
               </TabsTrigger>
@@ -133,9 +133,9 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Avatar Section */}
                 <div className="flex flex-col items-center space-y-6">
-                  <Avatar className="h-32 w-32">
+                  <Avatar className="h-32 w-32 border-4 border-border/50 shadow-lg">
                     <AvatarImage src={avatarUrl} alt={username} />
-                    <AvatarFallback className="text-2xl bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                    <AvatarFallback className="text-2xl bg-gradient-to-r from-primary/20 to-secondary/20 text-foreground">
                       {username?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -152,7 +152,7 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
                     disabled={loading}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    className="bg-background/50 border-border/50 text-foreground hover:bg-muted/50"
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     Upload Photo
@@ -162,49 +162,49 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
                 {/* Personal Information Form */}
                 <div className="space-y-6">
                   <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">
+                    <Label className="text-foreground text-sm font-medium mb-2 block">
                       Username
                     </Label>
                     <Input
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Enter username"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
 
                   <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">
+                    <Label className="text-foreground text-sm font-medium mb-2 block">
                       Full Name
                     </Label>
                     <Input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Enter full name"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
 
                   <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">
+                    <Label className="text-foreground text-sm font-medium mb-2 block">
                       Email
                     </Label>
                     <Input
                       value={currentUser?.email}
                       disabled
-                      className="bg-white/5 border-white/10 text-white/70"
+                      className="bg-muted/30 border-border/30 text-muted-foreground"
                     />
                   </div>
 
                   <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">
+                    <Label className="text-foreground text-sm font-medium mb-2 block">
                       Phone Number
                     </Label>
                     <Input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="Enter phone number"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                 </div>
@@ -214,66 +214,66 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
             <TabsContent value="shipping" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <Label className="text-white text-sm font-medium mb-2 block">
+                  <Label className="text-foreground text-sm font-medium mb-2 block">
                     Street Address
                   </Label>
                   <Textarea
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Enter your street address"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
                     rows={3}
                   />
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">
+                    <Label className="text-foreground text-sm font-medium mb-2 block">
                       City
                     </Label>
                     <Input
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="Enter city"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-white text-sm font-medium mb-2 block">
+                      <Label className="text-foreground text-sm font-medium mb-2 block">
                         State/Province
                       </Label>
                       <Input
                         value={state}
                         onChange={(e) => setState(e.target.value)}
                         placeholder="Enter state"
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
                       />
                     </div>
 
                     <div>
-                      <Label className="text-white text-sm font-medium mb-2 block">
+                      <Label className="text-foreground text-sm font-medium mb-2 block">
                         Postal Code
                       </Label>
                       <Input
                         value={postalCode}
                         onChange={(e) => setPostalCode(e.target.value)}
                         placeholder="Enter postal code"
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">
+                    <Label className="text-foreground text-sm font-medium mb-2 block">
                       Country
                     </Label>
                     <Input
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
                       placeholder="Enter country"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-background/50 border-border/50 text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                 </div>
@@ -281,11 +281,11 @@ const ProfileSettings = ({ currentUser, onProfileUpdate }) => {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-8 pt-6 border-t border-white/10">
+          <div className="mt-8 pt-6 border-t border-border/10">
             <Button
               onClick={handleSaveProfile}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Save className="h-4 w-4 mr-2" />
               {loading ? 'Saving...' : 'Save All Changes'}
