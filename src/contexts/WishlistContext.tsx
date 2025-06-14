@@ -67,6 +67,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
 
+      // Check if wishlist table exists by trying to query it
       const { data, error } = await supabase
         .from('wishlists')
         .select('*')
@@ -74,8 +75,14 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading wishlist:', error);
-        dispatch({ type: 'SET_ITEMS', payload: [] });
+        console.log('Wishlist table not found or accessible:', error.message);
+        // Fallback to local storage for now
+        const localWishlist = localStorage.getItem(`wishlist_${user.id}`);
+        if (localWishlist) {
+          dispatch({ type: 'SET_ITEMS', payload: JSON.parse(localWishlist) });
+        } else {
+          dispatch({ type: 'SET_ITEMS', payload: [] });
+        }
         return;
       }
 
@@ -108,21 +115,37 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
 
+      const wishlistItem = {
+        id: crypto.randomUUID(),
+        product_id: product.id,
+        product_name: product.name,
+        product_price: product.price,
+        product_image: product.image,
+        created_at: new Date().toISOString(),
+      };
+
+      // Try to insert into database first
       const { data, error } = await supabase
         .from('wishlists')
         .insert([{
           user_id: user.id,
-          product_id: product.id,
-          product_name: product.name,
-          product_price: product.price,
-          product_image: product.image,
+          ...wishlistItem,
         }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.log('Database insert failed, using local storage:', error.message);
+        // Fallback to local storage
+        const existingWishlist = localStorage.getItem(`wishlist_${user.id}`);
+        const wishlist = existingWishlist ? JSON.parse(existingWishlist) : [];
+        wishlist.push(wishlistItem);
+        localStorage.setItem(`wishlist_${user.id}`, JSON.stringify(wishlist));
+        dispatch({ type: 'ADD_ITEM', payload: wishlistItem });
+      } else {
+        dispatch({ type: 'ADD_ITEM', payload: data });
+      }
 
-      dispatch({ type: 'ADD_ITEM', payload: data });
       toast({
         title: "Added to wishlist!",
         description: `${product.name} has been added to your wishlist.`,
@@ -143,13 +166,23 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       if (!user) return;
 
+      // Try to delete from database first
       const { error } = await supabase
         .from('wishlists')
         .delete()
         .eq('user_id', user.id)
         .eq('product_id', productId);
 
-      if (error) throw error;
+      if (error) {
+        console.log('Database delete failed, using local storage:', error.message);
+        // Fallback to local storage
+        const existingWishlist = localStorage.getItem(`wishlist_${user.id}`);
+        if (existingWishlist) {
+          const wishlist = JSON.parse(existingWishlist);
+          const updatedWishlist = wishlist.filter((item: WishlistItem) => item.product_id !== productId);
+          localStorage.setItem(`wishlist_${user.id}`, JSON.stringify(updatedWishlist));
+        }
+      }
 
       dispatch({ type: 'REMOVE_ITEM', payload: productId });
       toast({
@@ -172,6 +205,17 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     loadWishlist();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        loadWishlist();
+      } else if (event === 'SIGNED_OUT') {
+        dispatch({ type: 'SET_ITEMS', payload: [] });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return (

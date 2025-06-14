@@ -54,7 +54,9 @@ const Wishlist = () => {
             My Wishlist
           </h1>
           <div className="w-24 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50 mb-6 rounded-full"></div>
-          <p className="text-xl text-muted-foreground font-light">Your favorite items saved for later</p>
+          <p className="text-xl text-muted-foreground font-light">
+            Your favorite items saved for later ({state.items.length} {state.items.length === 1 ? 'item' : 'items'})
+          </p>
         </div>
       </section>
 
@@ -68,6 +70,9 @@ const Wishlist = () => {
                     src={item.product_image} 
                     alt={item.product_name}
                     className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                   <div className="absolute top-3 right-3">
                     <Button 
@@ -83,10 +88,10 @@ const Wishlist = () => {
 
                 <CardContent className="p-6">
                   <div className="mb-4">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 line-clamp-2">
+                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 line-clamp-2 mb-2">
                       {item.product_name}
                     </h3>
-                    <p className="text-2xl font-bold text-primary mt-2">₱{item.product_price}</p>
+                    <p className="text-2xl font-bold text-primary">₱{item.product_price}</p>
                   </div>
 
                   <div className="flex gap-2">

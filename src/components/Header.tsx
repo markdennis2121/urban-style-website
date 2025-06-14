@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Menu, X, User, LogOut, Heart, Search } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { useWishlist } from '../contexts/WishlistContext';
 import { supabase, getCurrentProfile } from '@/lib/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ const Header = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { state } = useCart();
+  const { state: wishlistState } = useWishlist();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -72,22 +74,74 @@ const Header = () => {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Left Side: Logo, Cart, Profile */}
-          <div className="flex items-center space-x-6">
+          {/* Left Side: Logo */}
+          <div className="flex items-center">
             <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
               <div className="w-[60px] h-[60px] rounded-lg flex items-center justify-center">
                 <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
               </div>
             </Link>
+          </div>
+
+          {/* Center: Desktop Navigation */}
+          <nav className="hidden md:flex">
+            <ul className="flex items-center justify-center">
+              {navItems.map((item) => (
+                <li key={item.name} className="px-5 relative group">
+                  <Link
+                    className={`text-primary hover:text-muted-foreground transition-colors duration-200 relative ${
+                      item.isActive ? 'font-bold' : ''
+                    }`}
+                    to={item.href}
+                  >
+                    {item.name}
+                    <span
+                      className={`absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 ${
+                        item.isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                      }`}
+                    ></span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* Right side: Search, Wishlist, Cart, Profile */}
+          <div className="flex items-center space-x-4">
+            {/* Search */}
+            <div className="relative hidden md:block">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-40 h-8 rounded-lg border border-border/50 px-3 py-2 text-sm focus:outline-none focus:border-primary bg-background/50 text-foreground placeholder:text-muted-foreground"
+              />
+              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Wishlist */}
+            <Link to="/wishlist">
+              <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-muted/80 text-primary hover:text-muted-foreground">
+                <Heart className="w-5 h-5" />
+                {wishlistState.items.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {wishlistState.items.length}
+                  </span>
+                )}
+              </Button>
+            </Link>
 
             {/* Cart Icon */}
             <Link className="text-primary hover:text-muted-foreground transition-colors duration-200 relative" to="/cart">
-              <ShoppingBag className="w-5 h-5" />
-              {state.itemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                  {state.itemCount}
-                </span>
-              )}
+              <div className="p-2 rounded-xl hover:bg-muted/80 transition-colors">
+                <ShoppingBag className="w-5 h-5" />
+                {state.itemCount > 0 && (
+                  <span className="absolute top-0 right-0 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {state.itemCount}
+                  </span>
+                )}
+              </div>
             </Link>
 
             {/* User Profile Dropdown */}
@@ -96,13 +150,13 @@ const Header = () => {
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={currentUser?.avatar_url} alt={currentUser?.username} />
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary">
                       {currentUser?.username?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="start" forceMount>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
                     <p className="font-medium">{currentUser?.username}</p>
@@ -148,51 +202,6 @@ const Header = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-
-          {/* Center: Desktop Navigation */}
-          <nav className="hidden md:flex">
-            <ul className="flex items-center justify-center">
-              {navItems.map((item) => (
-                <li key={item.name} className="px-5 relative group">
-                  <Link
-                    className={`text-primary hover:text-muted-foreground transition-colors duration-200 relative ${
-                      item.isActive ? 'font-bold' : ''
-                    }`}
-                    to={item.href}
-                  >
-                    {item.name}
-                    <span
-                      className={`absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 ${
-                        item.isActive ? 'w-full' : 'w-0 group-hover:w-full'
-                      }`}
-                    ></span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* Right side: Wishlist & Search */}
-          <div className="flex items-center space-x-4">
-            {/* Wishlist */}
-            <Link to="/wishlist">
-              <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-muted/80">
-                <Heart className="w-5 h-5" />
-              </Button>
-            </Link>
-
-            {/* Search */}
-            <div className="relative hidden md:block">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-40 h-8 rounded-lg border border-border/50 px-3 py-2 focus:outline-none focus:border-primary"
-              />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2">
-                <Search className="w-4 h-4" />
-              </button>
-            </div>
 
             {/* Mobile Menu Button */}
             <div className="md:hidden">
@@ -207,23 +216,35 @@ const Header = () => {
 
           {/* Mobile Menu */}
           {isMobileMenuOpen && (
-            <div className="absolute top-full left-0 w-full bg-white shadow-lg md:hidden animate-fade-in">
+            <div className="absolute top-full left-0 w-full bg-background/95 backdrop-blur-md shadow-lg md:hidden animate-fade-in border-b border-border/50">
               <nav className="py-4">
                 {navItems.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`block px-5 py-3 text-primary hover:bg-gray-50 transition-colors ${
-                      item.isActive ? 'font-bold bg-gray-50' : ''
+                    className={`block px-5 py-3 text-primary hover:bg-muted/50 transition-colors ${
+                      item.isActive ? 'font-bold bg-muted/30' : ''
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {item.name}
                   </Link>
                 ))}
+                <div className="px-5 py-3">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      className="w-full h-8 rounded-lg border border-border/50 px-3 py-2 text-sm focus:outline-none focus:border-primary bg-background/50 text-foreground placeholder:text-muted-foreground"
+                    />
+                    <button className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      <Search className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
                 <button 
                   onClick={handleLogout}
-                  className="block w-full text-left px-5 py-3 text-primary hover:bg-gray-50 transition-colors"
+                  className="block w-full text-left px-5 py-3 text-primary hover:bg-muted/50 transition-colors"
                 >
                   Logout
                 </button>
