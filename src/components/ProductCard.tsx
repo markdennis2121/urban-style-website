@@ -1,27 +1,53 @@
 
 import React from 'react';
-import { Product } from '../data/products';
+import { Link } from 'react-router-dom';
+import { Heart, ShoppingCart, Star, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, ShoppingCart, Heart, Eye } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useAdminMode } from '../contexts/AdminModeContext';
 import { useToast } from '@/hooks/use-toast';
+
+interface Product {
+  id: string | number;
+  name: string;
+  price: number;
+  image: string;
+  category: string;
+  rating?: number;
+  reviews?: number;
+  isNew?: boolean;
+  isSale?: boolean;
+  originalPrice?: number;
+  inStock?: boolean;
+  brand?: string;
+}
 
 interface ProductCardProps {
   product: Product;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { dispatch } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { addToWishlist, isInWishlist } = useWishlist();
+  const { canUseShoppingFeatures } = useAdminMode();
   const { toast } = useToast();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
+    if (!canUseShoppingFeatures) {
+      toast({
+        title: "Shopping disabled",
+        description: "Switch to Customer Mode to use shopping features.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     dispatch({
       type: 'ADD_ITEM',
       payload: {
@@ -38,126 +64,152 @@ const ProductCard = ({ product }: ProductCardProps) => {
     });
   };
 
-  const handleWishlist = (e: React.MouseEvent) => {
+  const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (isInWishlist(product.id)) {
-      removeFromWishlist(product.id);
-    } else {
-      addToWishlist(product);
+    if (!canUseShoppingFeatures) {
+      toast({
+        title: "Shopping disabled",
+        description: "Switch to Customer Mode to use shopping features.",
+        variant: "destructive"
+      });
+      return;
     }
+
+    addToWishlist(product);
   };
 
-  const handleQuickView = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toast({
-      title: "Quick View",
-      description: "Quick view feature coming soon!",
-    });
-  };
+  const isWishlisted = isInWishlist(product.id);
 
   return (
-    <Link to={`/product/${product.id}`}>
-      <div className="group bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+    <Card className="group bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+      <Link to={`/product/${product.id}`} className="block">
         <div className="relative overflow-hidden">
           <img 
             src={product.image} 
             alt={product.name}
             className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.svg';
+            }}
           />
           
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {product.isNew && <Badge className="bg-green-500 rounded-xl">New</Badge>}
-            {product.isSale && <Badge className="bg-red-500 rounded-xl">Sale</Badge>}
-            {/* Show stock only for database products that have stock property */}
-            {(product as any).stock !== undefined && (
-              <Badge variant="outline" className="bg-background/80 backdrop-blur-sm border-border/50 rounded-xl">
-                Stock: {(product as any).stock}
+            {product.isNew && (
+              <Badge className="bg-green-500/90 hover:bg-green-500 text-white backdrop-blur-sm">
+                NEW
+              </Badge>
+            )}
+            {product.isSale && (
+              <Badge className="bg-red-500/90 hover:bg-red-500 text-white backdrop-blur-sm">
+                SALE
+              </Badge>
+            )}
+            {!product.inStock && (
+              <Badge variant="secondary" className="bg-gray-500/90 text-white backdrop-blur-sm">
+                <Package className="w-3 h-3 mr-1" />
+                OUT OF STOCK
               </Badge>
             )}
           </div>
 
-          {/* Quick actions */}
-          <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <Button 
-              size="icon" 
-              variant="secondary" 
-              className={`w-8 h-8 rounded-full backdrop-blur-sm ${
-                isInWishlist(product.id) 
-                  ? 'bg-red-500 text-white hover:bg-red-600' 
-                  : 'bg-secondary/80 hover:bg-secondary'
-              }`}
-              onClick={handleWishlist}
-            >
-              <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
-            </Button>
-            <Button 
-              size="icon" 
-              variant="secondary" 
-              className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur-sm hover:bg-secondary"
-              onClick={handleQuickView}
-            >
-              <Eye className="w-4 h-4" />
-            </Button>
+          {/* Wishlist Button - only show if shopping features are enabled */}
+          {canUseShoppingFeatures && (
+            <div className="absolute top-3 right-3">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className={`w-10 h-10 rounded-full backdrop-blur-sm transition-all duration-300 ${
+                  isWishlisted 
+                    ? 'bg-red-500/20 hover:bg-red-500/30 text-red-500' 
+                    : 'bg-white/20 hover:bg-white/30 text-white hover:text-red-500'
+                }`}
+                onClick={handleWishlistToggle}
+              >
+                <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+              </Button>
+            </div>
+          )}
+
+          {/* Quick Add Button - only show if shopping features are enabled */}
+          {canUseShoppingFeatures && product.inStock && (
+            <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Button 
+                size="icon"
+                onClick={handleAddToCart}
+                className="w-10 h-10 rounded-full bg-primary/90 hover:bg-primary backdrop-blur-sm"
+              >
+                <ShoppingCart className="w-5 h-5" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <CardContent className="p-6">
+          <div className="mb-3">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 line-clamp-2 mb-1">
+                  {product.name}
+                </h3>
+                <p className="text-sm text-muted-foreground">{product.category}</p>
+                {product.brand && (
+                  <p className="text-xs text-muted-foreground">{product.brand}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Rating */}
+            {product.rating && (
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className={`w-4 h-4 ${
+                        i < Math.floor(product.rating!) 
+                          ? 'text-yellow-400 fill-current' 
+                          : 'text-gray-300'
+                      }`} 
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  ({product.reviews || 0})
+                </span>
+              </div>
+            )}
+
+            {/* Price */}
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-primary">
+                ₱{product.price.toLocaleString()}
+              </span>
+              {product.originalPrice && (
+                <span className="text-lg text-muted-foreground line-through">
+                  ₱{product.originalPrice.toLocaleString()}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Add to cart overlay */}
-          <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {/* Add to Cart Button - only show if shopping features are enabled */}
+          {canUseShoppingFeatures && (
             <Button 
               onClick={handleAddToCart}
-              className="w-full rounded-xl bg-primary hover:bg-primary/90" 
-              size="sm"
               disabled={!product.inStock}
+              className="w-full bg-primary hover:bg-primary/90 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-xl transition-colors duration-300"
+              size="sm"
             >
               <ShoppingCart className="w-4 h-4 mr-2" />
               {product.inStock ? 'Add to Cart' : 'Out of Stock'}
             </Button>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="mb-3">
-            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 line-clamp-1">
-              {product.name}
-            </h3>
-            <p className="text-sm text-muted-foreground">{product.brand}</p>
-          </div>
-
-          <div className="flex items-center gap-1 mb-3">
-            {[...Array(5)].map((_, i) => (
-              <Star 
-                key={i} 
-                className={`w-4 h-4 ${
-                  i < Math.floor(product.rating) 
-                    ? 'text-yellow-400 fill-current' 
-                    : 'text-gray-300'
-                }`} 
-              />
-            ))}
-            <span className="text-xs text-muted-foreground ml-1">
-              ({product.reviews})
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-foreground">₱{product.price}</span>
-              {product.originalPrice && (
-                <span className="text-sm text-muted-foreground line-through">
-                  ₱{product.originalPrice}
-                </span>
-              )}
-            </div>
-            {!product.inStock && (
-              <Badge variant="destructive" className="rounded-xl">Out of Stock</Badge>
-            )}
-          </div>
-        </div>
-      </div>
-    </Link>
+          )}
+        </CardContent>
+      </Link>
+    </Card>
   );
 };
 

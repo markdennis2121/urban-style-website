@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Menu, X, User, LogOut, Heart } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useAdminMode } from '../contexts/AdminModeContext';
 import { supabase, getCurrentProfile } from '@/lib/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -13,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import ProfileSettings from './ProfileSettings';
+import AdminModeToggle from './AdminModeToggle';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import GlobalSearch from './GlobalSearch';
 import { products } from '@/data/products';
@@ -24,6 +27,7 @@ const Header = () => {
   const [searchItems, setSearchItems] = useState([]);
   const { state } = useCart();
   const { state: wishlistState } = useWishlist();
+  const { canUseShoppingFeatures } = useAdminMode();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -153,8 +157,11 @@ const Header = () => {
             </ul>
           </nav>
 
-          {/* Right side: Search, Wishlist, Cart, Profile */}
+          {/* Right side: Admin Toggle, Search, Wishlist, Cart, Profile */}
           <div className="flex items-center space-x-4">
+            {/* Admin Mode Toggle */}
+            <AdminModeToggle />
+
             {/* Search */}
             <div className="hidden md:block">
               <GlobalSearch
@@ -165,29 +172,33 @@ const Header = () => {
               />
             </div>
 
-            {/* Wishlist */}
-            <Link to="/wishlist">
-              <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-muted/80 text-primary hover:text-muted-foreground">
-                <Heart className="w-5 h-5" />
-                {wishlistState.items.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                    {wishlistState.items.length}
-                  </span>
-                )}
-              </Button>
-            </Link>
+            {/* Wishlist - only show if shopping features are enabled */}
+            {canUseShoppingFeatures && (
+              <Link to="/wishlist">
+                <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-muted/80 text-primary hover:text-muted-foreground">
+                  <Heart className="w-5 h-5" />
+                  {wishlistState.items.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                      {wishlistState.items.length}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
 
-            {/* Cart Icon */}
-            <Link className="text-primary hover:text-muted-foreground transition-colors duration-200 relative" to="/cart">
-              <div className="p-2 rounded-xl hover:bg-muted/80 transition-colors">
-                <ShoppingBag className="w-5 h-5" />
-                {state.itemCount > 0 && (
-                  <span className="absolute top-0 right-0 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                    {state.itemCount}
-                  </span>
-                )}
-              </div>
-            </Link>
+            {/* Cart Icon - only show if shopping features are enabled */}
+            {canUseShoppingFeatures && (
+              <Link className="text-primary hover:text-muted-foreground transition-colors duration-200 relative" to="/cart">
+                <div className="p-2 rounded-xl hover:bg-muted/80 transition-colors">
+                  <ShoppingBag className="w-5 h-5" />
+                  {state.itemCount > 0 && (
+                    <span className="absolute top-0 right-0 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                      {state.itemCount}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            )}
 
             {/* User Profile Dropdown */}
             <DropdownMenu>
