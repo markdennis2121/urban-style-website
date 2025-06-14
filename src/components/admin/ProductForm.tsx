@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Edit2 } from 'lucide-react';
+import { PlusCircle, Edit2, Upload, X } from 'lucide-react';
 import { Product } from '@/hooks/useAdminData';
+import { useImageUpload } from '@/hooks/useImageUpload';
 
 interface ProductFormProps {
   product?: Product | null;
@@ -34,6 +35,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
     image: ''
   });
 
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [useUrlInput, setUseUrlInput] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { uploadImage, uploading } = useImageUpload();
+
   useEffect(() => {
     if (product) {
       setFormData({
@@ -45,8 +51,33 @@ const ProductForm: React.FC<ProductFormProps> = ({
         stock: product.stock.toString(),
         image: product.image
       });
+      setImagePreview(product.image);
     }
   }, [product]);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const uploadedUrl = await uploadImage(file);
+    if (uploadedUrl) {
+      setFormData(prev => ({ ...prev, image: uploadedUrl }));
+      setImagePreview(uploadedUrl);
+    }
+  };
+
+  const handleImageUrlChange = (url: string) => {
+    setFormData(prev => ({ ...prev, image: url }));
+    setImagePreview(url);
+  };
+
+  const clearImage = () => {
+    setFormData(prev => ({ ...prev, image: '' }));
+    setImagePreview('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,18 +85,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
       ...formData,
       price: parseFloat(formData.price),
       stock: parseInt(formData.stock)
-    });
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      brand: '',
-      price: '',
-      description: '',
-      category: '',
-      stock: '',
-      image: ''
     });
   };
 
@@ -148,17 +167,85 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="image" className="text-sm font-medium text-gray-700">Image URL</Label>
-              <Input
-                id="image"
-                value={formData.image}
-                onChange={(e) => setFormData({...formData, image: e.target.value})}
-                className="mt-1 rounded-lg border-gray-300"
-                required
-              />
-            </div>
           </div>
+
+          {/* Image Upload Section */}
+          <div className="space-y-4">
+            <Label className="text-sm font-medium text-gray-700">Product Image</Label>
+            
+            {/* Toggle between upload and URL input */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                type="button"
+                variant={useUrlInput ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUseUrlInput(true)}
+              >
+                Image URL
+              </Button>
+              <Button
+                type="button"
+                variant={!useUrlInput ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUseUrlInput(false)}
+              >
+                Upload Image
+              </Button>
+            </div>
+
+            {useUrlInput ? (
+              <div>
+                <Input
+                  placeholder="Enter image URL"
+                  value={formData.image}
+                  onChange={(e) => handleImageUrlChange(e.target.value)}
+                  className="rounded-lg border-gray-300"
+                />
+              </div>
+            ) : (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 p-6"
+                >
+                  <Upload className="h-6 w-6 mr-2" />
+                  {uploading ? 'Uploading...' : 'Click to upload image'}
+                </Button>
+              </div>
+            )}
+
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="relative inline-block">
+                <img
+                  src={imagePreview}
+                  alt="Product preview"
+                  className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={clearImage}
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
           <div>
             <Label htmlFor="description" className="text-sm font-medium text-gray-700">Description</Label>
             <Textarea
@@ -170,17 +257,18 @@ const ProductForm: React.FC<ProductFormProps> = ({
               required
             />
           </div>
+
           <div className="flex gap-4">
             <Button 
               type="submit" 
-              disabled={loading} 
+              disabled={loading || uploading} 
               className={`flex-1 rounded-lg py-3 font-medium ${
                 isEditing 
                   ? 'bg-blue-600 hover:bg-blue-700' 
                   : 'bg-green-600 hover:bg-green-700'
               }`}
             >
-              {loading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product')}
+              {loading || uploading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product')}
             </Button>
             {isEditing && onCancel && (
               <Button 
