@@ -149,13 +149,26 @@ const UserLoginPage = () => {
 
       console.log('Login successful, user role:', profileData.role);
 
-      // Redirect based on role
+      // Check if admin or super_admin is trying to login through user login
+      if (profileData.role === 'admin') {
+        await supabase.auth.signOut(); // Sign them out
+        setError('Admin accounts must use the admin login page.');
+        setLoading(false);
+        return;
+      }
+
       if (profileData.role === 'super_admin') {
-        navigate('/superadmin/dashboard');
-      } else if (profileData.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
+        await supabase.auth.signOut(); // Sign them out
+        setError('Super admin accounts must use the super admin login page.');
+        setLoading(false);
+        return;
+      }
+
+      // Only allow regular users to proceed
+      if (profileData.role === 'user') {
         navigate('/');
+      } else {
+        throw new Error('Invalid account type for user login');
       }
 
     } catch (err) {
