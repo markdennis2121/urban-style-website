@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { products } from '../data/products';
 import { supabase } from '@/lib/supabase/client';
@@ -9,10 +10,11 @@ interface DatabaseProduct {
   description: string;
   price: number;
   category: string;
-  image_url: string;
+  image: string;
   stock: number;
   is_new_arrival: boolean;
   created_at: string;
+  brand: string;
 }
 
 const NewArrivalsSection = () => {
@@ -49,10 +51,10 @@ const NewArrivalsSection = () => {
     id: product.id,
     name: product.name,
     price: product.price,
-    image: product.image_url,
-    images: [product.image_url],
+    image: product.image || '/placeholder.svg',
+    images: [product.image || '/placeholder.svg'],
     category: product.category,
-    brand: 'Admin Added',
+    brand: product.brand || 'Admin Added',
     rating: 4.5,
     reviews: 0,
     description: product.description,

@@ -5,17 +5,21 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
+      setError(null);
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
+        const errorMsg = "Please select an image file.";
+        setError(errorMsg);
         toast({
           title: "Error",
-          description: "Please select an image file.",
+          description: errorMsg,
           variant: "destructive",
         });
         return null;
@@ -23,9 +27,11 @@ export const useImageUpload = () => {
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
+        const errorMsg = "Image must be less than 5MB.";
+        setError(errorMsg);
         toast({
           title: "Error",
-          description: "Image must be less than 5MB.",
+          description: errorMsg,
           variant: "destructive",
         });
         return null;
@@ -54,9 +60,11 @@ export const useImageUpload = () => {
 
     } catch (error) {
       console.error('Error uploading image:', error);
+      const errorMsg = "Failed to upload image. Please try again.";
+      setError(errorMsg);
       toast({
         title: "Error",
-        description: "Failed to upload image. Please try again.",
+        description: errorMsg,
         variant: "destructive",
       });
       return null;
@@ -65,5 +73,5 @@ export const useImageUpload = () => {
     }
   };
 
-  return { uploadImage, uploading };
+  return { uploadImage, uploading, error };
 };

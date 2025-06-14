@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +9,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { categories } from '@/data/products';
 import { useImageUpload } from '@/hooks/useImageUpload';
-import { Product } from '@/hooks/useAdminData';
+
+interface ProductFormData {
+  name: string;
+  brand: string;
+  price: number;
+  description: string;
+  category: string;
+  stock: number;
+  image: string;
+  is_featured: boolean;
+  is_new_arrival: boolean;
+}
 
 interface ProductFormProps {
-  product?: Product;
-  onSubmit: (data: any) => void;
+  product?: any; // Using any to handle both existing Product type and database products
+  onSubmit: (data: ProductFormData) => void;
   onCancel: () => void;
   loading?: boolean;
   isEditing?: boolean;
@@ -27,7 +37,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   loading = false,
   isEditing = false
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: product?.name || '',
     brand: product?.brand || '',
     price: product?.price || 0,
@@ -52,8 +62,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const handleImageUpload = async (file: File) => {
     try {
       const imageUrl = await uploadImage(file);
-      handleInputChange('image', imageUrl);
-      setImagePreview(imageUrl);
+      if (imageUrl) {
+        handleInputChange('image', imageUrl);
+        setImagePreview(imageUrl);
+      }
     } catch (err) {
       console.error('Error uploading image:', err);
     }
