@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -21,57 +21,27 @@ const Contact = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    console.log('Contact page loaded - using Supabase backend only');
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      console.log('Submitting contact form with data:', formData);
+      console.log('Submitting contact form:', formData);
       
-      // Test Supabase connection first
-      console.log('Testing Supabase connection...');
-      const { data: testData, error: testError } = await supabase
-        .from('contact_messages')
-        .select('count', { count: 'exact', head: true });
-
-      if (testError) {
-        console.error('Supabase connection test failed:', {
-          message: testError.message,
-          code: testError.code,
-          details: testError.details,
-          hint: testError.hint
-        });
-      } else {
-        console.log('Supabase connection successful');
-      }
-
-      // Proceed with insert
+      // Direct insert without testing connection first
       const { data, error } = await supabase
         .from('contact_messages')
-        .insert([
-          {
-            name: formData.name,
-            email: formData.email,
-            subject: formData.subject,
-            message: formData.message
-          }
-        ])
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message
+        }])
         .select();
 
       if (error) {
-        console.error('Contact form submission error:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-          fullError: error
-        });
-        
-        throw new Error(`Failed to send message: ${error.message} (Code: ${error.code})`);
+        console.error('Contact form submission error:', error);
+        throw error;
       }
 
       console.log('Contact message sent successfully:', data);
@@ -90,17 +60,11 @@ const Contact = () => {
       });
 
     } catch (error: any) {
-      console.error('Contact form error details:', {
-        message: error?.message || 'Unknown error',
-        stack: error?.stack,
-        fullError: error
-      });
-      
-      const errorMessage = error?.message || 'An unexpected error occurred. Please try again.';
+      console.error('Contact form error:', error);
       
       toast({
-        title: "Error",
-        description: errorMessage,
+        title: "Error sending message",
+        description: error?.message || 'Please try again later.',
         variant: "destructive",
       });
     } finally {

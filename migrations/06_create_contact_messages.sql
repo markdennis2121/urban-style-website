@@ -1,5 +1,5 @@
 
--- Drop existing policies and table completely
+-- Drop existing policies and table completely to start fresh
 DROP POLICY IF EXISTS "Anyone can insert contact messages" ON contact_messages;
 DROP POLICY IF EXISTS "Admins can view all contact messages" ON contact_messages;
 DROP POLICY IF EXISTS "contact_messages_insert_policy" ON contact_messages;
@@ -14,11 +14,13 @@ DROP POLICY IF EXISTS "contact_insert" ON contact_messages;
 DROP POLICY IF EXISTS "contact_select" ON contact_messages;
 DROP POLICY IF EXISTS "anyone_can_insert_contact_messages" ON contact_messages;
 DROP POLICY IF EXISTS "admins_can_view_contact_messages" ON contact_messages;
+DROP POLICY IF EXISTS "public_contact_insert" ON contact_messages;
+DROP POLICY IF EXISTS "authenticated_contact_select" ON contact_messages;
 
 -- Drop table completely to start fresh
 DROP TABLE IF EXISTS contact_messages CASCADE;
 
--- Create contact_messages table
+-- Create contact_messages table with proper structure
 CREATE TABLE contact_messages (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -31,50 +33,41 @@ CREATE TABLE contact_messages (
 -- Enable RLS
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Grant necessary permissions - IMPORTANT: Grant to anon for contact form submissions
-GRANT USAGE ON SCHEMA public TO anon;
-GRANT USAGE ON SCHEMA public TO authenticated;
-GRANT INSERT ON contact_messages TO anon;
-GRANT INSERT ON contact_messages TO authenticated;
+-- Grant necessary permissions to both anon and authenticated users
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT INSERT ON contact_messages TO anon, authenticated;
 GRANT SELECT ON contact_messages TO authenticated;
 
--- Simple policy for ANYONE (including anonymous users) to insert contact messages
--- This policy does NOT reference any other tables to avoid permission issues
-CREATE POLICY "public_contact_insert" ON contact_messages
+-- Create simple policy for anyone to insert contact messages (no complex conditions)
+CREATE POLICY "contact_messages_insert_policy" ON contact_messages
     FOR INSERT 
     WITH CHECK (true);
 
--- Policy for authenticated users to select contact messages (admin functionality)
--- Only check if user is authenticated, don't reference profiles table
-CREATE POLICY "authenticated_contact_select" ON contact_messages
+-- Create policy for authenticated users to view contact messages 
+CREATE POLICY "contact_messages_select_policy" ON contact_messages
     FOR SELECT 
     TO authenticated
     USING (true);
 
--- Ensure the profiles table exists and has proper structure
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profiles') THEN
-        CREATE TABLE profiles (
-            id UUID REFERENCES auth.users(id) PRIMARY KEY,
-            username VARCHAR(50),
-            email VARCHAR(255) NOT NULL,
-            role VARCHAR(20) DEFAULT 'user',
-            full_name VARCHAR(255),
-            avatar_url TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        
-        ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-        
-        CREATE POLICY "profiles_select" ON profiles
-            FOR SELECT 
-            USING (true);
-    END IF;
-END $$;
+-- Ensure profiles table exists with proper structure
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID REFERENCES auth.users(id) PRIMARY KEY,
+    username VARCHAR(50),
+    email VARCHAR(255) NOT NULL,
+    role VARCHAR(20) DEFAULT 'user',
+    full_name VARCHAR(255),
+    avatar_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Fix the reviews functionality - create reviews table
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "profiles_select_policy" ON profiles
+    FOR SELECT 
+    USING (true);
+
+-- Create reviews table if it doesn't exist
 CREATE TABLE IF NOT EXISTS reviews (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     product_id VARCHAR(50) NOT NULL,
@@ -85,16 +78,12 @@ CREATE TABLE IF NOT EXISTS reviews (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable RLS for reviews
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 
--- Grant permissions for reviews
-GRANT SELECT ON reviews TO anon;
-GRANT SELECT ON reviews TO authenticated;
+GRANT SELECT ON reviews TO anon, authenticated;
 GRANT INSERT ON reviews TO authenticated;
 GRANT UPDATE ON reviews TO authenticated;
 
--- Create policies for reviews
 DROP POLICY IF EXISTS "reviews_select_policy" ON reviews;
 DROP POLICY IF EXISTS "reviews_insert_policy" ON reviews;
 DROP POLICY IF EXISTS "reviews_update_policy" ON reviews;
@@ -114,7 +103,7 @@ CREATE POLICY "reviews_update_policy" ON reviews
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
--- Create wishlists table
+-- Create wishlists table if it doesn't exist
 CREATE TABLE IF NOT EXISTS wishlists (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id),
@@ -126,15 +115,12 @@ CREATE TABLE IF NOT EXISTS wishlists (
     UNIQUE(user_id, product_id)
 );
 
--- Enable RLS for wishlists
 ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
 
--- Grant permissions for wishlists
 GRANT SELECT ON wishlists TO authenticated;
 GRANT INSERT ON wishlists TO authenticated;
 GRANT DELETE ON wishlists TO authenticated;
 
--- Create policies for wishlists
 DROP POLICY IF EXISTS "wishlists_policy" ON wishlists;
 
 CREATE POLICY "wishlists_policy" ON wishlists
@@ -155,6 +141,6 @@ BEGIN
     END IF;
 END $$;
 
--- Update some products to be featured and new arrivals for testing (using product names instead of IDs)
-UPDATE products SET is_featured = true WHERE name IN ('Cartoon Astronaut T-shirt', 'OversizeObsession', 'MaxComfort');
-UPDATE products SET is_new_arrival = true WHERE name IN ('SlouchyStyle', 'GiantGarb', 'FreeFlow');
+-- Update some products to be featured and new arrivals for testing
+UPDATE products SET is_featured = true WHERE name IN ('Cartoon Astronaut T-shirt', 'OversizeObsession', 'MaxComfort') AND EXISTS (SELECT 1 FROM products WHERE name IN ('Cartoon Astronaut T-shirt', 'OversizeObsession', 'MaxComfort'));
+UPDATE products SET is_new_arrival = true WHERE name IN ('SlouchyStyle', 'GiantGarb', 'FreeFlow') AND EXISTS (SELECT 1 FROM products WHERE name IN ('SlouchyStyle', 'GiantGarb', 'FreeFlow'));
