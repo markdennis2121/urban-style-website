@@ -1,11 +1,10 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { supabase, getCurrentProfile } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface WishlistItem {
   id: string;
-  user_id: string; // Added this missing property
+  user_id: string;
   product_id: string;
   product_name: string;
   product_price: number;
@@ -50,7 +49,7 @@ interface WishlistContextType {
   removeFromWishlist: (productId: string) => Promise<void>;
   isInWishlist: (productId: string) => boolean;
   loadWishlist: () => Promise<void>;
-  loadAllWishlists: () => Promise<WishlistItem[]>; // New function for admins
+  loadAllWishlists: () => Promise<WishlistItem[]>;
 }
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
@@ -69,29 +68,20 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
 
-      // Check if user is admin or superadmin to load all wishlists
-      const profile = await getCurrentProfile();
-      const isAdmin = profile && ['admin', 'super_admin'].includes(profile.role);
-
-      let query = supabase.from('wishlists').select('*');
-      
-      if (!isAdmin) {
-        // Regular users only see their own wishlists
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // ALWAYS load only the current user's wishlist for the context
+      // Admin functions use loadAllWishlists separately
+      const { data, error } = await supabase
+        .from('wishlists')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading wishlist from database:', error);
-        // Fallback to local storage for regular users only
-        if (!isAdmin) {
-          const localWishlist = localStorage.getItem(`wishlist_${user.id}`);
-          if (localWishlist) {
-            dispatch({ type: 'SET_ITEMS', payload: JSON.parse(localWishlist) });
-          } else {
-            dispatch({ type: 'SET_ITEMS', payload: [] });
-          }
+        // Fallback to local storage
+        const localWishlist = localStorage.getItem(`wishlist_${user.id}`);
+        if (localWishlist) {
+          dispatch({ type: 'SET_ITEMS', payload: JSON.parse(localWishlist) });
         } else {
           dispatch({ type: 'SET_ITEMS', payload: [] });
         }
@@ -105,7 +95,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // New function specifically for admin dashboards
+  // Separate function specifically for admin dashboards
   const loadAllWishlists = async (): Promise<WishlistItem[]> => {
     try {
       console.log('Loading all wishlists for admin dashboard...');
