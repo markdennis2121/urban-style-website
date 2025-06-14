@@ -1,9 +1,11 @@
+
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { supabase, getCurrentProfile } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface WishlistItem {
   id: string;
+  user_id: string; // Added this missing property
   product_id: string;
   product_name: string;
   product_price: number;

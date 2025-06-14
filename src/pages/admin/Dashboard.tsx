@@ -144,7 +144,7 @@ const AdminDashboard = () => {
 
       console.log('Raw wishlist data:', wishlistsData);
 
-      // Get unique user IDs
+      // Get unique user IDs from wishlists
       const userIds = [...new Set(wishlistsData.map(w => w.user_id))];
       console.log('User IDs from wishlists:', userIds);
 
