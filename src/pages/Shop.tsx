@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
@@ -63,18 +62,24 @@ const Shop = () => {
 
       if (error) throw error;
       
-      const transformedProducts = data.map(product => ({
-        ...product,
-        image: product.image_url,
-        brand: 'Admin Added',
-        rating: 4.5,
-        reviews: 0,
-        isNew: product.is_new_arrival || false,
-        isSale: false,
-        inStock: product.stock > 0,
-        originalPrice: null
-      }));
+      console.log('Raw products from database:', data);
       
+      const transformedProducts = data.map(product => {
+        console.log('Transforming product:', product.name, 'Image field:', product.image);
+        return {
+          ...product,
+          image: product.image || '/placeholder.svg', // Use the image field directly
+          brand: product.brand || 'Admin Added',
+          rating: 4.5,
+          reviews: 0,
+          isNew: product.is_new_arrival || false,
+          isSale: false,
+          inStock: product.stock > 0,
+          originalPrice: null
+        };
+      });
+      
+      console.log('Transformed products:', transformedProducts);
       setDbProducts(transformedProducts);
     } catch (err) {
       console.error('Error loading products:', err);
