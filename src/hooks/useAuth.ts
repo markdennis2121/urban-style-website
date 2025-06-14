@@ -10,47 +10,12 @@ export const useAuth = () => {
 
   useEffect(() => {
     let mounted = true;
-    let sessionProcessed = false;
-
-    const handleAuthSession = async (session: any) => {
-      if (!mounted || sessionProcessed) return;
-
-      console.log('handleAuthSession called with session:', session?.user?.id || 'null');
-      
-      if (session?.user) {
-        sessionProcessed = true;
-        console.log('Processing session for user:', session.user.id);
-        try {
-          const userProfile = await getCurrentProfile();
-          if (mounted) {
-            console.log('Profile loaded:', userProfile);
-            setProfile(userProfile);
-            setLoading(false);
-            setInitialized(true);
-          }
-        } catch (error) {
-          console.error('Error getting profile:', error);
-          if (mounted) {
-            setProfile(null);
-            setLoading(false);
-            setInitialized(true);
-          }
-        }
-      } else {
-        console.log('No session found, clearing profile');
-        if (mounted) {
-          setProfile(null);
-          setLoading(false);
-          setInitialized(true);
-        }
-      }
-    };
 
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
+        console.log('Fast auth initialization...');
         
-        // Get current session
+        // Get current session immediately
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -63,29 +28,58 @@ export const useAuth = () => {
           return;
         }
 
-        console.log('Initial session check:', session?.user?.id || 'No session');
-        
-        // Process the session
-        await handleAuthSession(session);
+        // Set loading to false immediately if no session
+        if (!session?.user) {
+          console.log('No session found');
+          if (mounted) {
+            setProfile(null);
+            setLoading(false);
+            setInitialized(true);
+          }
+        } else {
+          console.log('Session found, loading profile for user:', session.user.id);
+          try {
+            const userProfile = await getCurrentProfile();
+            if (mounted) {
+              console.log('Profile loaded:', userProfile);
+              setProfile(userProfile);
+              setLoading(false);
+              setInitialized(true);
+            }
+          } catch (error) {
+            console.error('Error getting profile:', error);
+            if (mounted) {
+              setProfile(null);
+              setLoading(false);
+              setInitialized(true);
+            }
+          }
+        }
 
-        // Set up the auth state listener AFTER processing initial session
+        // Set up auth state listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-          console.log('Auth state changed:', event, newSession?.user?.id || 'null');
+          console.log('Auth state changed:', event);
           
           if (!mounted) return;
 
-          // Reset the session processed flag for new auth events
-          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-            sessionProcessed = false;
-          }
-
-          // Skip INITIAL_SESSION since we already handled it above
-          if (event === 'INITIAL_SESSION') {
-            return;
-          }
-
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            await handleAuthSession(newSession);
+            if (newSession?.user) {
+              try {
+                const userProfile = await getCurrentProfile();
+                if (mounted) {
+                  setProfile(userProfile);
+                  setLoading(false);
+                  setInitialized(true);
+                }
+              } catch (error) {
+                console.error('Error getting profile after sign in:', error);
+                if (mounted) {
+                  setProfile(null);
+                  setLoading(false);
+                  setInitialized(true);
+                }
+              }
+            }
           } else if (event === 'SIGNED_OUT') {
             console.log('User signed out');
             if (mounted) {
@@ -96,7 +90,6 @@ export const useAuth = () => {
           }
         });
 
-        // Store subscription for cleanup
         return subscription;
         
       } catch (error) {

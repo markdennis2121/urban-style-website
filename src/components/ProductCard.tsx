@@ -39,7 +39,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToWishlist, isInWishlist } = useWishlist();
   const { addToCompare, isInCompare, canAddToCompare } = useProductComparison();
   const { canUseShoppingFeatures } = useAdminMode();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -153,7 +153,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           
           <ProductBadges product={product} />
 
-          {canUseShoppingFeatures && (
+          {canUseShoppingFeatures && !loading && (
             <ProductActionButtons
               isWishlisted={isWishlisted}
               isInComparison={isInComparison}
@@ -170,7 +170,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <CardContent className="p-4 sm:p-6">
           <ProductInfo product={product} />
 
-          {canUseShoppingFeatures && (
+          {canUseShoppingFeatures && !loading && (
             <ProductCartButton
               isAuthenticated={isAuthenticated}
               inStock={product.inStock}

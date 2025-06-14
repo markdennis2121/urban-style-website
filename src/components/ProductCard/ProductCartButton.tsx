@@ -2,12 +2,14 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, LogIn } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ProductCartButtonProps {
   isAuthenticated: boolean;
   inStock?: boolean;
   onAddToCart: (e: React.MouseEvent) => void;
   onLoginRedirect: (e: React.MouseEvent) => void;
+  loading?: boolean;
 }
 
 const ProductCartButton: React.FC<ProductCartButtonProps> = ({
@@ -15,7 +17,12 @@ const ProductCartButton: React.FC<ProductCartButtonProps> = ({
   inStock,
   onAddToCart,
   onLoginRedirect,
+  loading = false,
 }) => {
+  if (loading) {
+    return <Skeleton className="w-full h-10 sm:h-auto rounded-xl" />;
+  }
+
   if (isAuthenticated) {
     return (
       <Button 
