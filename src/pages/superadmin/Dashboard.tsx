@@ -85,6 +85,7 @@ const SuperAdminDashboard = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('Loaded users:', data);
       setUsers(data || []);
     } catch (err) {
       console.error('Error loading users:', err);
@@ -141,12 +142,12 @@ const SuperAdminDashboard = () => {
 
   const loadWishlists = async () => {
     try {
+      console.log('Loading wishlists...');
+      
+      // First, let's try to get wishlists with a simpler query
       const { data, error } = await supabase
         .from('wishlists')
-        .select(`
-          *,
-          profiles:user_id (username, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -154,7 +155,34 @@ const SuperAdminDashboard = () => {
         setWishlists([]);
         return;
       }
-      setWishlists(data || []);
+
+      console.log('Raw wishlist data:', data);
+
+      // Now get user profiles separately
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(w => w.user_id))];
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username, email')
+          .in('id', userIds);
+
+        if (!profileError && profiles) {
+          // Combine the data
+          const enrichedWishlists = data.map(wishlist => ({
+            ...wishlist,
+            profiles: profiles.find(p => p.id === wishlist.user_id)
+          }));
+          
+          console.log('Enriched wishlist data:', enrichedWishlists);
+          setWishlists(enrichedWishlists);
+        } else {
+          console.log('Profile error or no profiles found:', profileError);
+          setWishlists(data);
+        }
+      } else {
+        console.log('No wishlist data found');
+        setWishlists([]);
+      }
     } catch (err) {
       console.error('Error loading wishlists:', err);
       setWishlists([]);
@@ -416,19 +444,19 @@ const SuperAdminDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white rounded-xl shadow-lg border-0 hover:shadow-xl transition-shadow">
+            <Card className="bg-gradient-to-br from-pink-500 via-pink-600 to-pink-700 text-white rounded-xl shadow-lg border-0 hover:shadow-xl transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="bg-white/20 p-2 rounded-lg">
-                    <Activity className="h-5 w-5 text-white" />
+                    <Heart className="h-5 w-5 text-white" />
                   </div>
-                  <Badge className="bg-white/20 text-white border-white/30">Live</Badge>
+                  <Badge className="bg-white/20 text-white border-white/30">Engagement</Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-1">99.9%</div>
-                <p className="text-amber-100">System Health</p>
-                <p className="text-xs text-amber-200 mt-1">Uptime this month</p>
+                <div className="text-3xl font-bold mb-1">{wishlists.length}</div>
+                <p className="text-pink-100">Wishlist Items</p>
+                <p className="text-xs text-pink-200 mt-1">User favorites</p>
               </CardContent>
             </Card>
           </div>
@@ -754,7 +782,7 @@ const SuperAdminDashboard = () => {
                     <div className="bg-pink-500 p-2 rounded-lg">
                       <Heart className="h-5 w-5 text-white" />
                     </div>
-                    User Wishlists
+                    User Wishlists ({wishlists.length} items)
                   </CardTitle>
                   <CardDescription className="text-gray-600">Monitor user wishlist items and preferences</CardDescription>
                 </CardHeader>
@@ -775,24 +803,27 @@ const SuperAdminDashboard = () => {
                           <TableRow key={wishlist.id}>
                             <TableCell>
                               <div>
-                                <p className="font-medium">{wishlist.profiles?.username || 'Unknown'}</p>
-                                <p className="text-sm text-gray-500">{wishlist.profiles?.email}</p>
+                                <p className="font-medium">{wishlist.profiles?.username || 'Unknown User'}</p>
+                                <p className="text-sm text-gray-500">{wishlist.profiles?.email || 'No email'}</p>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-3">
                                 <img 
                                   src={wishlist.product_image || '/placeholder.svg'} 
-                                  alt={wishlist.product_name}
+                                  alt={wishlist.product_name || 'Product'}
                                   className="w-10 h-10 object-cover rounded border"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/placeholder.svg';
+                                  }}
                                 />
                                 <div>
-                                  <p className="font-medium">{wishlist.product_name}</p>
+                                  <p className="font-medium">{wishlist.product_name || 'Unknown Product'}</p>
                                   <p className="text-sm text-gray-500">ID: {wishlist.product_id}</p>
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="font-medium">₱{wishlist.product_price}</TableCell>
+                            <TableCell className="font-medium">₱{wishlist.product_price || 0}</TableCell>
                             <TableCell>{new Date(wishlist.created_at).toLocaleDateString()}</TableCell>
                             <TableCell>
                               <Button
@@ -812,6 +843,9 @@ const SuperAdminDashboard = () => {
                     <div className="text-center py-12">
                       <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500">No wishlist items found</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Users haven't added any items to their wishlists yet
+                      </p>
                     </div>
                   )}
                 </CardContent>

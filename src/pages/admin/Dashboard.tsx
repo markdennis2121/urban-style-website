@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
@@ -20,10 +20,11 @@ import {
   Trash2,
   Heart,
   Star,
+  Activity,
   TrendingUp,
-  Mail,
-  Calendar,
-  User
+  BarChart3,
+  Upload,
+  Edit
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -36,18 +37,15 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
 
-  // Product form states
+  // Product form state
   const [productForm, setProductForm] = useState({
     name: '',
-    description: '',
-    price: '',
     brand: '',
+    price: '',
+    description: '',
     category: '',
-    image: '',
     stock: '',
-    isNew: false,
-    isSale: false,
-    salePrice: ''
+    image: ''
   });
 
   useEffect(() => {
@@ -59,7 +57,7 @@ const AdminDashboard = () => {
       setLoading(true);
       await Promise.all([
         loadUsers(),
-        loadProducts(), 
+        loadProducts(),
         loadMessages(),
         loadWishlists(),
         loadReviews()
@@ -103,53 +101,16 @@ const AdminDashboard = () => {
 
   const loadMessages = async () => {
     try {
-      console.log('=== LOADING CONTACT MESSAGES DEBUG ===');
-      
-      // First check current user auth
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current user:', user?.id);
-      
-      // Check user profile and role
-      if (user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        console.log('User profile:', profile);
-        console.log('Profile error:', profileError);
-      }
-
-      // Try to fetch messages with detailed error logging
       const { data, error } = await supabase
         .from('contact_messages')
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('Messages query result:', { data, error });
-
       if (error) {
-        console.error('=== CONTACT MESSAGES ERROR ===');
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
-        
-        // If it's a permission error, set empty array but log it
-        if (error.code === '42501' || error.message.includes('permission denied')) {
-          console.log('Permission denied for contact_messages, using empty array');
-          setMessages([]);
-          return;
-        }
-        
-        throw error;
+        console.log('Messages table not accessible, using empty array');
+        setMessages([]);
+        return;
       }
-
-      console.log('=== CONTACT MESSAGES SUCCESS ===');
-      console.log('Loaded messages count:', data?.length || 0);
-      console.log('Messages data:', data);
-      
       setMessages(data || []);
     } catch (err) {
       console.error('Error loading messages:', err);
@@ -159,20 +120,44 @@ const AdminDashboard = () => {
 
   const loadWishlists = async () => {
     try {
+      console.log('Admin loading wishlists...');
+      
+      // Get wishlists
       const { data, error } = await supabase
         .from('wishlists')
-        .select(`
-          *,
-          profiles:user_id (username, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.log('Wishlists table not accessible, using empty array');
+        console.error('Error loading wishlists:', error);
         setWishlists([]);
         return;
       }
-      setWishlists(data || []);
+
+      console.log('Admin wishlist data:', data);
+
+      // Get user profiles separately
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(w => w.user_id))];
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username, email')
+          .in('id', userIds);
+
+        if (!profileError && profiles) {
+          // Combine the data
+          const enrichedWishlists = data.map(wishlist => ({
+            ...wishlist,
+            profiles: profiles.find(p => p.id === wishlist.user_id)
+          }));
+          
+          setWishlists(enrichedWishlists);
+        } else {
+          setWishlists(data);
+        }
+      } else {
+        setWishlists([]);
+      }
     } catch (err) {
       console.error('Error loading wishlists:', err);
       setWishlists([]);
@@ -201,7 +186,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleAddProduct = async (e) => {
+  const handleCreateProduct = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
@@ -210,47 +195,41 @@ const AdminDashboard = () => {
         .from('products')
         .insert([{
           name: productForm.name,
-          description: productForm.description,
-          price: parseFloat(productForm.price),
           brand: productForm.brand,
+          price: parseFloat(productForm.price),
+          description: productForm.description,
           category: productForm.category,
-          image: productForm.image,
           stock: parseInt(productForm.stock),
-          is_new: productForm.isNew,
-          is_sale: productForm.isSale,
-          sale_price: productForm.salePrice ? parseFloat(productForm.salePrice) : null,
-          in_stock: parseInt(productForm.stock) > 0
+          image: productForm.image || '/placeholder.svg'
         }])
-        .select();
+        .select()
+        .single();
 
       if (error) throw error;
 
       toast({
         title: "Success!",
-        description: "Product added successfully.",
+        description: "Product created successfully.",
       });
 
       // Reset form
       setProductForm({
         name: '',
-        description: '',
-        price: '',
         brand: '',
+        price: '',
+        description: '',
         category: '',
-        image: '',
         stock: '',
-        isNew: false,
-        isSale: false,
-        salePrice: ''
+        image: ''
       });
 
       // Reload products
       loadProducts();
     } catch (err) {
-      console.error('Error adding product:', err);
+      console.error('Error creating product:', err);
       toast({
         title: "Error",
-        description: "Failed to add product.",
+        description: "Failed to create product.",
         variant: "destructive",
       });
     } finally {
@@ -283,39 +262,89 @@ const AdminDashboard = () => {
     }
   };
 
+  const deleteMessage = async (messageId) => {
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Contact message deleted successfully.",
+      });
+
+      loadMessages();
+    } catch (err) {
+      console.error('Error deleting message:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete message.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteWishlistItem = async (wishlistId) => {
+    try {
+      const { error } = await supabase
+        .from('wishlists')
+        .delete()
+        .eq('id', wishlistId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Wishlist item deleted successfully.",
+      });
+
+      loadWishlists();
+    } catch (err) {
+      console.error('Error deleting wishlist item:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete wishlist item.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-          <p className="text-gray-600 font-medium">Loading dashboard...</p>
+          <p className="text-gray-600 font-medium">Loading admin dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <Header />
       
       <div className="pt-24 pb-12">
         <div className="max-w-7xl mx-auto px-6">
-          {/* Modern Header Section */}
+          {/* Header Section */}
           <div className="mb-12">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 rounded-2xl shadow-lg p-8 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-4xl font-bold text-gray-900 mb-3">
-                    Admin Dashboard
-                  </h1>
-                  <p className="text-lg text-gray-600">
-                    Manage your store operations and customer data
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="bg-blue-50 p-3 rounded-xl">
-                    <TrendingUp className="h-8 w-8 text-blue-600" />
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="bg-white/20 p-3 rounded-xl">
+                      <Activity className="h-8 w-8 text-white" />
+                    </div>
+                    <h1 className="text-4xl font-bold">
+                      Admin Dashboard
+                    </h1>
                   </div>
+                  <p className="text-xl text-blue-100">
+                    Manage products, users, and system content
+                  </p>
                 </div>
               </div>
             </div>
@@ -327,133 +356,144 @@ const AdminDashboard = () => {
             </Alert>
           )}
 
-          {/* Modern Stats Cards */}
+          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <Card className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white rounded-xl shadow-lg border-0">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="bg-blue-500 p-2 rounded-lg">
+                  <div className="bg-white/20 p-2 rounded-lg">
                     <Users className="h-5 w-5 text-white" />
                   </div>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Active</Badge>
+                  <Badge className="bg-white/20 text-white border-white/30">Active</Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-900 mb-1">{users.length}</div>
-                <p className="text-sm text-blue-700">Total Users</p>
+                <div className="text-3xl font-bold mb-1">{users.length}</div>
+                <p className="text-blue-100">Total Users</p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <Card className="bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 text-white rounded-xl shadow-lg border-0">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="bg-green-500 p-2 rounded-lg">
+                  <div className="bg-white/20 p-2 rounded-lg">
                     <Package className="h-5 w-5 text-white" />
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">Inventory</Badge>
+                  <Badge className="bg-white/20 text-white border-white/30">Inventory</Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-green-900 mb-1">{products.length}</div>
-                <p className="text-sm text-green-700">Products</p>
+                <div className="text-3xl font-bold mb-1">{products.length}</div>
+                <p className="text-purple-100">Products</p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <Card className="bg-gradient-to-br from-green-500 via-green-600 to-green-700 text-white rounded-xl shadow-lg border-0">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="bg-purple-500 p-2 rounded-lg">
-                    <Heart className="h-5 w-5 text-white" />
-                  </div>
-                  <Badge variant="secondary" className="bg-purple-100 text-purple-700">Saved</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-purple-900 mb-1">{wishlists.length}</div>
-                <p className="text-sm text-purple-700">Wishlists</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="bg-orange-500 p-2 rounded-lg">
+                  <div className="bg-white/20 p-2 rounded-lg">
                     <MessageSquare className="h-5 w-5 text-white" />
                   </div>
-                  <Badge variant="secondary" className="bg-orange-100 text-orange-700">New</Badge>
+                  <Badge className="bg-white/20 text-white border-white/30">Support</Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-orange-900 mb-1">{messages.length}</div>
-                <p className="text-sm text-orange-700">Messages</p>
+                <div className="text-3xl font-bold mb-1">{messages.length}</div>
+                <p className="text-green-100">Messages</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-pink-500 via-pink-600 to-pink-700 text-white rounded-xl shadow-lg border-0">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <Heart className="h-5 w-5 text-white" />
+                  </div>
+                  <Badge className="bg-white/20 text-white border-white/30">Engagement</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold mb-1">{wishlists.length}</div>
+                <p className="text-pink-100">Wishlist Items</p>
               </CardContent>
             </Card>
           </div>
 
-          <Tabs defaultValue="users" className="space-y-8">
+          <Tabs defaultValue="overview" className="space-y-8">
             <TabsList className="bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
-              <TabsTrigger value="users" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-lg px-6 py-3 font-medium">
-                <Users className="w-4 h-4 mr-2" />
-                Users
+              <TabsTrigger value="overview" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-lg px-4 py-3 font-medium">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Overview
               </TabsTrigger>
-              <TabsTrigger value="products" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700 rounded-lg px-6 py-3 font-medium">
+              <TabsTrigger value="products" className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 rounded-lg px-4 py-3 font-medium">
                 <Package className="w-4 h-4 mr-2" />
                 Products
               </TabsTrigger>
-              <TabsTrigger value="messages" className="data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 rounded-lg px-6 py-3 font-medium">
+              <TabsTrigger value="users" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700 rounded-lg px-4 py-3 font-medium">
+                <Users className="w-4 h-4 mr-2" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="wishlists" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 rounded-lg px-4 py-3 font-medium">
+                <Heart className="w-4 h-4 mr-2" />
+                User Wishlists
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 rounded-lg px-4 py-3 font-medium">
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Messages
               </TabsTrigger>
-              <TabsTrigger value="wishlists" className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 rounded-lg px-6 py-3 font-medium">
-                <Heart className="w-4 h-4 mr-2" />
-                Wishlists
-              </TabsTrigger>
-              <TabsTrigger value="reviews" className="data-[state=active]:bg-yellow-50 data-[state=active]:text-yellow-700 rounded-lg px-6 py-3 font-medium">
-                <Star className="w-4 h-4 mr-2" />
-                Reviews
-              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="users">
+            <TabsContent value="overview">
               <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
                 <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
                   <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
                     <div className="bg-blue-500 p-2 rounded-lg">
-                      <Users className="h-5 w-5 text-white" />
+                      <TrendingUp className="h-5 w-5 text-white" />
                     </div>
-                    User Management
+                    Overview
                   </CardTitle>
-                  <CardDescription className="text-gray-600">View and manage customer accounts</CardDescription>
+                  <CardDescription className="text-gray-600">Key performance indicators and analytics</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    {users.length > 0 ? users.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-blue-100 p-3 rounded-full">
-                            <User className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{user.username || 'No username'}</p>
-                            <p className="text-sm text-gray-600">{user.email}</p>
-                            <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
-                              {user.role}
-                            </Badge>
-                          </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-blue-100 p-3 rounded-full">
+                          <Users className="h-5 w-5 text-blue-600" />
                         </div>
-                        <div className="text-right">
-                          <div className="flex items-center text-sm text-gray-500 mb-1">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">Total Users</p>
+                          <p className="text-sm text-gray-600">{users.length}</p>
                         </div>
                       </div>
-                    )) : (
-                      <div className="text-center py-12">
-                        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No users found</p>
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-green-100 p-3 rounded-full">
+                          <Package className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">Total Products</p>
+                          <p className="text-sm text-green-600">{products.length}</p>
+                        </div>
                       </div>
-                    )}
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-orange-100 p-3 rounded-full">
+                          <MessageSquare className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">Total Messages</p>
+                          <p className="text-sm text-orange-600">{messages.length}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-purple-100 p-3 rounded-full">
+                          <Heart className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">Total Wishlists</p>
+                          <p className="text-sm text-purple-600">{wishlists.length}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -471,7 +511,7 @@ const AdminDashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <form onSubmit={handleAddProduct} className="space-y-6">
+                    <form onSubmit={handleCreateProduct} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <Label htmlFor="name" className="text-sm font-medium text-gray-700">Product Name</Label>
@@ -605,6 +645,128 @@ const AdminDashboard = () => {
               </div>
             </TabsContent>
 
+            <TabsContent value="users">
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-blue-500 p-2 rounded-lg">
+                      <Users className="h-5 w-5 text-white" />
+                    </div>
+                    User Management
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">View and manage customer accounts</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {users.length > 0 ? users.map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-blue-100 p-3 rounded-full">
+                            <User className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{user.username || 'No username'}</p>
+                            <p className="text-sm text-gray-600">{user.email}</p>
+                            <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
+                              {user.role}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center text-sm text-gray-500 mb-1">
+                            <Calendar className="h-4 w-4 mr-1" />
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="text-center py-12">
+                        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No users found</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="wishlists" className="space-y-8">
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-pink-500 p-2 rounded-lg">
+                      <Heart className="h-5 w-5 text-white" />
+                    </div>
+                    User Wishlists ({wishlists.length} items)
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">Monitor user wishlist items and preferences</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {wishlists.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User</TableHead>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Added Date</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {wishlists.map((wishlist) => (
+                          <TableRow key={wishlist.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{wishlist.profiles?.username || 'Unknown User'}</p>
+                                <p className="text-sm text-gray-500">{wishlist.profiles?.email || 'No email'}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                <img 
+                                  src={wishlist.product_image || '/placeholder.svg'} 
+                                  alt={wishlist.product_name || 'Product'}
+                                  className="w-10 h-10 object-cover rounded border"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/placeholder.svg';
+                                  }}
+                                />
+                                <div>
+                                  <p className="font-medium">{wishlist.product_name || 'Unknown Product'}</p>
+                                  <p className="text-sm text-gray-500">ID: {wishlist.product_id}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">₱{wishlist.product_price || 0}</TableCell>
+                            <TableCell>{new Date(wishlist.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => deleteWishlistItem(wishlist.id)}
+                                className="rounded-lg"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No wishlist items found</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Users haven't added any items to their wishlists yet
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="messages">
               <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
                 <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
@@ -644,43 +806,6 @@ const AdminDashboard = () => {
                         <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500">No messages found</p>
                         <p className="text-sm text-gray-400 mt-2">Messages will appear here when customers contact you</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="wishlists">
-              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
-                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
-                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
-                    <div className="bg-purple-500 p-2 rounded-lg">
-                      <Heart className="h-5 w-5 text-white" />
-                    </div>
-                    User Wishlists
-                  </CardTitle>
-                  <CardDescription className="text-gray-600">Items saved by customers</CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {wishlists.length > 0 ? wishlists.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div className="flex items-center space-x-4">
-                          <img src={item.product_image} alt={item.product_name} className="w-12 h-12 object-cover rounded-lg border border-gray-300" />
-                          <div>
-                            <p className="font-semibold text-gray-900">{item.product_name}</p>
-                            <p className="text-sm text-gray-600">
-                              by {item.profiles?.username || 'Unknown User'}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">₱{item.product_price}</Badge>
-                      </div>
-                    )) : (
-                      <div className="text-center py-12">
-                        <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No wishlist items found</p>
                       </div>
                     )}
                   </div>
