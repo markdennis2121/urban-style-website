@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -235,10 +236,12 @@ const Checkout = () => {
                   <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="email">Email *</Label>
+                      <Label htmlFor="checkout-email">Email *</Label>
                       <Input
-                        id="email"
+                        id="checkout-email"
+                        name="email"
                         type="email"
+                        autoComplete="email"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         required
@@ -254,9 +257,11 @@ const Checkout = () => {
                   <h2 className="text-xl font-semibold mb-4">Shipping Address</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="firstName">First Name *</Label>
+                      <Label htmlFor="checkout-firstName">First Name *</Label>
                       <Input
-                        id="firstName"
+                        id="checkout-firstName"
+                        name="firstName"
+                        autoComplete="given-name"
                         value={formData.firstName}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
                         required
@@ -265,9 +270,11 @@ const Checkout = () => {
                       {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Label htmlFor="checkout-lastName">Last Name *</Label>
                       <Input
-                        id="lastName"
+                        id="checkout-lastName"
+                        name="lastName"
+                        autoComplete="family-name"
                         value={formData.lastName}
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
                         required
@@ -276,47 +283,64 @@ const Checkout = () => {
                       {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
                     </div>
                     <div className="md:col-span-2">
-                      <Label htmlFor="address">Address</Label>
+                      <Label htmlFor="checkout-address">Address *</Label>
                       <Input
-                        id="address"
+                        id="checkout-address"
+                        name="address"
+                        autoComplete="street-address"
                         value={formData.address}
                         onChange={(e) => handleInputChange('address', e.target.value)}
                         required
+                        className={errors.address ? 'border-red-500' : ''}
                       />
+                      {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="city">City</Label>
+                      <Label htmlFor="checkout-city">City *</Label>
                       <Input
-                        id="city"
+                        id="checkout-city"
+                        name="city"
+                        autoComplete="address-level2"
                         value={formData.city}
                         onChange={(e) => handleInputChange('city', e.target.value)}
                         required
+                        className={errors.city ? 'border-red-500' : ''}
                       />
+                      {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="state">State</Label>
+                      <Label htmlFor="checkout-state">State *</Label>
                       <Input
-                        id="state"
+                        id="checkout-state"
+                        name="state"
+                        autoComplete="address-level1"
                         value={formData.state}
                         onChange={(e) => handleInputChange('state', e.target.value)}
                         required
+                        className={errors.state ? 'border-red-500' : ''}
                       />
+                      {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="zipCode">ZIP Code</Label>
+                      <Label htmlFor="checkout-zipCode">ZIP Code *</Label>
                       <Input
-                        id="zipCode"
+                        id="checkout-zipCode"
+                        name="zipCode"
+                        autoComplete="postal-code"
                         value={formData.zipCode}
                         onChange={(e) => handleInputChange('zipCode', e.target.value)}
                         required
+                        className={errors.zipCode ? 'border-red-500' : ''}
                       />
+                      {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="country">Country</Label>
+                      <Label htmlFor="checkout-country">Country</Label>
                       <Select value={formData.country} onValueChange={(value) => handleInputChange('country', value)}>
-                        <SelectTrigger>
+                        <SelectTrigger id="checkout-country" name="country">
                           <SelectValue />
-                        </SelectTrigger>                        <SelectContent>
+                        </SelectTrigger>
+                        <SelectContent>
                           <SelectItem value="PH">Philippines</SelectItem>
                           <SelectItem value="SG">Singapore</SelectItem>
                           <SelectItem value="MY">Malaysia</SelectItem>
@@ -335,44 +359,60 @@ const Checkout = () => {
                   </h2>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="nameOnCard">Name on Card</Label>
+                      <Label htmlFor="checkout-nameOnCard">Name on Card *</Label>
                       <Input
-                        id="nameOnCard"
+                        id="checkout-nameOnCard"
+                        name="nameOnCard"
+                        autoComplete="cc-name"
                         value={formData.nameOnCard}
                         onChange={(e) => handleInputChange('nameOnCard', e.target.value)}
                         required
+                        className={errors.nameOnCard ? 'border-red-500' : ''}
                       />
+                      {errors.nameOnCard && <p className="text-red-500 text-sm mt-1">{errors.nameOnCard}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="cardNumber">Card Number</Label>
+                      <Label htmlFor="checkout-cardNumber">Card Number *</Label>
                       <Input
-                        id="cardNumber"
+                        id="checkout-cardNumber"
+                        name="cardNumber"
+                        autoComplete="cc-number"
                         placeholder="1234 5678 9012 3456"
                         value={formData.cardNumber}
                         onChange={(e) => handleInputChange('cardNumber', e.target.value)}
                         required
+                        className={errors.cardNumber ? 'border-red-500' : ''}
                       />
+                      {errors.cardNumber && <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="expiryDate">Expiry Date</Label>
+                        <Label htmlFor="checkout-expiryDate">Expiry Date *</Label>
                         <Input
-                          id="expiryDate"
+                          id="checkout-expiryDate"
+                          name="expiryDate"
+                          autoComplete="cc-exp"
                           placeholder="MM/YY"
                           value={formData.expiryDate}
                           onChange={(e) => handleInputChange('expiryDate', e.target.value)}
                           required
+                          className={errors.expiryDate ? 'border-red-500' : ''}
                         />
+                        {errors.expiryDate && <p className="text-red-500 text-sm mt-1">{errors.expiryDate}</p>}
                       </div>
                       <div>
-                        <Label htmlFor="cvv">CVV</Label>
+                        <Label htmlFor="checkout-cvv">CVV *</Label>
                         <Input
-                          id="cvv"
+                          id="checkout-cvv"
+                          name="cvv"
+                          autoComplete="cc-csc"
                           placeholder="123"
                           value={formData.cvv}
                           onChange={(e) => handleInputChange('cvv', e.target.value)}
                           required
+                          className={errors.cvv ? 'border-red-500' : ''}
                         />
+                        {errors.cvv && <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>}
                       </div>
                     </div>
                   </div>
@@ -417,7 +457,8 @@ const Checkout = () => {
                   <Separator className="my-4" />
 
                   <div className="space-y-2 mb-4">
-                    <div className="flex justify-between">                      <span>Subtotal</span>
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
                       <span>₱{state.total.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
