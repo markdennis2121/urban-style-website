@@ -1,20 +1,22 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import ProductReviews from '../components/ProductReviews';
 import { products } from '../data/products';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, ShoppingCart, Heart, Share2, ArrowLeft, Plus, Minus, Truck, Shield, RotateCcw } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useWishlist } from '../contexts/WishlistContext';
 import { useToast } from '@/hooks/use-toast';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const product = products.find(p => p.id === id);
   const { dispatch } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
   
   const [selectedImage, setSelectedImage] = useState(0);
@@ -57,12 +59,20 @@ const ProductDetail = () => {
     });
   };
 
+  const handleWishlist = () => {
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id);
+    } else {
+      addToWishlist(product);
+    }
+  };
+
   const handleQuantityChange = (delta: number) => {
     setQuantity(Math.max(1, quantity + delta));
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background">
       <Header />
       
       <div className="pt-24 pb-16">
@@ -79,7 +89,7 @@ const ProductDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
             {/* Product Images */}
             <div className="space-y-4">
-              <div className="aspect-square rounded-xl overflow-hidden bg-muted">
+              <div className="aspect-square rounded-2xl overflow-hidden bg-muted shadow-xl">
                 <img 
                   src={product.images[selectedImage]} 
                   alt={product.name}
@@ -93,7 +103,7 @@ const ProductDetail = () => {
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
+                      className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors ${
                         selectedImage === index ? 'border-primary' : 'border-transparent'
                       }`}
                     >
@@ -227,16 +237,25 @@ const ProductDetail = () => {
                   size="lg" 
                   onClick={handleAddToCart}
                   disabled={!product.inStock}
-                  className="flex-1"
+                  className="flex-1 rounded-xl"
                 >
                   <ShoppingCart className="w-5 h-5 mr-2" />
                   {product.inStock ? 'Add to Cart' : 'Out of Stock'}
                 </Button>
-                <Button variant="outline" size="lg">
-                  <Heart className="w-5 h-5 mr-2" />
-                  Wishlist
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={handleWishlist}
+                  className={`rounded-xl ${
+                    isInWishlist(product.id) 
+                      ? 'bg-red-500 text-white hover:bg-red-600 border-red-500' 
+                      : ''
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 mr-2 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                  {isInWishlist(product.id) ? 'In Wishlist' : 'Wishlist'}
                 </Button>
-                <Button variant="outline" size="lg">
+                <Button variant="outline" size="lg" className="rounded-xl">
                   <Share2 className="w-5 h-5" />
                 </Button>
               </div>
@@ -259,42 +278,8 @@ const ProductDetail = () => {
             </div>
           </div>
 
-          {/* Product Details Tabs */}
-          <div className="border-t pt-16">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Product Features</h3>
-                <ul className="space-y-2">
-                  {product.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-primary rounded-full"></div>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Customer Reviews</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className="w-4 h-4 text-yellow-400 fill-current" 
-                        />
-                      ))}
-                    </div>
-                    <span className="font-medium">Amazing quality!</span>
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    "Great product, exactly as described. Fast shipping and excellent customer service."
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Product Reviews */}
+          <ProductReviews productId={product.id} />
         </div>
       </div>
 

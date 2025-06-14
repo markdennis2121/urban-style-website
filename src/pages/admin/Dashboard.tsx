@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Edit, Package, Users, MessageSquare, Plus, LogOut } from 'lucide-react';
+import { Trash2, Package, Users, MessageSquare, Plus, LogOut, Shield, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const predefinedCategories = [
@@ -21,6 +22,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newProduct, setNewProduct] = useState({
@@ -37,6 +39,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     loadProducts();
     loadUsers();
+    loadAdmins();
     loadMessages();
   }, []);
 
@@ -59,12 +62,28 @@ const AdminDashboard = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
+        .eq('role', 'user')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setUsers(data || []);
     } catch (err) {
       console.error('Error loading users:', err);
+    }
+  };
+
+  const loadAdmins = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ['admin', 'super_admin'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAdmins(data || []);
+    } catch (err) {
+      console.error('Error loading admins:', err);
     } finally {
       setLoading(false);
     }
@@ -217,7 +236,7 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
@@ -238,7 +257,7 @@ const AdminDashboard = () => {
             <Button 
               onClick={handleLogout}
               variant="outline"
-              className="flex items-center gap-2 hover:bg-destructive hover:text-destructive-foreground border-border"
+              className="flex items-center gap-2 hover:bg-destructive hover:text-destructive-foreground border-border rounded-xl"
             >
               <LogOut className="w-4 h-4" />
               Logout
@@ -249,40 +268,54 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:shadow-lg transition-all duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:shadow-lg transition-all duration-300 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-primary/10 rounded-full">
                   <Package className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Products</p>
+                  <p className="text-sm text-muted-foreground">Products</p>
                   <p className="text-2xl font-bold text-foreground">{products.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20 hover:shadow-lg transition-all duration-300">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20 hover:shadow-lg transition-all duration-300 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-secondary/10 rounded-full">
-                  <Users className="w-6 h-6 text-secondary-foreground" />
+                <div className="p-3 bg-blue-500/10 rounded-full">
+                  <Users className="w-6 h-6 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-sm text-muted-foreground">Users</p>
                   <p className="text-2xl font-bold text-foreground">{users.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20 hover:shadow-lg transition-all duration-300">
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20 hover:shadow-lg transition-all duration-300 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-accent/10 rounded-full">
-                  <MessageSquare className="w-6 h-6 text-accent-foreground" />
+                <div className="p-3 bg-green-500/10 rounded-full">
+                  <Shield className="w-6 h-6 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Admins</p>
+                  <p className="text-2xl font-bold text-foreground">{admins.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20 hover:shadow-lg transition-all duration-300 rounded-2xl">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-orange-500/10 rounded-full">
+                  <MessageSquare className="w-6 h-6 text-orange-500" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Messages</p>
@@ -295,16 +328,20 @@ const AdminDashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1 rounded-xl">
-            <TabsTrigger value="products" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsList className="bg-muted/50 p-1 rounded-2xl">
+            <TabsTrigger value="products" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-xl">
               <Package className="w-4 h-4" />
               Products
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-xl">
               <Users className="w-4 h-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="messages" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger value="admins" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-xl">
+              <Shield className="w-4 h-4" />
+              Admins
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-xl">
               <MessageSquare className="w-4 h-4" />
               Messages
             </TabsTrigger>
@@ -512,17 +549,20 @@ const AdminDashboard = () => {
 
           {/* Users Tab */}
           <TabsContent value="users">
-            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg">
-              <CardHeader className="border-b border-border">
-                <CardTitle className="text-foreground">Users ({users.length})</CardTitle>
+            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg rounded-2xl">
+              <CardHeader className="border-b border-border rounded-t-2xl">
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Regular Users ({users.length})
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {users.map((user) => (
-                    <div key={user.id} className="bg-background/50 border border-border rounded-lg p-4 hover:shadow-md transition-all duration-300">
+                    <div key={user.id} className="bg-background/50 border border-border rounded-xl p-4 hover:shadow-md transition-all duration-300">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          <Users className="w-5 h-5 text-primary" />
+                        <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
+                          <Users className="w-5 h-5 text-blue-500" />
                         </div>
                         <div>
                           <h3 className="font-semibold text-foreground">{user.full_name || 'No name'}</h3>
@@ -530,7 +570,48 @@ const AdminDashboard = () => {
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Role: <Badge variant="outline" className="ml-1 border-border">{user.role || 'user'}</Badge>
+                        Role: <Badge variant="outline" className="ml-1 border-border">user</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Admins Tab */}
+          <TabsContent value="admins">
+            <Card className="bg-card/50 backdrop-blur-sm border-border shadow-lg rounded-2xl">
+              <CardHeader className="border-b border-border rounded-t-2xl">
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Admin Accounts ({admins.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {admins.map((admin) => (
+                    <div key={admin.id} className="bg-background/50 border border-border rounded-xl p-4 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          admin.role === 'super_admin' ? 'bg-red-500/10' : 'bg-green-500/10'
+                        }`}>
+                          <Shield className={`w-5 h-5 ${
+                            admin.role === 'super_admin' ? 'text-red-500' : 'text-green-500'
+                          }`} />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground">{admin.full_name || 'No name'}</h3>
+                          <p className="text-sm text-muted-foreground">{admin.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Role: <Badge 
+                          variant={admin.role === 'super_admin' ? 'destructive' : 'default'} 
+                          className="ml-1"
+                        >
+                          {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                        </Badge>
                       </div>
                     </div>
                   ))}
