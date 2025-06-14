@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Menu, X, User, LogOut, Heart, LogIn } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -124,6 +125,62 @@ const Header = () => {
     { name: 'Contact', href: '/contact', isActive: location.pathname === '/contact' },
   ];
 
+  // Don't render anything until we know the auth state
+  if (loading) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Left Side: Logo */}
+            <div className="flex items-center">
+              <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
+                <div className="w-[60px] h-[60px] rounded-lg flex items-center justify-center">
+                  <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
+                </div>
+              </Link>
+            </div>
+
+            {/* Center: Desktop Navigation */}
+            <nav className="hidden md:flex">
+              <ul className="flex items-center justify-center">
+                {navItems.map((item) => (
+                  <li key={item.name} className="px-5 relative group">
+                    <Link
+                      className={`text-primary hover:text-muted-foreground transition-colors duration-200 relative ${
+                        item.isActive ? 'font-bold' : ''
+                      }`}
+                      to={item.href}
+                    >
+                      {item.name}
+                      <span
+                        className={`absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 ${
+                          item.isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                        }`}
+                      ></span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            {/* Right side: Loading state */}
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+              <div className="md:hidden">
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="text-primary hover:text-muted-foreground transition-colors duration-200"
+                >
+                  {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4">
@@ -209,10 +266,8 @@ const Header = () => {
               </Button>
             )}
 
-            {/* User Profile Dropdown or Login Button - Show loading state while determining auth */}
-            {loading ? (
-              <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
-            ) : isAuthenticated ? (
+            {/* User Profile Dropdown or Login Button */}
+            {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -318,11 +373,7 @@ const Header = () => {
                     showResults={false}
                   />
                 </div>
-                {loading ? (
-                  <div className="px-5 py-3">
-                    <div className="w-full h-8 bg-muted animate-pulse rounded" />
-                  </div>
-                ) : isAuthenticated ? (
+                {isAuthenticated ? (
                   <button 
                     onClick={handleLogout}
                     className="block w-full text-left px-5 py-3 text-primary hover:bg-muted/50 transition-colors"
@@ -345,82 +396,6 @@ const Header = () => {
       </div>
     </header>
   );
-};
-
-const loadSearchData = async () => {
-  try {
-    // Load products from database
-    const { data: dbProducts } = await supabase
-      .from('products')
-      .select('*')
-      .gt('stock', 0);
-
-    // Combine static and database products
-    const allProducts = [
-      ...products.filter(p => p.inStock).map(p => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        description: p.description,
-        type: 'product' as const,
-        url: `/product/${p.id}`,
-        image: p.image,
-        price: p.price
-      })),
-      ...(dbProducts || []).map(p => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        description: p.description,
-        type: 'product' as const,
-        url: `/product/${p.id}`,
-        image: p.image_url,
-        price: p.price
-      }))
-    ];
-
-    return allProducts;
-  } catch (error) {
-    console.error('Error loading search data:', error);
-    return [];
-  }
-};
-
-const handleSearch = (term: string, navigate: any) => {
-  if (term.trim()) {
-    navigate(`/shop?search=${encodeURIComponent(term)}`);
-  }
-};
-
-const handleAuthAction = (isAuthenticated: boolean, navigate: any) => (action: string) => {
-  if (!isAuthenticated) {
-    navigate('/login');
-    return false;
-  }
-  return true;
-};
-
-const handleCartClick = (isAuthenticated: boolean, navigate: any) => () => {
-  if (!handleAuthAction(isAuthenticated, navigate)('access cart')) return;
-  navigate('/cart');
-};
-
-const handleWishlistClick = (isAuthenticated: boolean, navigate: any) => () => {
-  if (!handleAuthAction(isAuthenticated, navigate)('access wishlist')) return;
-  navigate('/wishlist');
-};
-
-const handleLogout = async (navigate: any) => {
-  try {
-    console.log('User logging out...');
-    await supabase.auth.signOut();
-    // Don't manually navigate - let the auth state change handle it
-    // The useAuth hook will detect the sign out and update the state
-  } catch (error) {
-    console.error('Logout error:', error);
-    // Only navigate on error as fallback
-    navigate('/');
-  }
 };
 
 export default Header;
