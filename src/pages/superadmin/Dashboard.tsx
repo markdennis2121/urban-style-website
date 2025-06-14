@@ -150,7 +150,7 @@ const SuperAdminDashboard = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.log('Wishlists table not accessible, using empty array');
+        console.error('Error loading wishlists:', error);
         setWishlists([]);
         return;
       }
@@ -292,6 +292,31 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const deleteWishlistItem = async (wishlistId) => {
+    try {
+      const { error } = await supabase
+        .from('wishlists')
+        .delete()
+        .eq('id', wishlistId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Wishlist item deleted successfully.",
+      });
+
+      loadWishlists();
+    } catch (err) {
+      console.error('Error deleting wishlist item:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete wishlist item.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
@@ -425,6 +450,10 @@ const SuperAdminDashboard = () => {
               <TabsTrigger value="products" className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 rounded-lg px-4 py-3 font-medium">
                 <Package className="w-4 h-4 mr-2" />
                 Products
+              </TabsTrigger>
+              <TabsTrigger value="wishlists" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 rounded-lg px-4 py-3 font-medium">
+                <Heart className="w-4 h-4 mr-2" />
+                User Wishlists
               </TabsTrigger>
               <TabsTrigger value="messages" className="data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 rounded-lg px-4 py-3 font-medium">
                 <MessageSquare className="w-4 h-4 mr-2" />
@@ -714,6 +743,77 @@ const SuperAdminDashboard = () => {
                       </div>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="wishlists" className="space-y-8">
+              <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <div className="bg-pink-500 p-2 rounded-lg">
+                      <Heart className="h-5 w-5 text-white" />
+                    </div>
+                    User Wishlists
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">Monitor user wishlist items and preferences</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {wishlists.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User</TableHead>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Added Date</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {wishlists.map((wishlist) => (
+                          <TableRow key={wishlist.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{wishlist.profiles?.username || 'Unknown'}</p>
+                                <p className="text-sm text-gray-500">{wishlist.profiles?.email}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                <img 
+                                  src={wishlist.product_image || '/placeholder.svg'} 
+                                  alt={wishlist.product_name}
+                                  className="w-10 h-10 object-cover rounded border"
+                                />
+                                <div>
+                                  <p className="font-medium">{wishlist.product_name}</p>
+                                  <p className="text-sm text-gray-500">ID: {wishlist.product_id}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">₱{wishlist.product_price}</TableCell>
+                            <TableCell>{new Date(wishlist.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => deleteWishlistItem(wishlist.id)}
+                                className="rounded-lg"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No wishlist items found</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

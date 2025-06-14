@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -67,7 +66,6 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
 
-      // Check if wishlist table exists by trying to query it
       const { data, error } = await supabase
         .from('wishlists')
         .select('*')
@@ -75,8 +73,8 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.log('Wishlist table not found or accessible:', error.message);
-        // Fallback to local storage for now
+        console.error('Error loading wishlist from database:', error);
+        // Fallback to local storage
         const localWishlist = localStorage.getItem(`wishlist_${user.id}`);
         if (localWishlist) {
           dispatch({ type: 'SET_ITEMS', payload: JSON.parse(localWishlist) });
@@ -116,32 +114,32 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       const wishlistItem = {
-        id: crypto.randomUUID(),
+        user_id: user.id,
         product_id: product.id,
         product_name: product.name,
         product_price: product.price,
-        product_image: product.image,
-        created_at: new Date().toISOString(),
+        product_image: product.image || '/placeholder.svg',
       };
 
-      // Try to insert into database first
       const { data, error } = await supabase
         .from('wishlists')
-        .insert([{
-          user_id: user.id,
-          ...wishlistItem,
-        }])
+        .insert([wishlistItem])
         .select()
         .single();
 
       if (error) {
-        console.log('Database insert failed, using local storage:', error.message);
+        console.error('Database insert failed:', error);
         // Fallback to local storage
+        const localItem = {
+          id: crypto.randomUUID(),
+          ...wishlistItem,
+          created_at: new Date().toISOString(),
+        };
         const existingWishlist = localStorage.getItem(`wishlist_${user.id}`);
         const wishlist = existingWishlist ? JSON.parse(existingWishlist) : [];
-        wishlist.push(wishlistItem);
+        wishlist.push(localItem);
         localStorage.setItem(`wishlist_${user.id}`, JSON.stringify(wishlist));
-        dispatch({ type: 'ADD_ITEM', payload: wishlistItem });
+        dispatch({ type: 'ADD_ITEM', payload: localItem });
       } else {
         dispatch({ type: 'ADD_ITEM', payload: data });
       }
@@ -166,7 +164,6 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       if (!user) return;
 
-      // Try to delete from database first
       const { error } = await supabase
         .from('wishlists')
         .delete()
@@ -174,7 +171,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .eq('product_id', productId);
 
       if (error) {
-        console.log('Database delete failed, using local storage:', error.message);
+        console.error('Database delete failed:', error);
         // Fallback to local storage
         const existingWishlist = localStorage.getItem(`wishlist_${user.id}`);
         if (existingWishlist) {
