@@ -80,17 +80,17 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       
       <div className="pt-24 pb-12">
         <div className="max-w-7xl mx-auto px-6">
           {/* Header Section */}
           <div className="text-center mb-16">
-            <h1 className="text-5xl font-bold text-gray-900 mb-6">
+            <h1 className="text-5xl font-bold text-foreground mb-6">
               Get in Touch
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Have questions about our products or need assistance? We're here to help! 
               Reach out to us and we'll get back to you as soon as possible.
             </p>
@@ -98,15 +98,15 @@ const Contact = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
-            <Card className="bg-white border border-gray-200 rounded-2xl shadow-lg">
-              <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-2xl">
-                <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
-                  <div className="bg-blue-500 p-3 rounded-xl">
-                    <Mail className="h-6 w-6 text-white" />
+            <Card className="bg-card border-border rounded-2xl shadow-lg">
+              <CardHeader className="border-b border-border bg-muted rounded-t-2xl">
+                <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-foreground">
+                  <div className="bg-primary p-3 rounded-xl">
+                    <Mail className="h-6 w-6 text-primary-foreground" />
                   </div>
                   Send us a Message
                 </CardTitle>
-                <CardDescription className="text-gray-600 text-lg">
+                <CardDescription className="text-muted-foreground text-lg">
                   Fill out the form below and we'll respond within 24 hours
                 </CardDescription>
               </CardHeader>
@@ -114,7 +114,7 @@ const Contact = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
+                      <Label htmlFor="name" className="text-sm font-medium text-foreground mb-2 block">
                         Full Name *
                       </Label>
                       <Input
@@ -124,12 +124,12 @@ const Contact = () => {
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 h-12"
+                        className="rounded-xl border-input focus:border-primary focus:ring-primary h-12"
                         placeholder="Your full name"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email" className="text-sm font-medium text-gray-700 mb-2 block">
+                      <Label htmlFor="email" className="text-sm font-medium text-foreground mb-2 block">
                         Email Address *
                       </Label>
                       <Input
@@ -139,14 +139,14 @@ const Contact = () => {
                         value={formData.email}
                         onChange={handleChange}
                         required
-                        className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 h-12"
+                        className="rounded-xl border-input focus:border-primary focus:ring-primary h-12"
                         placeholder="your.email@example.com"
                       />
                     </div>
                   </div>
                   
                   <div>
-                    <Label htmlFor="subject" className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Label htmlFor="subject" className="text-sm font-medium text-foreground mb-2 block">
                       Subject *
                     </Label>
                     <Input
@@ -156,13 +156,13 @@ const Contact = () => {
                       value={formData.subject}
                       onChange={handleChange}
                       required
-                      className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 h-12"
+                      className="rounded-xl border-input focus:border-primary focus:ring-primary h-12"
                       placeholder="What can we help you with?"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="message" className="text-sm font-medium text-gray-700 mb-2 block">
+                    <Label htmlFor="message" className="text-sm font-medium text-foreground mb-2 block">
                       Message *
                     </Label>
                     <Textarea
@@ -172,7 +172,7 @@ const Contact = () => {
                       onChange={handleChange}
                       required
                       rows={6}
-                      className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none"
+                      className="rounded-xl border-input focus:border-primary focus:ring-primary resize-none"
                       placeholder="Please provide details about your inquiry..."
                     />
                   </div>
@@ -180,7 +180,7 @@ const Contact = () => {
                   <Button 
                     type="submit" 
                     disabled={loading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl text-lg transition-colors duration-200 disabled:opacity-50"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 px-6 rounded-xl text-lg transition-colors duration-200 disabled:opacity-50"
                   >
                     {loading ? 'Sending...' : 'Send Message'}
                   </Button>
@@ -190,11 +190,11 @@ const Contact = () => {
 
             {/* Contact Information */}
             <div className="space-y-8">
-              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 rounded-2xl shadow-lg">
-                <CardHeader className="border-b border-blue-200 bg-blue-50 rounded-t-2xl">
-                  <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-blue-900">
-                    <div className="bg-blue-500 p-3 rounded-xl">
-                      <MapPin className="h-6 w-6 text-white" />
+              <Card className="bg-gradient-to-br from-muted to-muted/50 border-border rounded-2xl shadow-lg">
+                <CardHeader className="border-b border-border bg-muted rounded-t-2xl">
+                  <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-foreground">
+                    <div className="bg-primary p-3 rounded-xl">
+                      <MapPin className="h-6 w-6 text-primary-foreground" />
                     </div>
                     Visit Our Store
                   </CardTitle>
@@ -202,12 +202,12 @@ const Contact = () => {
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div className="flex items-start gap-4">
-                      <div className="bg-blue-500 p-2 rounded-lg">
-                        <MapPin className="h-5 w-5 text-white" />
+                      <div className="bg-primary p-2 rounded-lg">
+                        <MapPin className="h-5 w-5 text-primary-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-blue-900 mb-1">Our Address</h3>
-                        <p className="text-blue-700">
+                        <h3 className="font-semibold text-foreground mb-1">Our Address</h3>
+                        <p className="text-muted-foreground">
                           123 Fashion Street<br />
                           Style District, Manila<br />
                           Philippines 1000
@@ -216,32 +216,32 @@ const Contact = () => {
                     </div>
                     
                     <div className="flex items-start gap-4">
-                      <div className="bg-blue-500 p-2 rounded-lg">
-                        <Phone className="h-5 w-5 text-white" />
+                      <div className="bg-primary p-2 rounded-lg">
+                        <Phone className="h-5 w-5 text-primary-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-blue-900 mb-1">Phone</h3>
-                        <p className="text-blue-700">+63 2 1234 5678</p>
+                        <h3 className="font-semibold text-foreground mb-1">Phone</h3>
+                        <p className="text-muted-foreground">+63 2 1234 5678</p>
                       </div>
                     </div>
                     
                     <div className="flex items-start gap-4">
-                      <div className="bg-blue-500 p-2 rounded-lg">
-                        <Mail className="h-5 w-5 text-white" />
+                      <div className="bg-primary p-2 rounded-lg">
+                        <Mail className="h-5 w-5 text-primary-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-blue-900 mb-1">Email</h3>
-                        <p className="text-blue-700">support@fashionstore.com</p>
+                        <h3 className="font-semibold text-foreground mb-1">Email</h3>
+                        <p className="text-muted-foreground">support@fashionstore.com</p>
                       </div>
                     </div>
                     
                     <div className="flex items-start gap-4">
-                      <div className="bg-blue-500 p-2 rounded-lg">
-                        <Clock className="h-5 w-5 text-white" />
+                      <div className="bg-primary p-2 rounded-lg">
+                        <Clock className="h-5 w-5 text-primary-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-blue-900 mb-1">Store Hours</h3>
-                        <p className="text-blue-700">
+                        <h3 className="font-semibold text-foreground mb-1">Store Hours</h3>
+                        <p className="text-muted-foreground">
                           Monday - Saturday: 9:00 AM - 8:00 PM<br />
                           Sunday: 10:00 AM - 6:00 PM
                         </p>
@@ -251,28 +251,28 @@ const Contact = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 rounded-2xl shadow-lg">
-                <CardHeader className="border-b border-green-200 bg-green-50 rounded-t-2xl">
-                  <CardTitle className="text-xl font-semibold text-green-900">
+              <Card className="bg-gradient-to-br from-accent to-accent/50 border-border rounded-2xl shadow-lg">
+                <CardHeader className="border-b border-border bg-accent rounded-t-2xl">
+                  <CardTitle className="text-xl font-semibold text-foreground">
                     Quick Support
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <p className="text-green-700 mb-4">
+                  <p className="text-muted-foreground mb-4">
                     Need immediate assistance? We're here to help!
                   </p>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                      <span className="text-green-700">Live chat available 24/7</span>
+                      <span className="w-3 h-3 bg-primary rounded-full"></span>
+                      <span className="text-muted-foreground">Live chat available 24/7</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                      <span className="text-green-700">Email response within 24 hours</span>
+                      <span className="w-3 h-3 bg-primary rounded-full"></span>
+                      <span className="text-muted-foreground">Email response within 24 hours</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                      <span className="text-green-700">Phone support during business hours</span>
+                      <span className="w-3 h-3 bg-primary rounded-full"></span>
+                      <span className="text-muted-foreground">Phone support during business hours</span>
                     </div>
                   </div>
                 </CardContent>
