@@ -3,6 +3,7 @@ import React from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import AboutSection from '../components/AboutSection';
+import TeamSection from '../components/TeamSection';
 
 const About = () => {
   return (
@@ -20,6 +21,9 @@ const About = () => {
       {/* About Content */}
       <AboutSection />
 
+      {/* Team Section */}
+      <TeamSection />
+
       {/* App Download Section */}
       <section className="py-20 bg-muted">
         <div className="max-w-7xl mx-auto px-4 text-center">
@@ -29,7 +33,8 @@ const About = () => {
           <p className="text-muted-foreground mb-12 text-lg">
             Get our mobile app for a better shopping experience with exclusive deals and faster checkout
           </p>
-          <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary/20 to-primary/10 p-12">          <div className="text-center">
+          <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary/20 to-primary/10 p-12">
+            <div className="text-center">
               <div className="w-32 h-32 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
                 <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
               </div>
