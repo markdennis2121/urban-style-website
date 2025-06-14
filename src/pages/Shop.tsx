@@ -1,4 +1,6 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
@@ -10,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, Grid, List } from 'lucide-react';
+import { searchItems } from '@/utils/searchUtils';
 
 const Shop = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dbProducts, setDbProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [priceRange, setPriceRange] = useState([0, 10000]);
@@ -26,18 +30,36 @@ const Shop = () => {
     loadProducts();
   }, []);
 
+  // Update search term when URL params change
+  useEffect(() => {
+    const urlSearch = searchParams.get('search');
+    if (urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch || '');
+    }
+  }, [searchParams]);
+
+  // Update URL when search term changes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (searchTerm.trim()) {
+      params.set('search', searchTerm);
+    } else {
+      params.delete('search');
+    }
+    setSearchParams(params, { replace: true });
+  }, [searchTerm, setSearchParams]);
+
   const loadProducts = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .gt('stock', 0) // Only load products with stock > 0
+        .gt('stock', 0)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      // Transform database products to match the expected format
       const transformedProducts = data.map(product => ({
         ...product,
         image: product.image_url,
@@ -58,37 +80,43 @@ const Shop = () => {
     }
   };
 
-  // Combine existing products (filter out of stock) with database products
   const allProducts = useMemo(() => {
     const inStockExistingProducts = existingProducts.filter(product => product.inStock);
     return [...inStockExistingProducts, ...dbProducts];
   }, [dbProducts]);
 
   const filteredProducts = useMemo(() => {
-    return allProducts
-      .filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            product.category.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-        const matchesBrand = selectedBrand === 'All Brands' || product.brand === selectedBrand;
-        const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
-        
-        return matchesSearch && matchesCategory && matchesBrand && matchesPrice;
-      })
-      .sort((a, b) => {
-        switch (sortBy) {
-          case 'price-low':
-            return a.price - b.price;
-          case 'price-high':
-            return b.price - a.price;
-          case 'rating':
-            return b.rating - a.rating;
-          case 'newest':
-            return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
-          default:
-            return a.name.localeCompare(b.name);
-        }
-      });
+    let filtered = allProducts;
+
+    // Apply search filter using the search utility
+    if (searchTerm.trim()) {
+      filtered = searchItems(filtered, searchTerm, ['name', 'category', 'description', 'brand']);
+    }
+
+    // Apply other filters
+    filtered = filtered.filter(product => {
+      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+      const matchesBrand = selectedBrand === 'All Brands' || product.brand === selectedBrand;
+      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
+      
+      return matchesCategory && matchesBrand && matchesPrice;
+    });
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'price-low':
+          return a.price - b.price;
+        case 'price-high':
+          return b.price - a.price;
+        case 'rating':
+          return b.rating - a.rating;
+        case 'newest':
+          return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
   }, [allProducts, searchTerm, selectedCategory, selectedBrand, priceRange, sortBy]);
 
   const clearFilters = () => {
@@ -97,6 +125,8 @@ const Shop = () => {
     setSelectedBrand('All Brands');
     setPriceRange([0, 10000]);
     setSortBy('name');
+    // Clear URL params
+    setSearchParams({}, { replace: true });
   };
 
   const activeFiltersCount = [
@@ -126,6 +156,11 @@ const Shop = () => {
           </h1>
           <div className="w-24 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50 mb-6 rounded-full"></div>
           <p className="text-xl text-muted-foreground font-light">Discover our complete collection of fashion items</p>
+          {searchTerm && (
+            <p className="text-lg text-muted-foreground mt-2">
+              Search results for: <span className="font-medium text-foreground">"{searchTerm}"</span>
+            </p>
+          )}
         </div>
       </section>
 
@@ -235,6 +270,7 @@ const Shop = () => {
                 </Button>
                 <span className="text-sm text-muted-foreground font-medium">
                   {filteredProducts.length} products found
+                  {searchTerm && ` for "${searchTerm}"`}
                 </span>
               </div>
 
@@ -295,7 +331,10 @@ const Shop = () => {
                 <div className="text-8xl mb-6 opacity-50">🔍</div>
                 <h3 className="text-2xl font-bold mb-4 text-foreground">No products found</h3>
                 <p className="text-muted-foreground mb-6 text-lg">
-                  Try adjusting your filters or search terms
+                  {searchTerm 
+                    ? `No results found for "${searchTerm}". Try different keywords or adjust your filters.`
+                    : 'Try adjusting your filters or search terms'
+                  }
                 </p>
                 <Button onClick={clearFilters} className="bg-primary hover:bg-primary/90 rounded-xl px-8 py-3">
                   Clear All Filters

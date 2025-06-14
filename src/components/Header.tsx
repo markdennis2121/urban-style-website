@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Menu, X, User, LogOut, Heart, Search } from 'lucide-react';
+import { ShoppingBag, Menu, X, User, LogOut, Heart } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
@@ -15,11 +14,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ProfileSettings from './ProfileSettings';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import GlobalSearch from './GlobalSearch';
+import { products } from '@/data/products';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [searchItems, setSearchItems] = useState([]);
   const { state } = useCart();
   const { state: wishlistState } = useWishlist();
   const location = useLocation();
@@ -27,6 +29,7 @@ const Header = () => {
 
   useEffect(() => {
     loadCurrentUser();
+    loadSearchData();
   }, []);
 
   const loadCurrentUser = async () => {
@@ -35,6 +38,50 @@ const Header = () => {
       setCurrentUser(profile);
     } catch (error) {
       console.error('Error loading user profile:', error);
+    }
+  };
+
+  const loadSearchData = async () => {
+    try {
+      // Load products from database
+      const { data: dbProducts } = await supabase
+        .from('products')
+        .select('*')
+        .gt('stock', 0);
+
+      // Combine static and database products
+      const allProducts = [
+        ...products.filter(p => p.inStock).map(p => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          description: p.description,
+          type: 'product' as const,
+          url: `/product/${p.id}`,
+          image: p.image,
+          price: p.price
+        })),
+        ...(dbProducts || []).map(p => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          description: p.description,
+          type: 'product' as const,
+          url: `/product/${p.id}`,
+          image: p.image_url,
+          price: p.price
+        }))
+      ];
+
+      setSearchItems(allProducts);
+    } catch (error) {
+      console.error('Error loading search data:', error);
+    }
+  };
+
+  const handleSearch = (term: string) => {
+    if (term.trim()) {
+      navigate(`/shop?search=${encodeURIComponent(term)}`);
     }
   };
 
@@ -109,15 +156,13 @@ const Header = () => {
           {/* Right side: Search, Wishlist, Cart, Profile */}
           <div className="flex items-center space-x-4">
             {/* Search */}
-            <div className="relative hidden md:block">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-40 h-8 rounded-lg border border-border/50 px-3 py-2 text-sm focus:outline-none focus:border-primary bg-background/50 text-foreground placeholder:text-muted-foreground"
+            <div className="hidden md:block">
+              <GlobalSearch
+                placeholder="Search products..."
+                className="w-64"
+                items={searchItems}
+                onSearch={handleSearch}
               />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <Search className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Wishlist */}
@@ -231,16 +276,16 @@ const Header = () => {
                   </Link>
                 ))}
                 <div className="px-5 py-3">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search..."
-                      className="w-full h-8 rounded-lg border border-border/50 px-3 py-2 text-sm focus:outline-none focus:border-primary bg-background/50 text-foreground placeholder:text-muted-foreground"
-                    />
-                    <button className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                      <Search className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <GlobalSearch
+                    placeholder="Search products..."
+                    className="w-full"
+                    items={searchItems}
+                    onSearch={(term) => {
+                      handleSearch(term);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    showResults={false}
+                  />
                 </div>
                 <button 
                   onClick={handleLogout}
