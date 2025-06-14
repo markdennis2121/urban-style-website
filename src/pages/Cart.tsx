@@ -1,15 +1,53 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useCart } from '../contexts/CartContext';
+import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+interface ProductStock {
+  id: string;
+  stock: number;
+}
 
 const Cart = () => {
   const { state, dispatch } = useCart();
+  const [productStocks, setProductStocks] = useState<ProductStock[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (state.items.length > 0) {
+      loadProductStocks();
+    } else {
+      setLoading(false);
+    }
+  }, [state.items]);
+
+  const loadProductStocks = async () => {
+    try {
+      const productIds = state.items.map(item => item.id);
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, stock')
+        .in('id', productIds);
+
+      if (error) throw error;
+      setProductStocks(data || []);
+    } catch (err) {
+      console.error('Error loading product stocks:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getProductStock = (productId: string) => {
+    const product = productStocks.find(p => p.id === productId);
+    return product ? product.stock : 0;
+  };
 
   const updateQuantity = (id: string, quantity: number) => {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } });
@@ -71,65 +109,87 @@ const Cart = () => {
               </div>
 
               <div className="space-y-4">
-                {state.items.map((item) => (
-                  <div key={`${item.id}-${item.size}-${item.color}`} className="bg-card rounded-lg p-4 shadow-sm">
-                    <div className="flex gap-4">
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-24 h-24 object-cover rounded-lg"
-                      />
-                      
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-semibold">{item.name}</h3>
-                            <div className="text-sm text-muted-foreground">
-                              {item.size && <span>Size: {item.size}</span>}
-                              {item.size && item.color && <span> • </span>}
-                              {item.color && <span>Color: {item.color}</span>}
-                            </div>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => removeItem(item.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                {state.items.map((item) => {
+                  const stock = getProductStock(item.id);
+                  const isLowStock = stock > 0 && stock <= 5;
+                  const isOutOfStock = stock === 0;
 
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
+                  return (
+                    <div key={`${item.id}-${item.size}-${item.color}`} className="bg-card rounded-lg p-4 shadow-sm">
+                      <div className="flex gap-4">
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-24 h-24 object-cover rounded-lg"
+                        />
+                        
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-semibold">{item.name}</h3>
+                              <div className="text-sm text-muted-foreground">
+                                {item.size && <span>Size: {item.size}</span>}
+                                {item.size && item.color && <span> • </span>}
+                                {item.color && <span>Color: {item.color}</span>}
+                              </div>
+                              
+                              {/* Stock Information */}
+                              <div className="flex items-center gap-2 mt-1">
+                                <Package className="w-3 h-3" />
+                                {loading ? (
+                                  <span className="text-xs text-muted-foreground">Loading stock...</span>
+                                ) : isOutOfStock ? (
+                                  <span className="text-xs text-red-600 font-medium">Out of stock</span>
+                                ) : isLowStock ? (
+                                  <span className="text-xs text-orange-600 font-medium">Only {stock} left</span>
+                                ) : (
+                                  <span className="text-xs text-green-600 font-medium">{stock} in stock</span>
+                                )}
+                              </div>
+                            </div>
                             <Button 
-                              variant="outline" 
+                              variant="ghost" 
                               size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              disabled={item.quantity <= 1}
-                              className="h-8 w-8"
+                              onClick={() => removeItem(item.id)}
+                              className="text-destructive hover:text-destructive"
                             >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                            <span className="w-8 text-center font-medium">{item.quantity}</span>
-                            <Button 
-                              variant="outline" 
-                              size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="h-8 w-8"
-                            >
-                              <Plus className="w-3 h-3" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
-                          
-                          <div className="text-right">                            <div className="font-semibold">₱{(item.price * item.quantity).toFixed(2)}</div>
-                            <div className="text-sm text-muted-foreground">₱{item.price} each</div>
+
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                disabled={item.quantity <= 1}
+                                className="h-8 w-8"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </Button>
+                              <span className="w-8 text-center font-medium">{item.quantity}</span>
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                disabled={isOutOfStock || item.quantity >= stock}
+                                className="h-8 w-8"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            
+                            <div className="text-right">
+                              <div className="font-semibold">₱{(item.price * item.quantity).toFixed(2)}</div>
+                              <div className="text-sm text-muted-foreground">₱{item.price} each</div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
