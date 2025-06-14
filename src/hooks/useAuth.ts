@@ -10,11 +10,15 @@ export const useAuth = () => {
 
   useEffect(() => {
     let mounted = true;
+    let sessionProcessed = false;
 
     const handleAuthSession = async (session: any) => {
-      if (!mounted) return;
+      if (!mounted || sessionProcessed) return;
 
+      console.log('handleAuthSession called with session:', session?.user?.id || 'null');
+      
       if (session?.user) {
+        sessionProcessed = true;
         console.log('Processing session for user:', session.user.id);
         try {
           const userProfile = await getCurrentProfile();
@@ -42,12 +46,15 @@ export const useAuth = () => {
       }
     };
 
-    // Get initial session immediately
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...');
+        
+        // Get current session
         const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (error) {
-          console.error('Error getting initial session:', error);
+          console.error('Error getting session:', error);
           if (mounted) {
             setProfile(null);
             setLoading(false);
@@ -55,11 +62,45 @@ export const useAuth = () => {
           }
           return;
         }
+
+        console.log('Initial session check:', session?.user?.id || 'No session');
         
-        console.log('Initial session:', session?.user?.id || 'No session');
+        // Process the session
         await handleAuthSession(session);
+
+        // Set up the auth state listener AFTER processing initial session
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+          console.log('Auth state changed:', event, newSession?.user?.id || 'null');
+          
+          if (!mounted) return;
+
+          // Reset the session processed flag for new auth events
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+            sessionProcessed = false;
+          }
+
+          // Skip INITIAL_SESSION since we already handled it above
+          if (event === 'INITIAL_SESSION') {
+            return;
+          }
+
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            await handleAuthSession(newSession);
+          } else if (event === 'SIGNED_OUT') {
+            console.log('User signed out');
+            if (mounted) {
+              setProfile(null);
+              setLoading(false);
+              setInitialized(true);
+            }
+          }
+        });
+
+        // Store subscription for cleanup
+        return subscription;
+        
       } catch (error) {
-        console.error('Error in getInitialSession:', error);
+        console.error('Error initializing auth:', error);
         if (mounted) {
           setProfile(null);
           setLoading(false);
@@ -68,43 +109,25 @@ export const useAuth = () => {
       }
     };
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
-      
-      if (!mounted) return;
-
-      // Skip INITIAL_SESSION since we handle it manually above
-      if (event === 'INITIAL_SESSION') {
-        return;
-      }
-
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        await handleAuthSession(session);
-      } else if (event === 'SIGNED_OUT' || !session) {
-        console.log('User signed out');
-        if (mounted) {
-          setProfile(null);
-          setLoading(false);
-          setInitialized(true);
-        }
-      }
+    // Start initialization
+    let subscription: any;
+    initializeAuth().then((sub) => {
+      subscription = sub;
     });
 
-    // Get initial session
-    getInitialSession();
-
-    // Cleanup
+    // Cleanup function
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
   return {
     profile,
     loading: loading && !initialized,
-    isAuthenticated: !!profile,
+    isAuthenticated: !!profile && initialized,
     isSuperAdmin: profile?.role === 'super_admin',
     isAdmin: profile?.role === 'admin' || profile?.role === 'super_admin'
   };
