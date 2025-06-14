@@ -39,7 +39,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToWishlist, isInWishlist } = useWishlist();
   const { addToCompare, isInCompare, canAddToCompare } = useProductComparison();
   const { canUseShoppingFeatures } = useAdminMode();
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, initialized } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -141,6 +141,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isWishlisted = isAuthenticated && isInWishlist(productIdString);
   const isInComparison = isInCompare(productIdString);
 
+  // Don't show loading states if we're already initialized
+  const showLoadingState = loading && !initialized;
+
   return (
     <Card className="group bg-card/60 backdrop-blur-md border border-border/50 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 sm:hover:-translate-y-2">
       <Link to={`/product/${productIdString}`} className="block">
@@ -163,7 +166,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               onWishlistToggle={handleWishlistToggle}
               onCompareToggle={handleCompareToggle}
               onAddToCart={handleAddToCart}
-              loading={loading}
+              loading={showLoadingState}
             />
           )}
         </div>
@@ -177,7 +180,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               inStock={product.inStock}
               onAddToCart={handleAddToCart}
               onLoginRedirect={handleLoginRedirect}
-              loading={loading}
+              loading={showLoadingState}
             />
           )}
         </CardContent>

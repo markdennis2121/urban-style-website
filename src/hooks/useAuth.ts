@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCurrentProfile, Profile } from '@/lib/supabase/client';
 import { supabase } from '@/lib/supabase/client';
 
@@ -7,15 +7,20 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const initRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
+      // Prevent multiple initializations
+      if (initRef.current) return;
+      initRef.current = true;
+
       try {
-        console.log('Instant auth check...');
+        console.log('Checking auth state...');
         
-        // Get current session immediately - this is synchronous if cached
+        // Get session synchronously from local storage first
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -28,17 +33,17 @@ export const useAuth = () => {
           return;
         }
 
-        // If we have a session, immediately set loading to false and get profile
         if (session?.user) {
-          console.log('User already authenticated, loading profile instantly...');
+          console.log('User session found, fetching profile...');
+          // User is authenticated - set initialized immediately to prevent flash
           if (mounted) {
-            setLoading(false); // Set loading false immediately
             setInitialized(true);
+            setLoading(false);
           }
           
           try {
             const userProfile = await getCurrentProfile();
-            if (mounted) {
+            if (mounted && userProfile) {
               console.log('Profile loaded:', userProfile);
               setProfile(userProfile);
             }
@@ -65,19 +70,18 @@ export const useAuth = () => {
 
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             if (newSession?.user) {
+              setInitialized(true);
+              setLoading(false);
+              
               try {
                 const userProfile = await getCurrentProfile();
                 if (mounted) {
                   setProfile(userProfile);
-                  setLoading(false);
-                  setInitialized(true);
                 }
               } catch (error) {
                 console.error('Error getting profile after sign in:', error);
                 if (mounted) {
                   setProfile(null);
-                  setLoading(false);
-                  setInitialized(true);
                 }
               }
             }
