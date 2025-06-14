@@ -12,11 +12,12 @@ CREATE TABLE IF NOT EXISTS contact_messages (
 -- Enable RLS
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Create policies
+-- Create policies - Allow anyone to insert contact messages (not just authenticated users)
 CREATE POLICY "Anyone can insert contact messages" ON contact_messages
-    FOR INSERT TO authenticated
+    FOR INSERT 
     WITH CHECK (true);
 
+-- Admins and super admins can view all contact messages
 CREATE POLICY "Admins can view all contact messages" ON contact_messages
     FOR SELECT TO authenticated
     USING (

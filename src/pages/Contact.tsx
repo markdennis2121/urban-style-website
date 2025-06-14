@@ -29,16 +29,24 @@ const Contact = () => {
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase
+      console.log('Attempting to send message:', formData);
+      
+      const { data, error } = await supabase
         .from('contact_messages')
         .insert([{
           name: formData.name,
           email: formData.email,
           subject: formData.subject,
           message: formData.message
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Message sent successfully:', data);
 
       toast({
         title: "Message sent!",
@@ -177,7 +185,8 @@ const Contact = () => {
                     </p>
                   </div>
                 </div>
-              </div>              
+              </div>
+              
               {/* Map */}
               <div className="mt-8">
                 <h3 className="font-semibold mb-4 text-foreground">Find us here</h3>
