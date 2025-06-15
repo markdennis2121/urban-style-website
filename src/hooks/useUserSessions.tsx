@@ -100,30 +100,36 @@ export const useUserSessions = () => {
 
   // Load all active sessions (admin only) with better error handling
   const loadActiveSessions = useCallback(async () => {
+    // Only load if user has admin privileges
+    if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+      console.log('User does not have admin privileges:', profile?.role);
+      setActiveSessions([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       
-      console.log('Loading active sessions...');
+      console.log('Loading active sessions for admin user:', profile.role);
       
-      // Clean up old sessions first (older than 30 minutes)
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      // Use longer window for active sessions (1 hour instead of 30 minutes)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       
-      // Clean up old sessions
-      const { error: cleanupError } = await supabase
-        .from('user_sessions')
-        .delete()
-        .lt('last_activity', thirtyMinutesAgo);
-
-      if (cleanupError) {
-        console.log('Cleanup warning (non-critical):', cleanupError.message);
-      }
-
-      // Get active sessions with a more permissive query
+      // Get active sessions with direct query
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('user_sessions')
-        .select('*')
-        .gte('last_activity', thirtyMinutesAgo)
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            full_name,
+            email,
+            role
+          )
+        `)
+        .gte('last_activity', oneHourAgo)
         .order('last_activity', { ascending: false });
 
       if (sessionsError) {
@@ -131,7 +137,7 @@ export const useUserSessions = () => {
         throw new Error(`Failed to fetch sessions: ${sessionsError.message}`);
       }
 
-      console.log('Raw sessions fetched:', sessionsData?.length || 0);
+      console.log('Sessions fetched successfully:', sessionsData?.length || 0);
 
       if (!sessionsData || sessionsData.length === 0) {
         console.log('No active sessions found');
@@ -139,38 +145,20 @@ export const useUserSessions = () => {
         return;
       }
 
-      // Get user profiles for the sessions
-      const userIds = [...new Set(sessionsData.map(session => session.user_id))];
-      console.log('Fetching profiles for users:', userIds.length);
-      
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role')
-        .in('id', userIds);
-
-      if (profilesError) {
-        console.error('Profiles fetch error:', profilesError);
-        // Continue without profiles rather than failing completely
-        setActiveSessions(sessionsData);
-        return;
-      }
-
-      console.log('Profiles fetched:', profilesData?.length || 0);
-
-      // Enrich sessions with profile data
-      const enrichedSessions = sessionsData.map(session => ({
+      // Transform the data to match our interface
+      const transformedSessions = sessionsData.map(session => ({
         ...session,
-        profiles: profilesData?.find(p => p.id === session.user_id) || null
+        profiles: Array.isArray(session.profiles) ? session.profiles[0] : session.profiles
       }));
 
-      console.log('Enriched sessions:', enrichedSessions.map(s => ({
+      console.log('Transformed sessions:', transformedSessions.map(s => ({
         user_id: s.user_id,
         role: s.profiles?.role,
         email: s.profiles?.email,
         last_activity: s.last_activity
       })));
 
-      setActiveSessions(enrichedSessions);
+      setActiveSessions(transformedSessions);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -180,7 +168,7 @@ export const useUserSessions = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [profile]);
 
   // Update session on component mount and periodically for ALL users
   useEffect(() => {
