@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useWishlist } from '@/contexts/WishlistContext';
@@ -5,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface User {
   id: string;
-  username: string;
+  full_name: string;
   email: string;
   role: string;
   created_at: string;
