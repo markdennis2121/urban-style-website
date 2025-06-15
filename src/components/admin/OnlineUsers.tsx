@@ -3,20 +3,31 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Clock, Wifi } from 'lucide-react';
+import { Users, Clock, Wifi, AlertCircle } from 'lucide-react';
 import { useUserSessions } from '@/hooks/useUserSessions';
 import { formatDistanceToNow } from 'date-fns';
 
 const OnlineUsers = () => {
   const { activeSessions, loading, loadActiveSessions } = useUserSessions();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadActiveSessions();
+    const loadData = async () => {
+      try {
+        await loadActiveSessions();
+        setError(null);
+      } catch (err) {
+        console.error('Error loading sessions:', err);
+        setError('Failed to load online users');
+      }
+    };
+
+    loadData();
     
     // Refresh every 30 seconds
     const interval = setInterval(() => {
-      loadActiveSessions();
+      loadData();
       setRefreshKey(prev => prev + 1);
     }, 30000);
 
@@ -35,6 +46,26 @@ const OnlineUsers = () => {
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wifi className="h-5 w-5" />
+            Online Users
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p>Unable to load online users</p>
+            <p className="text-sm mt-1">User sessions feature may not be configured</p>
           </div>
         </CardContent>
       </Card>
@@ -110,7 +141,7 @@ const OnlineUsers = () => {
           </div>
         )}
       </CardContent>
-    </Card>
+    </div>
   );
 };
 

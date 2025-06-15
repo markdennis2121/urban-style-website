@@ -77,26 +77,60 @@ export const useUserSessions = () => {
       setLoading(true);
       
       // Clean up old sessions first
-      await supabase.rpc('cleanup_old_sessions');
+      const { error: cleanupError } = await supabase.rpc('cleanup_old_sessions');
+      if (cleanupError) {
+        console.log('Cleanup function not available, continuing without cleanup');
+      }
       
-      // Get active sessions with user profiles
+      // Get active sessions with user profiles using explicit join
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      
       const { data, error } = await supabase
         .from('user_sessions')
         .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email,
-            role
-          )
+          id,
+          user_id,
+          session_id,
+          last_activity,
+          created_at
         `)
-        .gte('last_activity', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+        .gte('last_activity', thirtyMinutesAgo)
         .order('last_activity', { ascending: false });
 
-      if (error) throw error;
-      setActiveSessions(data || []);
+      if (error) {
+        console.error('Error loading sessions:', error);
+        setActiveSessions([]);
+        return;
+      }
+
+      // Get user profiles for the sessions
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(session => session.user_id))];
+        
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, role')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('Error loading profiles:', profilesError);
+          setActiveSessions(data);
+          return;
+        }
+
+        // Enrich sessions with profile data
+        const enrichedSessions = data.map(session => ({
+          ...session,
+          profiles: profilesData?.find(p => p.id === session.user_id) || null
+        }));
+
+        setActiveSessions(enrichedSessions);
+      } else {
+        setActiveSessions([]);
+      }
     } catch (error) {
       console.error('Error loading active sessions:', error);
+      setActiveSessions([]);
     } finally {
       setLoading(false);
     }
