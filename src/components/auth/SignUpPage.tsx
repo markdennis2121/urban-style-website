@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase/client';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
+import { validatePassword, validateEmail } from '@/lib/security';
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 const MIN_USERNAME_LENGTH = 3;
@@ -38,8 +40,15 @@ const SignUpPage = () => {
         throw new Error('Please fill in all fields');
       }
 
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
+      // Email validation
+      if (!validateEmail(email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Enhanced password validation
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        throw new Error(passwordValidation.errors[0]);
       }
 
       // Username validation
@@ -108,6 +117,8 @@ const SignUpPage = () => {
     }
   };
 
+  const passwordValidation = validatePassword(password);
+
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6">
@@ -148,19 +159,30 @@ const SignUpPage = () => {
           <div>
             <Input
               type="password"
-              placeholder="Password (min 6 characters)"
+              placeholder="Password (min 8 characters with special char)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full"
-              minLength={6}
+              minLength={8}
             />
           </div>
+
+          {password && !passwordValidation.isValid && (
+            <div className="text-sm text-destructive bg-destructive/10 p-4 rounded-md space-y-2">
+              <p className="font-semibold">Password requirements:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {passwordValidation.errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <Button
             type="submit"
             className="w-full"
-            disabled={loading}
+            disabled={loading || !passwordValidation.isValid}
           >
             {loading ? 'Signing up...' : 'Sign Up'}
           </Button>

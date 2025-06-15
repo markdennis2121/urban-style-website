@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { validatePassword } from '@/lib/security';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface LoginFormProps {
@@ -25,7 +24,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
   onSubmit,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const passwordValidation = validatePassword(password);
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
@@ -49,7 +47,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
           onChange={(e) => onPasswordChange(e.target.value)}
           required
           className="w-full h-12 pr-12"
-          minLength={6}
           disabled={loading || rateLimited}
         />
         <Button
@@ -63,17 +60,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </Button>
       </div>
-
-      {password && !passwordValidation.isValid && (
-        <div className="text-sm text-destructive bg-destructive/10 p-4 rounded-md space-y-2">
-          <p className="font-semibold">Password requirements:</p>
-          <ul className="list-disc list-inside space-y-1">
-            {passwordValidation.errors.map((error, index) => (
-              <li key={index}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       <Button
         type="submit"
