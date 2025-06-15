@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -193,34 +192,40 @@ const Checkout = () => {
 
       addDebugInfo(`Order created with ID: ${order?.id}`);
 
-      // Create Stripe checkout session
+      // Create Stripe checkout session with better error handling
       addDebugInfo('Calling Stripe checkout function...');
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      
+      const response = await supabase.functions.invoke('create-checkout', {
         body: {
           items: state.items,
           total: state.total,
           orderId: order?.id,
+        },
+        headers: {
+          'Content-Type': 'application/json',
         }
       });
 
-      if (error) {
-        addDebugInfo(`Stripe function error: ${JSON.stringify(error)}`);
-        throw error;
+      addDebugInfo(`Stripe function response: ${JSON.stringify(response)}`);
+
+      if (response.error) {
+        addDebugInfo(`Stripe function error: ${JSON.stringify(response.error)}`);
+        throw new Error(response.error.message || 'Failed to create checkout session');
       }
 
-      if (!data?.url) {
+      if (!response.data?.url) {
         addDebugInfo('No checkout URL received from Stripe');
         throw new Error('No checkout URL received from Stripe. Please check your Stripe configuration.');
       }
 
-      addDebugInfo(`Stripe checkout session created: ${data.session_id}`);
+      addDebugInfo(`Stripe checkout session created: ${response.data.session_id}`);
       addDebugInfo('Clearing cart and redirecting to Stripe...');
       
       // Clear cart before redirecting to Stripe
       dispatch({ type: 'CLEAR_CART' });
       
       // Redirect to Stripe Checkout
-      window.location.href = data.url;
+      window.location.href = response.data.url;
 
     } catch (error: any) {
       addDebugInfo(`Checkout error: ${error.message}`);
@@ -232,6 +237,8 @@ const Checkout = () => {
         errorMessage = "Stripe is not properly configured. Please contact support.";
       } else if (error.message?.includes('Authentication')) {
         errorMessage = "Please log out and log back in, then try again.";
+      } else if (error.message?.includes('CORS')) {
+        errorMessage = "Network configuration error. Please try again or contact support.";
       }
       
       toast({
