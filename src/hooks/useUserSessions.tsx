@@ -33,9 +33,10 @@ export const useUserSessions = () => {
     return sessionId;
   }, []);
 
-  // Update session - works for ALL authenticated users
+  // Update session - FIXED: works for ALL authenticated users regardless of role
   const updateSession = useCallback(async () => {
     if (!isAuthenticated || !profile) {
+      console.log('Not authenticated or no profile, skipping session update');
       return;
     }
 
@@ -44,8 +45,8 @@ export const useUserSessions = () => {
     try {
       console.log('Updating session for user:', profile.email, 'role:', profile.role, 'user_id:', profile.id);
       
-      // Use upsert to handle both insert and update
-      const { error } = await supabase
+      // Use upsert to handle both insert and update - works for ALL user roles
+      const { data, error } = await supabase
         .from('user_sessions')
         .upsert({
           user_id: profile.id,
@@ -53,15 +54,18 @@ export const useUserSessions = () => {
           last_activity: new Date().toISOString(),
         }, {
           onConflict: 'user_id,session_id'
-        });
+        })
+        .select();
 
       if (error) {
-        console.error('Session update error:', error);
+        console.error('Session update error for user', profile.email, ':', error);
+        // Don't throw here, just log the error to avoid breaking the UI
       } else {
-        console.log('Session updated successfully for:', profile.email);
+        console.log('Session updated successfully for:', profile.email, 'Data:', data);
       }
     } catch (error) {
-      console.error('Error in updateSession:', error);
+      console.error('Error in updateSession for user', profile.email, ':', error);
+      // Don't throw here, just log the error
     }
   }, [isAuthenticated, profile, getSessionId]);
 
@@ -72,11 +76,16 @@ export const useUserSessions = () => {
     const sessionId = getSessionId();
     
     try {
-      await supabase
+      console.log('Removing session for user:', profile.email);
+      const { error } = await supabase
         .from('user_sessions')
         .delete()
         .eq('user_id', profile.id)
         .eq('session_id', sessionId);
+      
+      if (error) {
+        console.error('Error removing session:', error);
+      }
       
       sessionStorage.removeItem('user_session_id');
     } catch (error) {
@@ -151,25 +160,30 @@ export const useUserSessions = () => {
     }
   }, [profile]);
 
-  // Set up session tracking
+  // Set up session tracking - ENHANCED: Better logging and error handling
   useEffect(() => {
     if (isAuthenticated && profile) {
-      console.log('Starting session tracking for:', profile.email);
+      console.log('Starting session tracking for user:', profile.email, 'role:', profile.role);
       
       // Update session immediately
       updateSession();
       
       // Update every 30 seconds
-      const interval = setInterval(updateSession, 30 * 1000);
+      const interval = setInterval(() => {
+        console.log('Interval update for user:', profile.email);
+        updateSession();
+      }, 30 * 1000);
       
       // Update on page focus/visibility
       const handleVisibilityChange = () => {
         if (!document.hidden) {
+          console.log('Page became visible, updating session for:', profile.email);
           updateSession();
         }
       };
       
       const handleBeforeUnload = () => {
+        console.log('Page unloading, final session update for:', profile.email);
         updateSession();
       };
       
@@ -177,11 +191,13 @@ export const useUserSessions = () => {
       window.addEventListener('beforeunload', handleBeforeUnload);
       
       return () => {
+        console.log('Cleaning up session tracking for:', profile.email);
         clearInterval(interval);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('beforeunload', handleBeforeUnload);
       };
     } else if (!isAuthenticated) {
+      console.log('User not authenticated, removing session');
       removeSession();
     }
   }, [isAuthenticated, profile, updateSession, removeSession]);
