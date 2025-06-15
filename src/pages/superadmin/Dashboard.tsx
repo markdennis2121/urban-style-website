@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Crown, ShoppingCart } from 'lucide-react';
 import { useAdminData } from '@/hooks/useAdminData';
 import { useAdminMode } from '@/contexts/AdminModeContext';
-import StatsCards from '@/components/admin/StatsCards';
 import OverviewTab from '@/components/admin/OverviewTab';
 import SuperAdminProductManagement from '@/components/superadmin/SuperAdminProductManagement';
 import UserManagement from '@/components/admin/UserManagement';
@@ -88,14 +87,6 @@ const SuperAdminDashboard = () => {
               </AlertDescription>
             </Alert>
           )}
-
-          {/* Stats Cards */}
-          <StatsCards 
-            usersCount={users.length}
-            productsCount={products.length}
-            messagesCount={messages.length}
-            wishlistsCount={wishlists.length}
-          />
 
           <Tabs defaultValue="overview" className="space-y-8">
             <TabsList className="bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
