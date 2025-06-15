@@ -20,9 +20,13 @@ CREATE INDEX idx_user_sessions_session_id ON user_sessions(session_id);
 -- Enable RLS
 ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies
+-- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Admin can view all sessions" ON user_sessions;
 DROP POLICY IF EXISTS "Users can manage their own sessions" ON user_sessions;
+DROP POLICY IF EXISTS "Users can insert their own sessions" ON user_sessions;
+DROP POLICY IF EXISTS "Users can update their own sessions" ON user_sessions;
+DROP POLICY IF EXISTS "Users can delete their own sessions" ON user_sessions;
+DROP POLICY IF EXISTS "Admin can manage all sessions" ON user_sessions;
 
 -- Create comprehensive RLS policies
 CREATE POLICY "Admin can view all sessions" ON user_sessions
