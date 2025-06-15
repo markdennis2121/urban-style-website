@@ -96,14 +96,14 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
       {canUseShoppingFeatures && (
         <button
           onClick={handleWishlistToggle}
-          className={`absolute top-2 right-2 z-10 w-8 h-8 rounded-lg transition-all duration-200 flex items-center justify-center ${
+          className={`absolute top-2 right-2 z-10 w-7 h-7 rounded-md transition-all duration-200 flex items-center justify-center border ${
             isWishlisted
-              ? 'bg-red-50 text-red-600 border border-red-200'
-              : 'bg-white/90 hover:bg-white text-gray-600 hover:text-red-500 border border-gray-200 hover:border-red-200'
+              ? 'bg-red-50 text-red-500 border-red-200'
+              : 'bg-white/95 hover:bg-white text-gray-500 hover:text-red-400 border-gray-200/60 hover:border-red-200'
           } opacity-0 group-hover:opacity-100 md:opacity-100`}
         >
           <Heart 
-            className={`w-4 h-4 transition-all duration-200 ${
+            className={`w-3.5 h-3.5 transition-all duration-200 ${
               isWishlisted ? 'fill-red-500 text-red-500' : ''
             }`} 
           />
@@ -174,10 +174,10 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
               <Button
                 size="sm"
                 onClick={handleAddToCart}
-                className="px-3 py-1 text-xs h-8 bg-primary hover:bg-primary/90 rounded-lg"
+                className="px-2 py-1 text-xs h-7 bg-primary hover:bg-primary/90 rounded-md"
               >
                 <ShoppingCart className="w-3 h-3 mr-1" />
-                Add
+                Add to Cart
               </Button>
             )}
           </div>
