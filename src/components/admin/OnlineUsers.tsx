@@ -3,36 +3,71 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Users, Clock, Wifi, AlertCircle } from 'lucide-react';
+import { Users, Clock, Wifi, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useUserSessions } from '@/hooks/useUserSessions';
+import { validateAnyAdminAccess } from '@/lib/auth/adminValidation';
 import { formatDistanceToNow } from 'date-fns';
 
 const OnlineUsers = () => {
-  const { activeSessions, loading, loadActiveSessions } = useUserSessions();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const { activeSessions, loading, error, loadActiveSessions } = useUserSessions();
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadData = async () => {
+    const checkAccess = async () => {
       try {
-        await loadActiveSessions();
-        setError(null);
+        const validation = await validateAnyAdminAccess();
+        setHasAdminAccess(validation.isValid);
+        if (!validation.isValid) {
+          setAccessError(validation.error || 'Access denied');
+        }
       } catch (err) {
-        console.error('Error loading sessions:', err);
-        setError('Failed to load online users');
+        setHasAdminAccess(false);
+        setAccessError('Failed to validate admin access');
       }
     };
 
-    loadData();
-    
-    // Refresh every 30 seconds
-    const interval = setInterval(() => {
-      loadData();
-      setRefreshKey(prev => prev + 1);
-    }, 30000);
+    checkAccess();
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [loadActiveSessions]);
+  useEffect(() => {
+    if (hasAdminAccess) {
+      const loadData = async () => {
+        try {
+          await loadActiveSessions();
+        } catch (err) {
+          console.error('Error loading sessions:', err instanceof Error ? err.message : 'Unknown error');
+        }
+      };
+
+      loadData();
+      
+      // Refresh every 30 seconds
+      const interval = setInterval(loadData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [loadActiveSessions, hasAdminAccess]);
+
+  if (!hasAdminAccess) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wifi className="h-5 w-5" />
+            Online Users
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p>Access Denied</p>
+            <p className="text-sm mt-1">{accessError}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return (
@@ -56,16 +91,27 @@ const OnlineUsers = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wifi className="h-5 w-5" />
-            Online Users
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wifi className="h-5 w-5" />
+              Online Users
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={loadActiveSessions}
+              className="h-8"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
             <p>Unable to load online users</p>
-            <p className="text-sm mt-1">User sessions feature may not be configured</p>
+            <p className="text-sm mt-1">{error}</p>
           </div>
         </CardContent>
       </Card>
@@ -124,7 +170,7 @@ const OnlineUsers = () => {
                   <Badge 
                     variant="outline" 
                     className={`text-xs ${
-                      session.profiles?.role === 'admin' || session.profiles?.role === 'superadmin'
+                      session.profiles?.role === 'admin' || session.profiles?.role === 'super_admin'
                         ? 'border-blue-200 text-blue-700'
                         : 'border-gray-200 text-gray-700'
                     }`}

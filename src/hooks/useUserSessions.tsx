@@ -19,6 +19,7 @@ interface UserSession {
 export const useUserSessions = () => {
   const [activeSessions, setActiveSessions] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { profile, isAuthenticated } = useAuth();
 
   // Generate a unique session ID for this browser session
@@ -48,7 +49,7 @@ export const useUserSessions = () => {
           onConflict: 'user_id,session_id'
         });
     } catch (error) {
-      console.error('Error updating session:', error);
+      console.error('Error updating session:', error instanceof Error ? error.message : 'Unknown error');
     }
   }, [isAuthenticated, profile, getSessionId]);
 
@@ -67,7 +68,7 @@ export const useUserSessions = () => {
       
       sessionStorage.removeItem('user_session_id');
     } catch (error) {
-      console.error('Error removing session:', error);
+      console.error('Error removing session:', error instanceof Error ? error.message : 'Unknown error');
     }
   }, [profile, getSessionId]);
 
@@ -75,14 +76,32 @@ export const useUserSessions = () => {
   const loadActiveSessions = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       
+      // Check if user_sessions table exists and has proper schema
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('user_sessions')
+        .select('id')
+        .limit(1);
+
+      if (tableError) {
+        if (tableError.code === '42P01' || tableError.code === '42703') {
+          // Table doesn't exist or schema issue
+          setError('User sessions table not properly configured');
+          setActiveSessions([]);
+          return;
+        }
+        throw tableError;
+      }
+
       // Clean up old sessions first
-      const { error: cleanupError } = await supabase.rpc('cleanup_old_sessions');
-      if (cleanupError) {
-        console.log('Cleanup function not available, continuing without cleanup');
+      try {
+        await supabase.rpc('cleanup_old_sessions');
+      } catch (cleanupError) {
+        // Cleanup function might not exist, continue without it
       }
       
-      // Get active sessions with user profiles using explicit join
+      // Get active sessions with user profiles
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       
       const { data, error } = await supabase
@@ -98,9 +117,7 @@ export const useUserSessions = () => {
         .order('last_activity', { ascending: false });
 
       if (error) {
-        console.error('Error loading sessions:', error);
-        setActiveSessions([]);
-        return;
+        throw error;
       }
 
       // Get user profiles for the sessions
@@ -113,7 +130,7 @@ export const useUserSessions = () => {
           .in('id', userIds);
 
         if (profilesError) {
-          console.error('Error loading profiles:', profilesError);
+          console.error('Error loading profiles:', profilesError.message);
           setActiveSessions(data);
           return;
         }
@@ -129,7 +146,9 @@ export const useUserSessions = () => {
         setActiveSessions([]);
       }
     } catch (error) {
-      console.error('Error loading active sessions:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error loading active sessions:', errorMessage);
+      setError(`Failed to load user sessions: ${errorMessage}`);
       setActiveSessions([]);
     } finally {
       setLoading(false);
@@ -163,6 +182,7 @@ export const useUserSessions = () => {
   return {
     activeSessions,
     loading,
+    error,
     loadActiveSessions,
     updateSession,
     removeSession,

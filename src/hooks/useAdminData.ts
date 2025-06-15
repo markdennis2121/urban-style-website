@@ -74,21 +74,19 @@ export const useAdminData = () => {
 
   const loadUsers = async () => {
     try {
-      console.log('Admin loading all users...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading users:', error);
+        console.error('Error loading users:', error.message);
         return;
       }
       
-      console.log('Admin loaded users:', data);
       setUsers(data || []);
     } catch (err) {
-      console.error('Error loading users:', err);
+      console.error('Error loading users:', err instanceof Error ? err.message : 'Unknown error');
     }
   };
 
@@ -102,7 +100,7 @@ export const useAdminData = () => {
       if (error) throw error;
       setProducts(data || []);
     } catch (err) {
-      console.error('Error loading products:', err);
+      console.error('Error loading products:', err instanceof Error ? err.message : 'Unknown error');
     }
   };
 
@@ -120,27 +118,21 @@ export const useAdminData = () => {
       }
       setMessages(data || []);
     } catch (err) {
-      console.error('Error loading messages:', err);
+      console.error('Error loading messages:', err instanceof Error ? err.message : 'Unknown error');
       setMessages([]);
     }
   };
 
   const loadWishlistsData = async () => {
     try {
-      console.log('Admin loading all wishlists...');
-      
       const wishlistsData = await loadAllWishlists();
       
       if (!wishlistsData || wishlistsData.length === 0) {
-        console.log('No wishlist data found');
         setWishlists([]);
         return;
       }
 
-      console.log('Raw wishlist data:', wishlistsData);
-
       const userIds = [...new Set(wishlistsData.map(w => w.user_id))];
-      console.log('User IDs from wishlists:', userIds);
 
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -148,12 +140,10 @@ export const useAdminData = () => {
         .in('id', userIds);
 
       if (profilesError) {
-        console.error('Error loading profiles:', profilesError);
+        console.error('Error loading profiles:', profilesError.message);
         setWishlists(wishlistsData);
         return;
       }
-
-      console.log('Profiles data:', profilesData);
 
       const enrichedWishlists = wishlistsData.map(wishlist => {
         const userProfile = profilesData?.find(p => p.id === wishlist.user_id);
@@ -167,11 +157,10 @@ export const useAdminData = () => {
         };
       });
 
-      console.log('Enriched wishlists:', enrichedWishlists);
       setWishlists(enrichedWishlists);
 
     } catch (err) {
-      console.error('Error in loadWishlists:', err);
+      console.error('Error in loadWishlists:', err instanceof Error ? err.message : 'Unknown error');
       setWishlists([]);
     }
   };
@@ -193,7 +182,7 @@ export const useAdminData = () => {
       }
       setReviews(data || []);
     } catch (err) {
-      console.error('Error loading reviews:', err);
+      console.error('Error loading reviews:', err instanceof Error ? err.message : 'Unknown error');
       setReviews([]);
     }
   };
@@ -209,7 +198,7 @@ export const useAdminData = () => {
         loadReviews()
       ]);
     } catch (err) {
-      console.error('Error loading dashboard data:', err);
+      console.error('Error loading dashboard data:', err instanceof Error ? err.message : 'Unknown error');
       setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -232,7 +221,7 @@ export const useAdminData = () => {
 
       loadProducts();
     } catch (err) {
-      console.error('Error deleting product:', err);
+      console.error('Error deleting product:', err instanceof Error ? err.message : 'Unknown error');
       toast({
         title: "Error",
         description: "Failed to delete product.",
@@ -257,7 +246,7 @@ export const useAdminData = () => {
 
       loadWishlistsData();
     } catch (err) {
-      console.error('Error deleting wishlist item:', err);
+      console.error('Error deleting wishlist item:', err instanceof Error ? err.message : 'Unknown error');
       toast({
         title: "Error",
         description: "Failed to delete wishlist item.",
@@ -282,7 +271,7 @@ export const useAdminData = () => {
 
       loadUsers();
     } catch (err) {
-      console.error('Error updating user:', err);
+      console.error('Error updating user:', err instanceof Error ? err.message : 'Unknown error');
       toast({
         title: "Error",
         description: "Failed to update user.",
@@ -314,7 +303,7 @@ export const useAdminData = () => {
 
       loadUsers();
     } catch (err) {
-      console.error('Error deleting user:', err);
+      console.error('Error deleting user:', err instanceof Error ? err.message : 'Unknown error');
       toast({
         title: "Error",
         description: "Failed to delete user.",
