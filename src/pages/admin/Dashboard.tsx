@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -7,7 +8,6 @@ import { Activity, BarChart3, Package, Users, Heart, MessageSquare } from 'lucid
 
 // Import our new components
 import { useAdminData } from '@/hooks/useAdminData';
-import StatsCards from '@/components/admin/StatsCards';
 import OverviewTab from '@/components/admin/OverviewTab';
 import ProductManagement from '@/components/admin/ProductManagement';
 import UserManagement from '@/components/admin/UserManagement';
@@ -73,14 +73,6 @@ const AdminDashboard = () => {
               <AlertDescription className="text-red-700 font-medium">{error}</AlertDescription>
             </Alert>
           )}
-
-          {/* Stats Cards */}
-          <StatsCards 
-            usersCount={users.length}
-            productsCount={products.length}
-            messagesCount={messages.length}
-            wishlistsCount={wishlists.length}
-          />
 
           <Tabs defaultValue="overview" className="space-y-8">
             <TabsList className="bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
