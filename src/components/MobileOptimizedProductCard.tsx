@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart, ShoppingCart, Eye } from 'lucide-react';
@@ -34,7 +33,7 @@ interface ProductCardProps {
 
 const MobileOptimizedProductCard = ({ product }: ProductCardProps) => {
   const { dispatch } = useCart();
-  const { dispatch: wishlistDispatch } = useWishlist();
+  const { addToWishlist } = useWishlist();
   const { canUseShoppingFeatures } = useAdminMode();
   const { isAuthenticated } = useAuth();
 
@@ -62,24 +61,7 @@ const MobileOptimizedProductCard = ({ product }: ProductCardProps) => {
 
   const handleAddToWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!isAuthenticated) {
-      toast.error('Please login to add items to wishlist');
-      return;
-    }
-    
-    wishlistDispatch({
-      type: 'ADD_ITEM',
-      payload: {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        category: product.category,
-        brand: product.brand,
-        inStock: product.inStock,
-      },
-    });
-    toast.success('Added to wishlist!');
+    addToWishlist(product);
   };
 
   return (
