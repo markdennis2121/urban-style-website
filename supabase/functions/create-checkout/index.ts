@@ -55,7 +55,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     console.log("Request body received:", requestBody);
     
-    const { items, total } = requestBody;
+    const { items, total, orderId } = requestBody;
     
     if (!items || !Array.isArray(items) || items.length === 0) {
       console.error("No items in request");
@@ -106,6 +106,7 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         user_email: user.email,
+        order_id: orderId || '',
       },
     });
 
