@@ -213,14 +213,17 @@ const Checkout = () => {
       // Create Stripe checkout session with explicit request configuration
       addDebugInfo('Calling Stripe checkout function...');
       
-      // Use fetch directly for better error handling
-      const functionUrl = `${supabase.supabaseUrl}/functions/v1/create-checkout`;
+      // Use environment variables directly
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      const functionUrl = `${supabaseUrl}/functions/v1/create-checkout`;
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
-          'apikey': supabase.supabaseKey,
+          'apikey': supabaseAnonKey,
         },
         body: JSON.stringify(checkoutPayload),
       });
