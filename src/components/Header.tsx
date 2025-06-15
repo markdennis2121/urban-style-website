@@ -40,10 +40,16 @@ const Header: React.FC = () => {
     
     try {
       console.log('Loading search data...');
-      const { data: dbProducts } = await supabase
+      const { data: dbProducts, error } = await supabase
         .from('products')
-        .select('*')
-        .gt('stock', 0);
+        .select('id, name, category, description, image, price')
+        .gt('stock', 0)
+        .limit(200);
+
+      if (error) {
+        console.error('Error fetching products for search:', error);
+        throw error;
+      }
 
       const allProducts = [
         ...products.filter(p => p.inStock).map(p => ({
@@ -63,7 +69,7 @@ const Header: React.FC = () => {
           description: p.description,
           type: 'product' as const,
           url: `/product/${p.id}`,
-          image: p.image_url,
+          image: p.image, // FIX: Was p.image_url, which might not exist.
           price: p.price
         }))
       ];
@@ -74,7 +80,7 @@ const Header: React.FC = () => {
     } catch (error) {
       console.error('Error loading search data:', error);
       setSearchItems([]);
-      setSearchLoaded(true);
+      setSearchLoaded(true); // Ensure we don't retry on error
     }
   }, [searchLoaded]);
 
