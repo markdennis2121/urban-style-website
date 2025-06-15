@@ -15,13 +15,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import ProfileSettings from './ProfileSettings';
 import AdminModeToggle from './AdminModeToggle';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import GlobalSearch from './GlobalSearch';
 import { products } from '@/data/products';
 
-const Header = React.memo(() => {
+const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchItems, setSearchItems] = useState([]);
@@ -386,8 +386,6 @@ const Header = React.memo(() => {
       </div>
     </header>
   );
-});
-
-Header.displayName = 'Header';
+};
 
 export default Header;
