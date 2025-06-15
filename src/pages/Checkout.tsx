@@ -192,15 +192,29 @@ const Checkout = () => {
 
       addDebugInfo(`Order created with ID: ${order?.id}`);
 
+      // Prepare the exact payload the edge function expects
+      const checkoutPayload = {
+        items: state.items.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+          brand: 'Urban Store', // Default brand
+          size: item.size || undefined,
+          color: item.color || undefined,
+        })),
+        total: state.total,
+        orderId: order?.id,
+      };
+
+      addDebugInfo(`Sending payload to Stripe function: ${JSON.stringify(checkoutPayload)}`);
+
       // Create Stripe checkout session with better error handling
       addDebugInfo('Calling Stripe checkout function...');
       
       const response = await supabase.functions.invoke('create-checkout', {
-        body: {
-          items: state.items,
-          total: state.total,
-          orderId: order?.id,
-        },
+        body: checkoutPayload,
         headers: {
           'Content-Type': 'application/json',
         }
