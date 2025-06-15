@@ -30,28 +30,32 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       return;
     }
 
-    // Check if user has required specific role
+    let hasPermission = false;
+
+    // Case 1: A specific role is required
     if (requiredRole) {
-      if (requiredRole === 'super_admin' && profile.role === 'super_admin') {
-        setIsAuthorized(true);
-      } else if (requiredRole === 'admin' && ['admin', 'super_admin'].includes(profile.role)) {
-        setIsAuthorized(true);
-      } else if (requiredRole === 'user') {
-        setIsAuthorized(true);
-      } else {
-        setIsAuthorized(false);
+      if (requiredRole === 'user') {
+        // Any authenticated user is considered a 'user'
+        hasPermission = true;
+      } else if (requiredRole === 'admin') {
+        // Admins and Super Admins can access admin routes
+        hasPermission = ['admin', 'super_admin'].includes(profile.role);
+      } else if (requiredRole === 'super_admin') {
+        // Only Super Admins can access super_admin routes
+        hasPermission = profile.role === 'super_admin';
       }
     }
-    // Check if user has any of the allowed roles
-    else if (allowedRoles && allowedRoles.includes(profile.role)) {
-      setIsAuthorized(true);
+    // Case 2: Role must be in the allowed list
+    else if (allowedRoles) {
+      hasPermission = allowedRoles.includes(profile.role);
     }
-    // If no specific role requirements, just need to be logged in
-    else if (!requiredRole && !allowedRoles) {
-      setIsAuthorized(true);
-    } else {
-      setIsAuthorized(false);
+    // Case 3: No roles specified, just authentication is needed
+    else {
+      hasPermission = true;
     }
+
+    setIsAuthorized(hasPermission);
+
   }, [profile, loading, isAuthenticated, requiredRole, allowedRoles]);
 
   // Show loading spinner while authentication is being determined
