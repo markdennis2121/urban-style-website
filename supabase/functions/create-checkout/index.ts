@@ -8,6 +8,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper logging function for enhanced debugging
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -15,7 +21,15 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting checkout session creation");
+    logStep("Function started");
+
+    // Check for Stripe secret key
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      logStep("ERROR: STRIPE_SECRET_KEY not found");
+      throw new Error("STRIPE_SECRET_KEY is not configured. Please add it to your Supabase secrets.");
+    }
+    logStep("Stripe key found and verified");
 
     // Create Supabase client using the anon key for user authentication
     const supabaseClient = createClient(
@@ -26,40 +40,46 @@ serve(async (req) => {
     // Retrieve authenticated user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      logStep("ERROR: No authorization header provided");
       throw new Error("No authorization header provided");
     }
 
     const token = authHeader.replace("Bearer ", "");
+    logStep("Authenticating user with token");
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
     if (authError || !user?.email) {
+      logStep("ERROR: Authentication failed", { authError: authError?.message });
       throw new Error("User not authenticated");
     }
 
-    console.log("User authenticated:", user.email);
+    logStep("User authenticated successfully", { userId: user.id, email: user.email });
 
     // Get the cart items from the request body
-    const { items, total } = await req.json();
+    const requestBody = await req.json();
+    const { items, total } = requestBody;
     
     if (!items || !Array.isArray(items) || items.length === 0) {
+      logStep("ERROR: No items in cart");
       throw new Error("No items in cart");
     }
 
-    console.log("Cart items:", items.length, "Total:", total);
+    logStep("Cart items received", { itemCount: items.length, total });
 
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
     });
 
     // Check if a Stripe customer record exists for this user
+    logStep("Looking for existing Stripe customer");
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      console.log("Existing customer found:", customerId);
+      logStep("Existing customer found", { customerId });
     } else {
-      console.log("Creating new customer for:", user.email);
+      logStep("No existing customer found, will create new one");
     }
 
     // Convert cart items to Stripe line items
@@ -76,16 +96,21 @@ serve(async (req) => {
       quantity: item.quantity,
     }));
 
-    console.log("Line items prepared:", lineItems.length);
+    logStep("Line items prepared", { lineItemCount: lineItems.length });
+
+    // Get the origin for redirect URLs
+    const origin = req.headers.get("origin") || "http://localhost:3000";
+    logStep("Using origin for redirects", { origin });
 
     // Create checkout session
+    logStep("Creating Stripe checkout session");
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: lineItems,
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/checkout`,
+      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout`,
       metadata: {
         user_id: user.id,
         user_email: user.email,
@@ -98,7 +123,7 @@ serve(async (req) => {
       },
     });
 
-    console.log("Checkout session created:", session.id);
+    logStep("Checkout session created successfully", { sessionId: session.id, url: session.url });
 
     return new Response(JSON.stringify({ 
       url: session.url,
@@ -109,9 +134,12 @@ serve(async (req) => {
     });
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    logStep("ERROR in create-checkout", { error: errorMessage });
     console.error("Error creating checkout session:", error);
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error occurred" 
+      error: errorMessage 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

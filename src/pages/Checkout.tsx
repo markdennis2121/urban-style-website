@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, Lock, Truck, CheckCircle, Shield } from 'lucide-react';
+import { CreditCard, Lock, Truck, CheckCircle, Shield, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
@@ -27,6 +27,12 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+
+  const addDebugInfo = (message: string) => {
+    console.log('[CHECKOUT DEBUG]', message);
+    setDebugInfo(prev => [...prev, message]);
+  };
 
   const [formData, setFormData] = useState({
     email: '',
@@ -44,10 +50,18 @@ const Checkout = () => {
 
   React.useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      addDebugInfo('Checking user authentication...');
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        addDebugInfo(`Auth error: ${error.message}`);
+        return;
+      }
       if (user) {
+        addDebugInfo(`User authenticated: ${user.email}`);
         setCurrentUser(user);
         setFormData(prev => ({ ...prev, email: user.email || '' }));
+      } else {
+        addDebugInfo('No user found - user needs to log in');
       }
     };
     getUser();
@@ -97,6 +111,9 @@ const Checkout = () => {
   const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    addDebugInfo('Starting checkout process...');
+    setDebugInfo([]); // Clear previous debug info
+    
     // Rate limiting check
     const userIdentifier = currentUser?.id || 'anonymous';
     if (!checkoutRateLimiter.isAllowed(userIdentifier)) {
@@ -110,6 +127,7 @@ const Checkout = () => {
     }
     
     if (!validateForm()) {
+      addDebugInfo('Form validation failed');
       toast({
         title: "Validation Error",
         description: "Please fill in all required shipping information",
@@ -119,6 +137,7 @@ const Checkout = () => {
     }
 
     if (!currentUser) {
+      addDebugInfo('User not authenticated - redirecting to login');
       toast({
         title: "Authentication Required",
         description: "Please log in to complete your order",
@@ -131,7 +150,15 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
-      console.log('Creating Stripe checkout session...');
+      addDebugInfo('Creating Stripe checkout session...');
+      
+      // Get the current session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('No valid session found. Please log in again.');
+      }
+      
+      addDebugInfo('Valid session found, proceeding with checkout...');
       
       // Create order in database first
       const orderData = {
@@ -157,14 +184,17 @@ const Checkout = () => {
         })),
       };
 
+      addDebugInfo('Creating order in database...');
       const { data: order, error: orderError } = await createOrder(orderData);
       if (orderError) {
+        addDebugInfo(`Order creation failed: ${orderError.message}`);
         throw orderError;
       }
 
-      console.log('Order created:', order?.id);
+      addDebugInfo(`Order created with ID: ${order?.id}`);
 
       // Create Stripe checkout session
+      addDebugInfo('Calling Stripe checkout function...');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           items: state.items,
@@ -174,14 +204,17 @@ const Checkout = () => {
       });
 
       if (error) {
+        addDebugInfo(`Stripe function error: ${JSON.stringify(error)}`);
         throw error;
       }
 
       if (!data?.url) {
-        throw new Error('No checkout URL received');
+        addDebugInfo('No checkout URL received from Stripe');
+        throw new Error('No checkout URL received from Stripe. Please check your Stripe configuration.');
       }
 
-      console.log('Stripe checkout session created, redirecting...');
+      addDebugInfo(`Stripe checkout session created: ${data.session_id}`);
+      addDebugInfo('Clearing cart and redirecting to Stripe...');
       
       // Clear cart before redirecting to Stripe
       dispatch({ type: 'CLEAR_CART' });
@@ -190,11 +223,20 @@ const Checkout = () => {
       window.location.href = data.url;
 
     } catch (error: any) {
+      addDebugInfo(`Checkout error: ${error.message}`);
       console.error('Checkout error:', error);
+      
+      let errorMessage = "There was an error processing your checkout. Please try again.";
+      
+      if (error.message?.includes('STRIPE_SECRET_KEY')) {
+        errorMessage = "Stripe is not properly configured. Please contact support.";
+      } else if (error.message?.includes('Authentication')) {
+        errorMessage = "Please log out and log back in, then try again.";
+      }
       
       toast({
         title: "Checkout Failed",
-        description: error.message || "There was an error processing your checkout. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -227,6 +269,21 @@ const Checkout = () => {
             <Shield className="w-6 h-6 text-green-600" />
             <h1 className="text-3xl font-bold">Secure Checkout</h1>
           </div>
+
+          {/* Debug Information Panel */}
+          {debugInfo.length > 0 && (
+            <div className="mb-6 p-4 bg-gray-50 border rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4" />
+                <span className="font-medium">Debug Information:</span>
+              </div>
+              <div className="text-sm space-y-1">
+                {debugInfo.map((info, index) => (
+                  <div key={index} className="text-gray-600">• {info}</div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleStripeCheckout}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
