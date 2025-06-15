@@ -4,7 +4,7 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Crown, ShoppingCart } from 'lucide-react';
+import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Crown, ShoppingCart, Wifi } from 'lucide-react';
 import { useRealtimeAdminData } from '@/hooks/useRealtimeAdminData';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import OverviewTab from '@/components/admin/OverviewTab';
@@ -14,6 +14,7 @@ import WishlistManagement from '@/components/admin/WishlistManagement';
 import MessageManagement from '@/components/admin/MessageManagement';
 import WishlistAnalytics from '@/components/admin/WishlistAnalytics';
 import CartManagement from '@/components/superadmin/CartManagement';
+import OnlineUsers from '@/components/admin/OnlineUsers';
 
 const SuperAdminDashboard = () => {
   const { isAdminMode } = useAdminMode();
@@ -119,6 +120,10 @@ const SuperAdminDashboard = () => {
               </TabsTrigger>
               {isAdminMode && (
                 <>
+                  <TabsTrigger value="online" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700 rounded-lg px-4 py-3 font-medium">
+                    <Wifi className="w-4 h-4 mr-2" />
+                    Online Users
+                  </TabsTrigger>
                   <TabsTrigger value="products" className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 rounded-lg px-4 py-3 font-medium">
                     <Package className="w-4 h-4 mr-2" />
                     Products
@@ -154,6 +159,10 @@ const SuperAdminDashboard = () => {
 
             {isAdminMode && (
               <>
+                <TabsContent value="online">
+                  <OnlineUsers />
+                </TabsContent>
+
                 <TabsContent value="products">
                   <SuperAdminProductManagement 
                     products={products}

@@ -34,11 +34,15 @@ export const useUserSessions = () => {
 
   // Update user's session activity
   const updateSession = useCallback(async () => {
-    if (!isAuthenticated || !profile) return;
+    if (!isAuthenticated || !profile) {
+      console.log('Not authenticated or no profile, skipping session update');
+      return;
+    }
 
     const sessionId = getSessionId();
     
     try {
+      console.log('Updating session for user:', profile.id, 'with session:', sessionId);
       const { error } = await supabase
         .from('user_sessions')
         .upsert({
@@ -51,6 +55,8 @@ export const useUserSessions = () => {
 
       if (error) {
         console.error('Error updating session:', error);
+      } else {
+        console.log('Session updated successfully');
       }
     } catch (error) {
       console.error('Error updating session:', error instanceof Error ? error.message : 'Unknown error');
@@ -64,6 +70,7 @@ export const useUserSessions = () => {
     const sessionId = getSessionId();
     
     try {
+      console.log('Removing session for user:', profile.id);
       await supabase
         .from('user_sessions')
         .delete()
@@ -71,6 +78,7 @@ export const useUserSessions = () => {
         .eq('session_id', sessionId);
       
       sessionStorage.removeItem('user_session_id');
+      console.log('Session removed successfully');
     } catch (error) {
       console.error('Error removing session:', error instanceof Error ? error.message : 'Unknown error');
     }
@@ -84,19 +92,6 @@ export const useUserSessions = () => {
       
       console.log('Loading active sessions...');
       
-      // First, ensure the table exists and we can access it
-      const { data: testData, error: testError } = await supabase
-        .from('user_sessions')
-        .select('count')
-        .limit(1);
-
-      if (testError) {
-        console.error('Table access error:', testError);
-        throw new Error(`Database access error: ${testError.message}`);
-      }
-
-      console.log('Table accessible, fetching sessions...');
-
       // Clean up old sessions first (older than 30 minutes)
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       
@@ -163,27 +158,40 @@ export const useUserSessions = () => {
 
   // Update session on component mount and periodically
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && profile) {
+      console.log('Setting up session tracking for authenticated user:', profile.id);
+      
+      // Update session immediately
       updateSession();
       
-      // Update session every 5 minutes
-      const interval = setInterval(updateSession, 5 * 60 * 1000);
+      // Update session every 2 minutes instead of 5
+      const interval = setInterval(updateSession, 2 * 60 * 1000);
       
       // Update session before page unload
       const handleBeforeUnload = () => {
         updateSession();
       };
       
+      // Also update on visibility change
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          updateSession();
+        }
+      };
+      
       window.addEventListener('beforeunload', handleBeforeUnload);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
       
       return () => {
         clearInterval(interval);
         window.removeEventListener('beforeunload', handleBeforeUnload);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
-    } else {
+    } else if (!isAuthenticated) {
+      console.log('User not authenticated, removing session');
       removeSession();
     }
-  }, [isAuthenticated, updateSession, removeSession]);
+  }, [isAuthenticated, profile, updateSession, removeSession]);
 
   return {
     activeSessions,
