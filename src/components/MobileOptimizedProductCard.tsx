@@ -1,3 +1,4 @@
+
 import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart, ShoppingCart, Eye } from 'lucide-react';
@@ -33,7 +34,7 @@ interface ProductCardProps {
 
 const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) => {
   const { dispatch } = useCart();
-  const { addToWishlist } = useWishlist();
+  const { addToWishlist, isInWishlist } = useWishlist();
   const { canUseShoppingFeatures } = useAdminMode();
   const { isAuthenticated } = useAuth();
 
@@ -65,7 +66,7 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
   }, [addToWishlist, product]);
 
   return (
-    <div className="group relative bg-card rounded-lg sm:rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50">
+    <div className="group relative bg-card rounded-lg sm:rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50 w-full">
       {/* Product badges - mobile optimized */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
         {product.isNew && (
@@ -80,17 +81,23 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
         )}
       </div>
 
-      {/* Wishlist button - mobile optimized */}
+      {/* Wishlist button - mobile optimized with better visual feedback */}
       {canUseShoppingFeatures && (
         <button
           onClick={handleAddToWishlist}
-          className="absolute top-2 right-2 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-all duration-200 opacity-0 group-hover:opacity-100 md:opacity-100"
+          className={`absolute top-2 right-2 z-10 p-2 rounded-full shadow-md transition-all duration-200 flex items-center justify-center w-9 h-9 ${
+            isInWishlist(product.id)
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-white/90 backdrop-blur-sm hover:bg-white text-gray-600 hover:text-red-500'
+          } opacity-0 group-hover:opacity-100 md:opacity-100`}
         >
-          <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600 hover:text-red-500 transition-colors" />
+          <Heart className={`w-4 h-4 transition-all duration-200 ${
+            isInWishlist(product.id) ? 'fill-current' : 'hover:fill-current'
+          }`} />
         </button>
       )}
 
-      <Link to={`/product/${product.id}`}>
+      <Link to={`/product/${product.id}`} className="block">
         {/* Image container - mobile optimized aspect ratio */}
         <div className="relative aspect-square overflow-hidden bg-muted/20">
           <img

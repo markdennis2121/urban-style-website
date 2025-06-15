@@ -100,13 +100,25 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Mobile-first font optimization */
+    /* Mobile-first font optimization with full width */
     font-size: 16px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     /* Prevent text size adjustment on iOS */
     -webkit-text-size-adjust: 100%;
+    /* Ensure full width usage */
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  html {
+    /* Ensure full width usage */
+    margin: 0;
+    padding: 0;
+    width: 100%;
   }
 
   /* Mobile-first touch optimization */
@@ -249,11 +261,38 @@ body {
   background: hsl(var(--muted-foreground));
 }
 
-/* Mobile-first spacing utilities */
-@media (max-width: 640px) {
+/* Mobile-first spacing utilities with full width container support */
+.container {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
   .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
   }
 }
 
