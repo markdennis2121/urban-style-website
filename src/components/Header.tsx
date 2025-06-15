@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ShoppingBag, Menu, X, User, LogOut, Heart, LogIn } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useAdminMode } from '../contexts/AdminModeContext';
 import { useAuth } from '../hooks/useAuth';
-import { supabase, getCurrentProfile } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,9 +21,8 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import GlobalSearch from './GlobalSearch';
 import { products } from '@/data/products';
 
-const Header = () => {
+const Header = React.memo(() => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchItems, setSearchItems] = useState([]);
   const { state } = useCart();
@@ -33,24 +32,14 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isAuthenticated && profile) {
-      setCurrentUser(profile);
-    } else {
-      setCurrentUser(null);
-    }
-    loadSearchData();
-  }, [isAuthenticated, profile]);
-
-  const loadSearchData = async () => {
+  // Memoize search data loading
+  const loadSearchData = useCallback(async () => {
     try {
-      // Load products from database
       const { data: dbProducts } = await supabase
         .from('products')
         .select('*')
         .gt('stock', 0);
 
-      // Combine static and database products
       const allProducts = [
         ...products.filter(p => p.inStock).map(p => ({
           id: p.id,
@@ -78,60 +67,67 @@ const Header = () => {
     } catch (error) {
       console.error('Error loading search data:', error);
     }
-  };
+  }, []);
 
-  const handleSearch = (term: string) => {
-    if (term.trim()) {
-      navigate(`/shop?search=${encodeURIComponent(term)}`);
-    }
-  };
+  // Load search data only once
+  useEffect(() => {
+    loadSearchData();
+  }, [loadSearchData]);
 
-  const handleAuthAction = (action: string) => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return false;
-    }
-    return true;
-  };
-
-  const handleCartClick = () => {
-    if (!handleAuthAction('access cart')) return;
-    navigate('/cart');
-  };
-
-  const handleWishlistClick = () => {
-    if (!handleAuthAction('access wishlist')) return;
-    navigate('/wishlist');
-  };
-
-  const handleLogout = async () => {
-    try {
-      console.log('User logging out...');
-      await supabase.auth.signOut();
-      // Don't manually navigate - let the auth state change handle it
-      // The useAuth hook will detect the sign out and update the state
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Only navigate on error as fallback
-      navigate('/');
-    }
-  };
-
-  const navItems = [
+  // Memoize navigation items
+  const navItems = useMemo(() => [
     { name: 'Home', href: '/', isActive: location.pathname === '/' },
     { name: 'Shop', href: '/shop', isActive: location.pathname === '/shop' },
     { name: 'Blog', href: '/blog', isActive: location.pathname === '/blog' },
     { name: 'About', href: '/about', isActive: location.pathname === '/about' },
     { name: 'Contact', href: '/contact', isActive: location.pathname === '/contact' },
-  ];
+  ], [location.pathname]);
 
-  // Don't render anything until we know the auth state
+  // Optimized handlers
+  const handleSearch = useCallback((term: string) => {
+    if (term.trim()) {
+      navigate(`/shop?search=${encodeURIComponent(term)}`);
+    }
+  }, [navigate]);
+
+  const handleAuthAction = useCallback((action: string) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return false;
+    }
+    return true;
+  }, [isAuthenticated, navigate]);
+
+  const handleCartClick = useCallback(() => {
+    if (!handleAuthAction('access cart')) return;
+    navigate('/cart');
+  }, [handleAuthAction, navigate]);
+
+  const handleWishlistClick = useCallback(() => {
+    if (!handleAuthAction('access wishlist')) return;
+    navigate('/wishlist');
+  }, [handleAuthAction, navigate]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      console.log('User logging out...');
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+      navigate('/');
+    }
+  }, [navigate]);
+
+  const handleProfileUpdate = useCallback((updatedProfile) => {
+    setIsProfileOpen(false);
+  }, []);
+
+  // Loading state
   if (loading) {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            {/* Left Side: Logo */}
             <div className="flex items-center">
               <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
                 <div className="w-[60px] h-[60px] rounded-lg flex items-center justify-center">
@@ -140,7 +136,6 @@ const Header = () => {
               </Link>
             </div>
 
-            {/* Center: Desktop Navigation */}
             <nav className="hidden md:flex">
               <ul className="flex items-center justify-center">
                 {navItems.map((item) => (
@@ -163,7 +158,6 @@ const Header = () => {
               </ul>
             </nav>
 
-            {/* Right side: Loading state */}
             <div className="flex items-center space-x-4">
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
               <div className="md:hidden">
@@ -185,7 +179,7 @@ const Header = () => {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Left Side: Logo */}
+          {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
               <div className="w-[60px] h-[60px] rounded-lg flex items-center justify-center">
@@ -194,7 +188,7 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Center: Desktop Navigation */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex">
             <ul className="flex items-center justify-center">
               {navItems.map((item) => (
@@ -217,9 +211,8 @@ const Header = () => {
             </ul>
           </nav>
 
-          {/* Right side: Admin Toggle, Search, Wishlist, Cart, Profile */}
+          {/* Right side actions */}
           <div className="flex items-center space-x-4">
-            {/* Admin Mode Toggle - only show for authenticated users */}
             {isAuthenticated && <AdminModeToggle />}
 
             {/* Search */}
@@ -232,7 +225,7 @@ const Header = () => {
               />
             </div>
 
-            {/* Wishlist - show for everyone, but require auth for access */}
+            {/* Wishlist */}
             {canUseShoppingFeatures && (
               <Button 
                 variant="ghost" 
@@ -249,7 +242,7 @@ const Header = () => {
               </Button>
             )}
 
-            {/* Cart Icon - show for everyone, but require auth for access */}
+            {/* Cart */}
             {canUseShoppingFeatures && (
               <Button
                 variant="ghost"
@@ -266,15 +259,15 @@ const Header = () => {
               </Button>
             )}
 
-            {/* User Profile Dropdown or Login Button */}
+            {/* User Profile or Login */}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={currentUser?.avatar_url} alt={currentUser?.username} />
+                      <AvatarImage src={profile?.avatar_url} alt={profile?.username} />
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {currentUser?.username?.charAt(0)?.toUpperCase() || 'U'}
+                        {profile?.username?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -282,9 +275,9 @@ const Header = () => {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium">{currentUser?.username}</p>
+                      <p className="font-medium">{profile?.username}</p>
                       <p className="w-[200px] truncate text-sm text-muted-foreground">
-                        {currentUser?.email}
+                        {profile?.email}
                       </p>
                     </div>
                   </div>
@@ -298,22 +291,19 @@ const Header = () => {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[500px]">
                         <ProfileSettings 
-                          currentUser={currentUser} 
-                          onProfileUpdate={(updatedProfile) => {
-                            setCurrentUser(updatedProfile);
-                            setIsProfileOpen(false);
-                          }}
+                          currentUser={profile} 
+                          onProfileUpdate={handleProfileUpdate}
                         />
                       </DialogContent>
                     </Dialog>
                   </DropdownMenuItem>
-                  {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
+                  {(profile?.role === 'admin' || profile?.role === 'super_admin') && (
                     <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
                       <User className="mr-2 h-4 w-4" />
                       <span>Admin Dashboard</span>
                     </DropdownMenuItem>
                   )}
-                  {currentUser?.role === 'super_admin' && (
+                  {profile?.role === 'super_admin' && (
                     <DropdownMenuItem onClick={() => navigate('/superadmin/dashboard')}>
                       <User className="mr-2 h-4 w-4" />
                       <span>Super Admin</span>
@@ -396,6 +386,8 @@ const Header = () => {
       </div>
     </header>
   );
-};
+});
+
+Header.displayName = 'Header';
 
 export default Header;
