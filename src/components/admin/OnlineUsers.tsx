@@ -141,7 +141,7 @@ const OnlineUsers = () => {
           </div>
         )}
       </CardContent>
-    </div>
+    </Card>
   );
 };
 
