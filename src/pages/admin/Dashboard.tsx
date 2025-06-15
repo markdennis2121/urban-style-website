@@ -6,8 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Wifi } from 'lucide-react';
 
-// Import our components
-import { useAdminData } from '@/hooks/useAdminData';
+// Import our components and real-time hook
+import { useRealtimeAdminData } from '@/hooks/useRealtimeAdminData';
 import OverviewTab from '@/components/admin/OverviewTab';
 import ProductManagement from '@/components/admin/ProductManagement';
 import UserManagement from '@/components/admin/UserManagement';
@@ -27,9 +27,7 @@ const AdminDashboard = () => {
     error,
     loadProducts,
     loadWishlistsData,
-    deleteProduct,
-    deleteWishlistItem
-  } = useAdminData();
+  } = useRealtimeAdminData();
 
   if (loading) {
     return (
@@ -60,9 +58,15 @@ const AdminDashboard = () => {
                     <h1 className="text-4xl font-bold">
                       Admin Dashboard
                     </h1>
+                    <div className="bg-green-500/20 px-3 py-1 rounded-full border border-green-300">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-medium text-green-100">Real-time</span>
+                      </div>
+                    </div>
                   </div>
                   <p className="text-xl text-blue-100">
-                    Manage products, users, and system content
+                    Manage products, users, and system content with real-time updates
                   </p>
                 </div>
               </div>

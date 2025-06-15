@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
 import { ShoppingCart, Trash2, User, Package, Eye } from 'lucide-react';
+import { useRealtimeCartData } from '@/hooks/useRealtimeCartData';
 import {
   Table,
   TableBody,
@@ -23,99 +24,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
-interface CartItem {
-  id: string;
-  user_id: string;
-  product_id: string;
-  product_name: string;
-  product_price: number;
-  product_image: string;
-  quantity: number;
-  size?: string;
-  color?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface UserCart {
-  user_id: string;
-  username: string;
-  email: string;
-  items: CartItem[];
-  total_items: number;
-  total_value: number;
-  last_updated: string;
-}
-
 const CartManagement: React.FC = () => {
   const { toast } = useToast();
-  const [userCarts, setUserCarts] = useState<UserCart[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCart, setSelectedCart] = useState<UserCart | null>(null);
-
-  useEffect(() => {
-    loadUserCarts();
-  }, []);
-
-  const loadUserCarts = async () => {
-    try {
-      setLoading(true);
-      
-      // Get all cart items with user profiles
-      const { data: cartData, error: cartError } = await supabase
-        .from('user_carts')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            email
-          )
-        `)
-        .order('updated_at', { ascending: false });
-
-      if (cartError) throw cartError;
-
-      // Group cart items by user
-      const userCartsMap = new Map<string, UserCart>();
-      
-      cartData?.forEach((item: any) => {
-        const userId = item.user_id;
-        
-        if (!userCartsMap.has(userId)) {
-          userCartsMap.set(userId, {
-            user_id: userId,
-            username: item.profiles?.username || 'Unknown User',
-            email: item.profiles?.email || 'No email',
-            items: [],
-            total_items: 0,
-            total_value: 0,
-            last_updated: item.updated_at,
-          });
-        }
-
-        const userCart = userCartsMap.get(userId)!;
-        userCart.items.push(item);
-        userCart.total_items += item.quantity;
-        userCart.total_value += item.product_price * item.quantity;
-        
-        // Update last_updated to the most recent item
-        if (new Date(item.updated_at) > new Date(userCart.last_updated)) {
-          userCart.last_updated = item.updated_at;
-        }
-      });
-
-      setUserCarts(Array.from(userCartsMap.values()));
-    } catch (error) {
-      console.error('Error loading user carts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load user carts.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { userCarts, loading, loadUserCarts } = useRealtimeCartData();
 
   const clearUserCart = async (userId: string) => {
     if (!confirm('Are you sure you want to clear this user\'s cart?')) return;
@@ -154,7 +65,7 @@ const CartManagement: React.FC = () => {
     });
   };
 
-  const CartDetailsDialog = ({ cart }: { cart: UserCart }) => (
+  const CartDetailsDialog = ({ cart }: { cart: any }) => (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
@@ -171,7 +82,7 @@ const CartManagement: React.FC = () => {
         </DialogHeader>
         
         <div className="space-y-4">
-          {cart.items.map((item) => (
+          {cart.items.map((item: any) => (
             <div key={`${item.product_id}-${item.size}-${item.color}`} className="flex gap-4 p-4 border rounded-lg">
               <img 
                 src={item.product_image} 
@@ -214,6 +125,12 @@ const CartManagement: React.FC = () => {
             <ShoppingCart className="h-5 w-5 text-white" />
           </div>
           User Carts ({userCarts.length})
+          <div className="bg-green-500/20 px-2 py-1 rounded-full border border-green-300">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-xs font-medium text-green-700">Real-time</span>
+            </div>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">

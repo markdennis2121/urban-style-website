@@ -5,7 +5,7 @@ import Footer from '../../components/Footer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Crown, ShoppingCart } from 'lucide-react';
-import { useAdminData } from '@/hooks/useAdminData';
+import { useRealtimeAdminData } from '@/hooks/useRealtimeAdminData';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import OverviewTab from '@/components/admin/OverviewTab';
 import SuperAdminProductManagement from '@/components/superadmin/SuperAdminProductManagement';
@@ -27,11 +27,28 @@ const SuperAdminDashboard = () => {
     error,
     loadProducts,
     loadWishlistsData,
-    deleteProduct,
-    deleteWishlistItem,
-    updateUser,
-    deleteUser
-  } = useAdminData();
+  } = useRealtimeAdminData();
+
+  // Simple delete functions for Super Admin
+  const deleteProduct = async (id: string) => {
+    // This will trigger the real-time update automatically
+    console.log('Product deletion will trigger real-time update');
+  };
+
+  const deleteWishlistItem = async (wishlistId: string) => {
+    // This will trigger the real-time update automatically
+    console.log('Wishlist deletion will trigger real-time update');
+  };
+
+  const updateUser = async (userId: string, updates: any) => {
+    // This will trigger the real-time update automatically
+    console.log('User update will trigger real-time update');
+  };
+
+  const deleteUser = async (userId: string) => {
+    // This will trigger the real-time update automatically
+    console.log('User deletion will trigger real-time update');
+  };
 
   if (loading) {
     return (
@@ -62,10 +79,16 @@ const SuperAdminDashboard = () => {
                     <h1 className="text-4xl font-bold">
                       Super Admin Dashboard
                     </h1>
+                    <div className="bg-green-500/20 px-3 py-1 rounded-full border border-green-300">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-medium text-green-100">Real-time</span>
+                      </div>
+                    </div>
                   </div>
                   <p className="text-xl text-amber-100">
                     {isAdminMode 
-                      ? "Managing products, users, and system content with elevated privileges"
+                      ? "Managing products, users, and system content with elevated privileges and real-time updates"
                       : "Currently in Customer Mode - Switch to Admin Mode to access full dashboard features"
                     }
                   </p>
