@@ -1,4 +1,5 @@
 
+
 -- Create orders table
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -55,26 +56,38 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory_logs ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if they exist
+-- Drop ALL existing policies to start fresh
 DROP POLICY IF EXISTS "Users can view their own orders" ON orders;
 DROP POLICY IF EXISTS "Users can insert their own orders" ON orders;
+DROP POLICY IF EXISTS "Users can update their own orders" ON orders;
 DROP POLICY IF EXISTS "Admins can view all orders" ON orders;
 DROP POLICY IF EXISTS "Admins can update orders" ON orders;
+DROP POLICY IF EXISTS "Admins can insert orders" ON orders;
+
 DROP POLICY IF EXISTS "Users can view their order items" ON order_items;
 DROP POLICY IF EXISTS "Users can insert their order items" ON order_items;
 DROP POLICY IF EXISTS "Admins can view all order items" ON order_items;
+DROP POLICY IF EXISTS "Admins can insert order items" ON order_items;
+
 DROP POLICY IF EXISTS "Admins can view inventory logs" ON inventory_logs;
 DROP POLICY IF EXISTS "Admins can insert inventory logs" ON inventory_logs;
 
--- Orders RLS policies
-CREATE POLICY "Users can view their own orders" ON orders
-    FOR SELECT USING (auth.uid() = user_id);
+-- Create comprehensive RLS policies for orders
+CREATE POLICY "users_select_own_orders" ON orders
+    FOR SELECT 
+    USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert their own orders" ON orders
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "users_insert_own_orders" ON orders
+    FOR INSERT 
+    WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Admins can view all orders" ON orders
-    FOR SELECT USING (
+CREATE POLICY "users_update_own_orders" ON orders
+    FOR UPDATE 
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "admins_all_orders" ON orders
+    FOR ALL 
+    USING (
         EXISTS (
             SELECT 1 FROM profiles 
             WHERE profiles.id = auth.uid() 
@@ -82,18 +95,10 @@ CREATE POLICY "Admins can view all orders" ON orders
         )
     );
 
-CREATE POLICY "Admins can update orders" ON orders
-    FOR UPDATE USING (
-        EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.id = auth.uid() 
-            AND profiles.role IN ('admin', 'super_admin')
-        )
-    );
-
--- Order items RLS policies
-CREATE POLICY "Users can view their order items" ON order_items
-    FOR SELECT USING (
+-- Create comprehensive RLS policies for order_items
+CREATE POLICY "users_select_own_order_items" ON order_items
+    FOR SELECT 
+    USING (
         EXISTS (
             SELECT 1 FROM orders 
             WHERE orders.id = order_items.order_id 
@@ -101,8 +106,9 @@ CREATE POLICY "Users can view their order items" ON order_items
         )
     );
 
-CREATE POLICY "Users can insert their order items" ON order_items
-    FOR INSERT WITH CHECK (
+CREATE POLICY "users_insert_own_order_items" ON order_items
+    FOR INSERT 
+    WITH CHECK (
         EXISTS (
             SELECT 1 FROM orders 
             WHERE orders.id = order_items.order_id 
@@ -110,8 +116,9 @@ CREATE POLICY "Users can insert their order items" ON order_items
         )
     );
 
-CREATE POLICY "Admins can view all order items" ON order_items
-    FOR SELECT USING (
+CREATE POLICY "admins_all_order_items" ON order_items
+    FOR ALL 
+    USING (
         EXISTS (
             SELECT 1 FROM profiles 
             WHERE profiles.id = auth.uid() 
@@ -119,18 +126,10 @@ CREATE POLICY "Admins can view all order items" ON order_items
         )
     );
 
--- Inventory logs RLS policies
-CREATE POLICY "Admins can view inventory logs" ON inventory_logs
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM profiles 
-            WHERE profiles.id = auth.uid() 
-            AND profiles.role IN ('admin', 'super_admin')
-        )
-    );
-
-CREATE POLICY "Admins can insert inventory logs" ON inventory_logs
-    FOR INSERT WITH CHECK (
+-- Create comprehensive RLS policies for inventory_logs
+CREATE POLICY "admins_all_inventory_logs" ON inventory_logs
+    FOR ALL 
+    USING (
         EXISTS (
             SELECT 1 FROM profiles 
             WHERE profiles.id = auth.uid() 
@@ -211,3 +210,4 @@ CREATE INDEX IF NOT EXISTS idx_products_stock ON products(stock);
 -- Update existing products with default stock values
 UPDATE products SET stock = 50 WHERE stock IS NULL;
 UPDATE products SET low_stock_threshold = 10 WHERE low_stock_threshold IS NULL;
+
