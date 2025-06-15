@@ -59,6 +59,9 @@ ALTER TABLE inventory_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own orders" ON orders
     FOR SELECT USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can insert their own orders" ON orders
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
 CREATE POLICY "Admins can view all orders" ON orders
     FOR SELECT USING (
         EXISTS (
@@ -80,6 +83,15 @@ CREATE POLICY "Admins can update orders" ON orders
 -- Order items RLS policies
 CREATE POLICY "Users can view their order items" ON order_items
     FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM orders 
+            WHERE orders.id = order_items.order_id 
+            AND orders.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert their order items" ON order_items
+    FOR INSERT WITH CHECK (
         EXISTS (
             SELECT 1 FROM orders 
             WHERE orders.id = order_items.order_id 
