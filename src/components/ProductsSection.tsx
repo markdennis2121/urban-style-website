@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProductCard from './ProductCard';
@@ -44,7 +44,7 @@ const ProductsSection = () => {
   };
 
   // Transform database products to match Product interface
-  const transformedDbProducts = dbProducts.map(product => ({
+  const transformedDbProducts = useMemo(() => dbProducts.map(product => ({
     id: product.id,
     name: product.name,
     price: product.price,
@@ -61,7 +61,7 @@ const ProductsSection = () => {
     inStock: product.stock > 0,
     isNew: false,
     isSale: false,
-  }));
+  })), [dbProducts]);
 
   return (
     <section className="py-20 bg-gradient-to-br from-background via-muted/10 to-background">

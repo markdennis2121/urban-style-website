@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ShoppingBag, Menu, X, User, LogOut, Heart, LogIn } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -44,7 +43,7 @@ const Header: React.FC = () => {
         .from('products')
         .select('id, name, category, description, image, price')
         .gt('stock', 0)
-        .limit(200);
+        .limit(50); // Reduced from 200
 
       if (error) {
         console.error('Error fetching products for search:', error);
