@@ -103,18 +103,34 @@ serve(async (req) => {
 
     console.log("✅ User authenticated:", user.email);
 
-    // Parse request body
+    // Parse request body with better error handling
     let requestBody;
     try {
-      console.log("📦 Parsing request body...");
-      requestBody = await req.json();
-      console.log("✅ Request body parsed");
-      console.log("Items count:", requestBody.items?.length);
-      console.log("Total:", requestBody.total);
+      console.log("📦 Reading request body...");
+      const bodyText = await req.text();
+      console.log("📝 Raw body text:", bodyText);
+      console.log("📏 Body length:", bodyText.length);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        console.error("❌ Empty request body");
+        return new Response(JSON.stringify({ 
+          error: "Request body is empty" 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+
+      console.log("🔍 Parsing JSON...");
+      requestBody = JSON.parse(bodyText);
+      console.log("✅ Request body parsed successfully");
+      console.log("📊 Parsed data:", JSON.stringify(requestBody, null, 2));
     } catch (parseError) {
       console.error("❌ JSON parse error:", parseError);
+      console.error("❌ Parse error details:", parseError.message);
       return new Response(JSON.stringify({ 
-        error: "Invalid JSON in request body" 
+        error: "Invalid JSON in request body",
+        details: parseError.message 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
