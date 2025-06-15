@@ -3,8 +3,7 @@ import React from 'react';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { ShieldCheck, ShoppingBag } from 'lucide-react';
+import { ShieldCheck, User } from 'lucide-react';
 
 const AdminModeToggle = () => {
   const { isAdmin, isSuperAdmin } = useAuth();
@@ -16,24 +15,25 @@ const AdminModeToggle = () => {
   }
 
   return (
-    <div className="flex items-center space-x-3 px-3 py-2 bg-card/60 backdrop-blur-sm border border-border/50 rounded-xl">
-      <div className="flex items-center space-x-2">
-        {isAdminMode ? (
-          <ShieldCheck className="w-4 h-4 text-primary" />
-        ) : (
-          <ShoppingBag className="w-4 h-4 text-primary" />
-        )}
-        <Label 
-          htmlFor="admin-mode-toggle" 
-          className="text-sm font-medium cursor-pointer"
-        >
-          {isAdminMode ? 'Admin Mode' : 'Customer Mode'}
-        </Label>
+    <div className="flex items-center gap-2 px-2 py-1.5 bg-background/40 backdrop-blur-sm border border-border/30 rounded-full transition-all duration-200 hover:bg-background/60 hover:border-border/50">
+      <div className="flex items-center gap-1.5">
+        <div className={`transition-all duration-300 ${isAdminMode ? 'text-amber-600 scale-110' : 'text-muted-foreground scale-100'}`}>
+          {isAdminMode ? (
+            <ShieldCheck className="w-3.5 h-3.5" />
+          ) : (
+            <User className="w-3.5 h-3.5" />
+          )}
+        </div>
+        <span className={`text-xs font-medium transition-colors duration-200 ${
+          isAdminMode ? 'text-amber-700' : 'text-muted-foreground'
+        }`}>
+          {isAdminMode ? 'Admin' : 'User'}
+        </span>
       </div>
       <Switch
-        id="admin-mode-toggle"
         checked={isAdminMode}
         onCheckedChange={toggleAdminMode}
+        className="data-[state=checked]:bg-amber-500 data-[state=unchecked]:bg-muted scale-75"
       />
     </div>
   );
