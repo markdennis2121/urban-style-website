@@ -19,7 +19,7 @@ interface UserSession {
 export const useUserSessions = () => {
   const [activeSessions, setActiveSessions] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, isAuthenticated } = useAuth();
+  const { profile, isAuthenticated } = useAuth();
 
   // Generate a unique session ID for this browser session
   const getSessionId = useCallback(() => {
@@ -33,7 +33,7 @@ export const useUserSessions = () => {
 
   // Update user's session activity
   const updateSession = useCallback(async () => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !profile) return;
 
     const sessionId = getSessionId();
     
@@ -41,7 +41,7 @@ export const useUserSessions = () => {
       await supabase
         .from('user_sessions')
         .upsert({
-          user_id: user.id,
+          user_id: profile.id,
           session_id: sessionId,
           last_activity: new Date().toISOString(),
         }, {
@@ -50,11 +50,11 @@ export const useUserSessions = () => {
     } catch (error) {
       console.error('Error updating session:', error);
     }
-  }, [isAuthenticated, user, getSessionId]);
+  }, [isAuthenticated, profile, getSessionId]);
 
   // Remove user's session on logout
   const removeSession = useCallback(async () => {
-    if (!user) return;
+    if (!profile) return;
 
     const sessionId = getSessionId();
     
@@ -62,14 +62,14 @@ export const useUserSessions = () => {
       await supabase
         .from('user_sessions')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', profile.id)
         .eq('session_id', sessionId);
       
       sessionStorage.removeItem('user_session_id');
     } catch (error) {
       console.error('Error removing session:', error);
     }
-  }, [user, getSessionId]);
+  }, [profile, getSessionId]);
 
   // Load all active sessions (admin only)
   const loadActiveSessions = useCallback(async () => {

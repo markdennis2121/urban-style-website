@@ -8,25 +8,33 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Search, Users, Shield, User, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useUserSessions } from '@/hooks/useUserSessions';
+import { User as UserType } from '@/hooks/useAdminData';
 
-interface UserProfile {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  created_at: string;
+interface UserManagementProps {
+  users?: UserType[];
+  onUserUpdate?: (userId: string, updates: Partial<UserType>) => Promise<void>;
+  onUserDelete?: (userId: string) => Promise<void>;
 }
 
-const UserManagement = () => {
-  const [users, setUsers] = useState<UserProfile[]>([]);
+const UserManagement: React.FC<UserManagementProps> = ({ 
+  users: propUsers, 
+  onUserUpdate, 
+  onUserDelete 
+}) => {
+  const [users, setUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { activeSessions, loadActiveSessions } = useUserSessions();
 
   useEffect(() => {
-    loadUsers();
+    if (propUsers) {
+      setUsers(propUsers);
+      setLoading(false);
+    } else {
+      loadUsers();
+    }
     loadActiveSessions();
-  }, [loadActiveSessions]);
+  }, [propUsers, loadActiveSessions]);
 
   const loadUsers = async () => {
     try {
