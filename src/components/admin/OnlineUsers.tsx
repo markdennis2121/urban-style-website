@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,11 +11,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const OnlineUsers = () => {
   const { activeSessions, loading, error, loadActiveSessions } = useUserSessions();
-  const { profile, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  const hasAdminAccess = isAdmin || isSuperAdmin;
+  const hasAdminAccess = profile?.role?.toLowerCase() === 'admin' || profile?.role?.toLowerCase() === 'super_admin';
 
   useEffect(() => {
     if (authLoading) return; // Wait until authentication check is complete
@@ -39,7 +38,7 @@ const OnlineUsers = () => {
       
       return () => clearInterval(interval);
     } else {
-      console.warn('Access to OnlineUsers denied. Current profile:', profile);
+      console.warn(`Access to OnlineUsers denied. User: ${profile?.email}, Role: ${profile?.role || 'not found'}`);
     }
   }, [loadActiveSessions, hasAdminAccess, profile, authLoading]);
 

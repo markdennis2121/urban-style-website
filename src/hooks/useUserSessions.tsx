@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from './useAuth';
@@ -95,8 +94,9 @@ export const useUserSessions = () => {
 
   // Load active sessions (admin only) - BUT SHOW ALL USERS' SESSIONS
   const loadActiveSessions = useCallback(async () => {
-    if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
-      console.log('Not admin, skipping session load. Profile:', profile);
+    const userRole = profile?.role?.toLowerCase();
+    if (!profile || (userRole !== 'admin' && userRole !== 'super_admin')) {
+      console.log('Not an admin, skipping session load. Profile:', profile, 'Detected role:', userRole);
       setActiveSessions([]);
       setLoading(false);
       return;
@@ -109,7 +109,7 @@ export const useUserSessions = () => {
       // Get sessions active in the last hour (more recent)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       
-      console.log('Loading ALL user sessions since:', oneHourAgo);
+      console.log('Admin detected. Loading ALL user sessions since:', oneHourAgo);
       
       // FIXED: Remove role filtering - show ALL users' sessions, not just admin sessions
       const { data: sessionsData, error: sessionsError } = await supabase
