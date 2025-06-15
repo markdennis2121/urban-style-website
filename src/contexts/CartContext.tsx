@@ -1,5 +1,7 @@
 
 import React, { createContext, useContext, useReducer, ReactNode, useEffect, useRef } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface CartItem {
   id: string;
@@ -24,6 +26,7 @@ type CartAction =
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
   | { type: 'CLEAR_CART' }
   | { type: 'LOAD_FROM_STORAGE'; payload: CartState }
+  | { type: 'LOAD_FROM_DATABASE'; payload: CartItem[] }
   | { type: 'SET_LOADED' };
 
 const CART_STORAGE_KEY = 'lovable_cart';
@@ -65,11 +68,73 @@ const saveToStorage = (state: CartState) => {
         itemCount: state.itemCount,
       };
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(stateToSave));
-      console.log('Cart saved to localStorage:', stateToSave);
     }
   } catch (error) {
     console.error('Error saving cart to localStorage:', error);
   }
+};
+
+const saveToDatabase = async (userId: string, items: CartItem[]) => {
+  try {
+    // Delete existing cart items for this user
+    await supabase
+      .from('user_carts')
+      .delete()
+      .eq('user_id', userId);
+
+    // Insert new cart items
+    if (items.length > 0) {
+      const cartItems = items.map(item => ({
+        user_id: userId,
+        product_id: item.id,
+        product_name: item.name,
+        product_price: item.price,
+        product_image: item.image,
+        quantity: item.quantity,
+        size: item.size || null,
+        color: item.color || null,
+      }));
+
+      const { error } = await supabase
+        .from('user_carts')
+        .insert(cartItems);
+
+      if (error) throw error;
+      console.log('Cart saved to database');
+    }
+  } catch (error) {
+    console.error('Error saving cart to database:', error);
+  }
+};
+
+const loadFromDatabase = async (userId: string): Promise<CartItem[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('user_carts')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    return (data || []).map(item => ({
+      id: item.product_id,
+      name: item.product_name,
+      price: item.product_price,
+      image: item.product_image,
+      quantity: item.quantity,
+      size: item.size || undefined,
+      color: item.color || undefined,
+    }));
+  } catch (error) {
+    console.error('Error loading cart from database:', error);
+    return [];
+  }
+};
+
+const calculateTotals = (items: CartItem[]) => {
+  const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  return { total, itemCount };
 };
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
@@ -79,6 +144,17 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
     case 'LOAD_FROM_STORAGE':
       console.log('Loading cart from storage:', action.payload);
       return action.payload;
+
+    case 'LOAD_FROM_DATABASE': {
+      const { total, itemCount } = calculateTotals(action.payload);
+      newState = {
+        items: action.payload,
+        total,
+        itemCount,
+        isLoaded: true,
+      };
+      break;
+    }
 
     case 'SET_LOADED':
       return {
@@ -106,18 +182,14 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         newItems = [...state.items, { ...action.payload, quantity: action.payload.quantity || 1 }];
       }
       
-      const total = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
-      
+      const { total, itemCount } = calculateTotals(newItems);
       newState = { items: newItems, total, itemCount, isLoaded: state.isLoaded };
       break;
     }
     
     case 'REMOVE_ITEM': {
       const newItems = state.items.filter(item => item.id !== action.payload);
-      const total = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
-      
+      const { total, itemCount } = calculateTotals(newItems);
       newState = { items: newItems, total, itemCount, isLoaded: state.isLoaded };
       break;
     }
@@ -129,9 +201,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           : item
       ).filter(item => item.quantity > 0);
       
-      const total = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
-      
+      const { total, itemCount } = calculateTotals(newItems);
       newState = { items: newItems, total, itemCount, isLoaded: state.isLoaded };
       break;
     }
@@ -155,31 +225,64 @@ const CartContext = createContext<{
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(cartReducer, getInitialState());
+  const { profile, isAuthenticated, initialized } = useAuth();
   const loadedRef = useRef(false);
+  const syncTimeoutRef = useRef<NodeJS.Timeout>();
   
+  // Load cart data on mount
   useEffect(() => {
-    // Prevent multiple loads with stronger guard
-    if (loadedRef.current) {
-      console.log('Cart already loaded, skipping');
-      return;
-    }
+    if (loadedRef.current || !initialized) return;
     
     loadedRef.current = true;
     console.log('Initializing cart...');
 
-    const savedCart = loadFromStorage();
-    if (savedCart) {
-      console.log('Found saved cart:', savedCart);
-      dispatch({ type: 'LOAD_FROM_STORAGE', payload: savedCart });
-    } else {
-      console.log('No saved cart found, setting as loaded');
-      dispatch({ type: 'SET_LOADED' });
-    }
+    const initializeCart = async () => {
+      if (isAuthenticated && profile?.id) {
+        // Load from database for authenticated users
+        console.log('Loading cart from database for user:', profile.id);
+        const dbItems = await loadFromDatabase(profile.id);
+        dispatch({ type: 'LOAD_FROM_DATABASE', payload: dbItems });
+      } else {
+        // Load from localStorage for guest users
+        const savedCart = loadFromStorage();
+        if (savedCart) {
+          console.log('Found saved cart in localStorage:', savedCart);
+          dispatch({ type: 'LOAD_FROM_STORAGE', payload: savedCart });
+        } else {
+          console.log('No saved cart found, setting as loaded');
+          dispatch({ type: 'SET_LOADED' });
+        }
+      }
+    };
+
+    initializeCart();
 
     return () => {
       loadedRef.current = false;
     };
-  }, []);
+  }, [isAuthenticated, profile?.id, initialized]);
+
+  // Sync cart to database when user is authenticated and cart changes
+  useEffect(() => {
+    if (!isAuthenticated || !profile?.id || !state.isLoaded) return;
+
+    // Clear existing timeout
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    // Debounce database sync
+    syncTimeoutRef.current = setTimeout(() => {
+      console.log('Syncing cart to database for user:', profile.id);
+      saveToDatabase(profile.id, state.items);
+    }, 1000);
+
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, [isAuthenticated, profile?.id, state.items, state.isLoaded]);
   
   return (
     <CartContext.Provider value={{ state, dispatch }}>

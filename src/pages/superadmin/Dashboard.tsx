@@ -4,7 +4,7 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Crown } from 'lucide-react';
+import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Crown, ShoppingCart } from 'lucide-react';
 import { useAdminData } from '@/hooks/useAdminData';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import StatsCards from '@/components/admin/StatsCards';
@@ -14,6 +14,7 @@ import UserManagement from '@/components/admin/UserManagement';
 import WishlistManagement from '@/components/admin/WishlistManagement';
 import MessageManagement from '@/components/admin/MessageManagement';
 import WishlistAnalytics from '@/components/admin/WishlistAnalytics';
+import CartManagement from '@/components/superadmin/CartManagement';
 
 const SuperAdminDashboard = () => {
   const { isAdminMode } = useAdminMode();
@@ -112,6 +113,10 @@ const SuperAdminDashboard = () => {
                     <Users className="w-4 h-4 mr-2" />
                     Users
                   </TabsTrigger>
+                  <TabsTrigger value="carts" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 rounded-lg px-4 py-3 font-medium">
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    User Carts
+                  </TabsTrigger>
                   <TabsTrigger value="wishlists" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 rounded-lg px-4 py-3 font-medium">
                     <Heart className="w-4 h-4 mr-2" />
                     User Wishlists
@@ -151,6 +156,10 @@ const SuperAdminDashboard = () => {
                     onUserUpdate={updateUser}
                     onUserDelete={deleteUser}
                   />
+                </TabsContent>
+
+                <TabsContent value="carts">
+                  <CartManagement />
                 </TabsContent>
 
                 <TabsContent value="wishlists">
