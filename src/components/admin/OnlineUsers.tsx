@@ -13,17 +13,19 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 const OnlineUsers = () => {
   const { activeSessions, loading, error, loadActiveSessions } = useUserSessions();
   const { profile, isAdmin, isSuperAdmin } = useAuth();
-  const [isRetrying, setIsRetrying] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   // Check if user has admin access
   const hasAdminAccess = isAdmin || isSuperAdmin;
 
   useEffect(() => {
     if (hasAdminAccess) {
-      console.log('Admin access confirmed, loading sessions...');
+      console.log('Admin access confirmed, loading sessions for role:', profile?.role);
       const loadData = async () => {
         try {
           await loadActiveSessions();
+          setLastRefresh(new Date());
         } catch (err) {
           console.error('Error loading sessions:', err instanceof Error ? err.message : 'Unknown error');
         }
@@ -31,21 +33,26 @@ const OnlineUsers = () => {
 
       loadData();
       
-      // Refresh every 30 seconds
-      const interval = setInterval(loadData, 30000);
+      // Refresh every 15 seconds for more frequent updates
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing sessions...');
+        loadData();
+      }, 15000);
+      
       return () => clearInterval(interval);
     }
-  }, [loadActiveSessions, hasAdminAccess]);
+  }, [loadActiveSessions, hasAdminAccess, profile?.role]);
 
-  const handleRetry = async () => {
-    setIsRetrying(true);
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
     try {
-      console.log('Manual retry triggered...');
+      console.log('Manual refresh triggered by:', profile?.role);
       await loadActiveSessions();
+      setLastRefresh(new Date());
     } catch (err) {
-      console.error('Retry failed:', err);
+      console.error('Manual refresh failed:', err);
     } finally {
-      setIsRetrying(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -74,7 +81,7 @@ const OnlineUsers = () => {
     );
   }
 
-  if (loading && !isRetrying) {
+  if (loading && !isRefreshing) {
     return (
       <Card>
         <CardHeader>
@@ -107,12 +114,12 @@ const OnlineUsers = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={handleRetry}
-              disabled={isRetrying}
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
               className="h-8"
             >
-              <RefreshCw className={`h-4 w-4 mr-1 ${isRetrying ? 'animate-spin' : ''}`} />
-              {isRetrying ? 'Retrying...' : 'Retry'}
+              <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Retrying...' : 'Retry'}
             </Button>
           </CardTitle>
         </CardHeader>
@@ -133,6 +140,7 @@ const OnlineUsers = () => {
     );
   }
 
+  // Get unique users from sessions
   const uniqueUsers = activeSessions.reduce((acc, session) => {
     if (!acc.find(u => u.user_id === session.user_id)) {
       acc.push(session);
@@ -147,9 +155,11 @@ const OnlineUsers = () => {
           <div className="flex items-center gap-2">
             <Wifi className="h-5 w-5 text-green-500" />
             Online Users
-            <Badge variant="outline" className="text-xs">
-              Last updated: {new Date().toLocaleTimeString()}
-            </Badge>
+            {lastRefresh && (
+              <Badge variant="outline" className="text-xs">
+                Updated: {lastRefresh.toLocaleTimeString()}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -158,11 +168,11 @@ const OnlineUsers = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={handleRetry}
-              disabled={isRetrying}
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
               className="h-8 px-2"
             >
-              <RefreshCw className={`h-3 w-3 ${isRetrying ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </CardTitle>
@@ -173,6 +183,10 @@ const OnlineUsers = () => {
             <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
             <p className="font-medium">No users currently online</p>
             <p className="text-sm">Users active in the last 30 minutes will appear here</p>
+            <div className="mt-4 text-xs text-gray-500">
+              <p>Debug info: {activeSessions.length} total sessions found</p>
+              <p>Current user role: {profile?.role}</p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

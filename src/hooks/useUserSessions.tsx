@@ -32,7 +32,7 @@ export const useUserSessions = () => {
     return sessionId;
   }, []);
 
-  // Update user's session activity
+  // Update user's session activity - works for ALL authenticated users
   const updateSession = useCallback(async () => {
     if (!isAuthenticated || !profile) {
       console.log('Not authenticated or no profile, skipping session update');
@@ -42,7 +42,9 @@ export const useUserSessions = () => {
     const sessionId = getSessionId();
     
     try {
-      console.log('Updating session for user:', profile.id, 'with session:', sessionId);
+      console.log('Updating session for user:', profile.id, 'role:', profile.role, 'session:', sessionId);
+      
+      // Use upsert to handle both insert and update
       const { error } = await supabase
         .from('user_sessions')
         .upsert({
@@ -55,11 +57,23 @@ export const useUserSessions = () => {
 
       if (error) {
         console.error('Error updating session:', error);
+        // Try alternative approach if upsert fails
+        const { error: insertError } = await supabase
+          .from('user_sessions')
+          .insert({
+            user_id: profile.id,
+            session_id: sessionId,
+            last_activity: new Date().toISOString(),
+          });
+        
+        if (insertError && !insertError.message.includes('duplicate')) {
+          console.error('Error inserting session:', insertError);
+        }
       } else {
-        console.log('Session updated successfully');
+        console.log('Session updated successfully for user:', profile.role);
       }
     } catch (error) {
-      console.error('Error updating session:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error in updateSession:', error instanceof Error ? error.message : 'Unknown error');
     }
   }, [isAuthenticated, profile, getSessionId]);
 
@@ -84,7 +98,7 @@ export const useUserSessions = () => {
     }
   }, [profile, getSessionId]);
 
-  // Load all active sessions (admin only)
+  // Load all active sessions (admin only) with better error handling
   const loadActiveSessions = useCallback(async () => {
     try {
       setLoading(true);
@@ -95,12 +109,17 @@ export const useUserSessions = () => {
       // Clean up old sessions first (older than 30 minutes)
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       
-      await supabase
+      // Clean up old sessions
+      const { error: cleanupError } = await supabase
         .from('user_sessions')
         .delete()
         .lt('last_activity', thirtyMinutesAgo);
 
-      // Get active sessions
+      if (cleanupError) {
+        console.log('Cleanup warning (non-critical):', cleanupError.message);
+      }
+
+      // Get active sessions with a more permissive query
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('user_sessions')
         .select('*')
@@ -112,9 +131,10 @@ export const useUserSessions = () => {
         throw new Error(`Failed to fetch sessions: ${sessionsError.message}`);
       }
 
-      console.log('Sessions fetched:', sessionsData?.length || 0);
+      console.log('Raw sessions fetched:', sessionsData?.length || 0);
 
       if (!sessionsData || sessionsData.length === 0) {
+        console.log('No active sessions found');
         setActiveSessions([]);
         return;
       }
@@ -143,8 +163,14 @@ export const useUserSessions = () => {
         profiles: profilesData?.find(p => p.id === session.user_id) || null
       }));
 
+      console.log('Enriched sessions:', enrichedSessions.map(s => ({
+        user_id: s.user_id,
+        role: s.profiles?.role,
+        email: s.profiles?.email,
+        last_activity: s.last_activity
+      })));
+
       setActiveSessions(enrichedSessions);
-      console.log('Active sessions loaded successfully:', enrichedSessions.length);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -156,16 +182,19 @@ export const useUserSessions = () => {
     }
   }, []);
 
-  // Update session on component mount and periodically
+  // Update session on component mount and periodically for ALL users
   useEffect(() => {
     if (isAuthenticated && profile) {
-      console.log('Setting up session tracking for authenticated user:', profile.id);
+      console.log('Setting up session tracking for user:', profile.email, 'role:', profile.role);
       
       // Update session immediately
       updateSession();
       
-      // Update session every 2 minutes instead of 5
-      const interval = setInterval(updateSession, 2 * 60 * 1000);
+      // Update session every minute for better tracking
+      const interval = setInterval(() => {
+        console.log('Periodic session update for:', profile.role);
+        updateSession();
+      }, 60 * 1000);
       
       // Update session before page unload
       const handleBeforeUnload = () => {
