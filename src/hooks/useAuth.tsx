@@ -130,7 +130,7 @@ export const useAuth = () => {
     loading,
     initialized,
     isAuthenticated: !!profile,
-    isSuperAdmin: profile?.role === 'super_admin',
-    isAdmin: profile?.role === 'admin' || profile?.role === 'super_admin'
+    isSuperAdmin: profile?.role?.toLowerCase() === 'super_admin',
+    isAdmin: ['admin', 'super_admin'].includes(profile?.role?.toLowerCase() ?? ''),
   };
 };

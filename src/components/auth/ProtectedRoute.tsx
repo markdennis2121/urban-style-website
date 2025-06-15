@@ -31,6 +31,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
 
     let hasPermission = false;
+    const userRole = profile.role?.toLowerCase(); // Use a normalized, lowercase role
 
     // Case 1: A specific role is required
     if (requiredRole) {
@@ -39,15 +40,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         hasPermission = true;
       } else if (requiredRole === 'admin') {
         // Admins and Super Admins can access admin routes
-        hasPermission = ['admin', 'super_admin'].includes(profile.role);
+        hasPermission = userRole === 'admin' || userRole === 'super_admin';
       } else if (requiredRole === 'super_admin') {
         // Only Super Admins can access super_admin routes
-        hasPermission = profile.role === 'super_admin';
+        hasPermission = userRole === 'super_admin';
       }
     }
     // Case 2: Role must be in the allowed list
     else if (allowedRoles) {
-      hasPermission = allowedRoles.includes(profile.role);
+      // Check if the user's normalized role is in the list of allowed roles
+      hasPermission = !!userRole && allowedRoles.includes(userRole as UserRole);
     }
     // Case 3: No roles specified, just authentication is needed
     else {
