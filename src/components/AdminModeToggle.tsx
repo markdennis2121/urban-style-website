@@ -2,7 +2,6 @@
 import React from 'react';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import { useAuth } from '@/hooks/useAuth';
-import { ShieldCheck, User } from 'lucide-react';
 
 const AdminModeToggle = () => {
   const { isAdmin, isSuperAdmin } = useAuth();
@@ -14,46 +13,33 @@ const AdminModeToggle = () => {
   }
 
   return (
-    <button
-      onClick={toggleAdminMode}
-      className="group flex items-center gap-2 px-3 py-1.5 bg-transparent hover:bg-muted/20 border border-transparent hover:border-border/20 rounded-full transition-all duration-300 ease-in-out w-20 justify-center"
-    >
-      <div className="flex items-center gap-1.5">
-        <div className={`transition-all duration-500 ease-out ${
-          isAdminMode 
-            ? 'text-[#6b7280] rotate-0 scale-100' 
-            : 'text-muted-foreground/60 rotate-12 scale-90'
-        }`}>
-          {isAdminMode ? (
-            <ShieldCheck className="w-4 h-4" />
-          ) : (
-            <User className="w-4 h-4" />
-          )}
-        </div>
-        <span className={`text-sm font-medium transition-all duration-300 ease-out ${
-          isAdminMode 
-            ? 'text-[#6b7280] translate-x-0' 
-            : 'text-muted-foreground/70 translate-x-0.5'
-        }`}>
-          {isAdminMode ? 'Admin' : 'User'}
-        </span>
-      </div>
+    <div className="flex items-center gap-3">
+      {/* Fixed label */}
+      <span className="text-sm font-medium text-muted-foreground min-w-[32px]">
+        {isAdminMode ? 'Admin' : 'User'}
+      </span>
       
-      {/* Custom toggle indicator */}
-      <div className="relative w-8 h-4 bg-muted/30 rounded-full overflow-hidden transition-all duration-300 ease-out group-hover:bg-muted/40">
-        <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-all duration-500 ease-out ${
-          isAdminMode 
-            ? 'left-4 bg-[#6b7280] shadow-gray-200' 
-            : 'left-0.5 bg-muted-foreground/60 shadow-gray-200'
-        }`} />
-        {/* Smooth background transition */}
-        <div className={`absolute inset-0 rounded-full transition-all duration-500 ease-out ${
-          isAdminMode 
-            ? 'bg-[#6b7280]/20 scale-100' 
-            : 'bg-muted/20 scale-95'
-        }`} />
-      </div>
-    </button>
+      {/* Toggle switch */}
+      <button
+        onClick={toggleAdminMode}
+        className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted/30 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6b7280] focus:ring-offset-2 hover:bg-muted/40"
+        role="switch"
+        aria-checked={isAdminMode}
+      >
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out ${
+            isAdminMode ? 'translate-x-6 bg-[#6b7280]' : 'translate-x-1'
+          }`}
+        />
+        
+        {/* Background color transition */}
+        <span
+          className={`absolute inset-0 rounded-full transition-colors duration-200 ${
+            isAdminMode ? 'bg-[#6b7280]/20' : 'bg-muted/10'
+          }`}
+        />
+      </button>
+    </div>
   );
 };
 
