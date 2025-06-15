@@ -84,7 +84,7 @@ export const useUserSessions = () => {
     }
   }, [profile, getSessionId]);
 
-  // Load active sessions (admin only)
+  // Load active sessions (admin only) - BUT SHOW ALL USERS' SESSIONS
   const loadActiveSessions = useCallback(async () => {
     if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
       console.log('Not admin, skipping session load. Profile:', profile);
@@ -100,8 +100,9 @@ export const useUserSessions = () => {
       // Get sessions active in the last hour (more recent)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       
-      console.log('Loading sessions since:', oneHourAgo);
+      console.log('Loading ALL user sessions since:', oneHourAgo);
       
+      // FIXED: Remove role filtering - show ALL users' sessions, not just admin sessions
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('user_sessions')
         .select(`
@@ -121,7 +122,7 @@ export const useUserSessions = () => {
         throw new Error(sessionsError.message);
       }
 
-      console.log('Raw sessions data from DB:', sessionsData);
+      console.log('Raw sessions data from DB (ALL USERS):', sessionsData);
 
       if (!sessionsData) {
         setActiveSessions([]);
@@ -130,14 +131,14 @@ export const useUserSessions = () => {
 
       // Transform the data to handle both array and object profiles
       const transformedSessions = sessionsData.map(session => {
-        console.log('Processing session:', session);
+        console.log('Processing session for user:', session.profiles?.email, 'role:', session.profiles?.role);
         return {
           ...session,
           profiles: Array.isArray(session.profiles) ? session.profiles[0] : session.profiles
         };
       });
 
-      console.log('Transformed sessions:', transformedSessions);
+      console.log('Transformed sessions (ALL USERS):', transformedSessions);
       setActiveSessions(transformedSessions);
 
     } catch (error) {
