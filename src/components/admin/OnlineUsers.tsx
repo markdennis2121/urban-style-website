@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const OnlineUsers = () => {
   const { activeSessions, loading, error, loadActiveSessions } = useUserSessions();
-  const { profile, isAdmin, isSuperAdmin } = useAuth();
+  const { profile, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -51,6 +52,27 @@ const OnlineUsers = () => {
       setIsRefreshing(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wifi className="h-5 w-5" />
+            Online Users
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="flex flex-col items-center space-y-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="text-sm text-muted-foreground">Verifying permissions...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!hasAdminAccess) {
     return (
