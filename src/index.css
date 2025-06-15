@@ -100,14 +100,42 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Mobile-first font optimization */
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent text size adjustment on iOS */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Mobile-first touch optimization */
+  button, a, [role="button"] {
+    /* Ensure minimum touch target size on mobile */
+    min-height: 44px;
+    min-width: 44px;
+    /* Improve touch feedback */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile-first form optimization */
+  input, textarea, select {
+    /* Prevent zoom on iOS when focusing inputs */
+    font-size: 16px;
+  }
+
+  @media (min-width: 768px) {
+    input, textarea, select {
+      font-size: 14px;
+    }
   }
 }
 
-/* Custom animations */
+/* Mobile-first animations with reduced motion support */
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -143,6 +171,21 @@
   }
 }
 
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-bounce-in,
+  .animate-slide-in-right {
+    animation: none;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.6s ease-out forwards;
 }
@@ -155,6 +198,7 @@
   animation: slide-in-right 0.5s ease-out forwards;
 }
 
+/* Mobile-first text utilities */
 .line-clamp-1 {
   overflow: hidden;
   display: -webkit-box;
@@ -169,14 +213,27 @@
   -webkit-line-clamp: 2;
 }
 
-/* Smooth scrolling */
+/* Smooth scrolling with mobile considerations */
 html {
   scroll-behavior: smooth;
+  /* Prevent horizontal overflow on mobile */
+  overflow-x: hidden;
 }
 
-/* Custom scrollbar */
+body {
+  /* Prevent horizontal overflow on mobile */
+  overflow-x: hidden;
+}
+
+/* Mobile-optimized scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+}
+
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
 }
 
 ::-webkit-scrollbar-track {
@@ -190,4 +247,55 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
+}
+
+/* Mobile-first spacing utilities */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Safe area insets for mobile devices with notches */
+@supports (padding: max(0px)) {
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+  
+  .safe-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Mobile-first image optimization */
+img {
+  /* Prevent images from overflowing containers */
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mobile-first focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Mobile-first table responsiveness */
+@media (max-width: 768px) {
+  table {
+    font-size: 14px;
+  }
+  
+  th, td {
+    padding: 0.5rem;
+  }
 }
