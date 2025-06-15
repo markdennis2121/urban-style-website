@@ -19,8 +19,10 @@ const OnlineUsers = () => {
   const hasAdminAccess = isAdmin || isSuperAdmin;
 
   useEffect(() => {
+    if (authLoading) return; // Wait until authentication check is complete
+
     if (hasAdminAccess) {
-      console.log('Loading online users for admin:', profile?.email);
+      console.log('Admin access verified. Loading online users for:', profile?.email, 'Role:', profile?.role);
       const loadData = async () => {
         try {
           await loadActiveSessions();
@@ -33,13 +35,13 @@ const OnlineUsers = () => {
       loadData();
       
       // Refresh every 5 seconds for better real-time updates
-      const interval = setInterval(() => {
-        loadData();
-      }, 5000);
+      const interval = setInterval(loadData, 5000);
       
       return () => clearInterval(interval);
+    } else {
+      console.warn('Access to OnlineUsers denied. Current profile:', profile);
     }
-  }, [loadActiveSessions, hasAdminAccess, profile?.email]);
+  }, [loadActiveSessions, hasAdminAccess, profile, authLoading]);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -87,7 +89,17 @@ const OnlineUsers = () => {
           <Alert className="border-red-200 bg-red-50">
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-700">
-              Access denied. Admin privileges required.
+              <strong>Access denied. Admin privileges required.</strong>
+              {profile ? (
+                <p className="text-sm mt-1">
+                  Your current role is:{' '}
+                  <Badge variant="destructive" className="font-mono">
+                    {profile.role || 'user'}
+                  </Badge>
+                </p>
+              ) : (
+                <p className="text-sm mt-1">Could not determine your user role.</p>
+              )}
             </AlertDescription>
           </Alert>
         </CardContent>
