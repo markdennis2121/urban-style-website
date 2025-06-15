@@ -55,6 +55,17 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory_logs ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own orders" ON orders;
+DROP POLICY IF EXISTS "Users can insert their own orders" ON orders;
+DROP POLICY IF EXISTS "Admins can view all orders" ON orders;
+DROP POLICY IF EXISTS "Admins can update orders" ON orders;
+DROP POLICY IF EXISTS "Users can view their order items" ON order_items;
+DROP POLICY IF EXISTS "Users can insert their order items" ON order_items;
+DROP POLICY IF EXISTS "Admins can view all order items" ON order_items;
+DROP POLICY IF EXISTS "Admins can view inventory logs" ON inventory_logs;
+DROP POLICY IF EXISTS "Admins can insert inventory logs" ON inventory_logs;
+
 -- Orders RLS policies
 CREATE POLICY "Users can view their own orders" ON orders
     FOR SELECT USING (auth.uid() = user_id);
