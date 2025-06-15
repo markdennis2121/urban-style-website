@@ -40,27 +40,56 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
 
   const isWishlisted = isInWishlist(product.id);
 
+  console.log('ProductCard Debug:', {
+    productId: product.id,
+    isAuthenticated,
+    canUseShoppingFeatures,
+    inStock: product.inStock,
+    sizes: product.sizes,
+    colors: product.colors
+  });
+
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    console.log('Add to cart clicked for product:', product.id);
+    
     if (!isAuthenticated) {
+      console.log('User not authenticated');
       toast.error('Please login to add items to cart');
       return;
     }
+
+    if (!canUseShoppingFeatures) {
+      console.log('Shopping features disabled');
+      toast.error('Shopping features are currently disabled');
+      return;
+    }
+
+    if (!product.inStock) {
+      console.log('Product out of stock');
+      toast.error('Product is out of stock');
+      return;
+    }
+    
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      quantity: 1,
+      size: product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'One Size',
+      color: product.colors && product.colors.length > 0 ? product.colors[0] : 'Default',
+    };
+
+    console.log('Adding to cart:', cartItem);
     
     dispatch({
       type: 'ADD_ITEM',
-      payload: {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: 1,
-        size: product.sizes[0],
-        color: product.colors[0],
-      },
+      payload: cartItem,
     });
+    
     toast.success('Added to cart!');
-  }, [dispatch, isAuthenticated, product]);
+  }, [dispatch, isAuthenticated, canUseShoppingFeatures, product]);
 
   const handleWishlistToggle = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -75,6 +104,9 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
       addToWishlist(product);
     }
   }, [addToWishlist, removeFromWishlist, product, isAuthenticated, isWishlisted]);
+
+  // Show the add to cart button if user is authenticated OR if they're not authenticated (to show login prompt)
+  const shouldShowCartButton = canUseShoppingFeatures && product.inStock;
 
   return (
     <div className="group relative bg-card rounded-lg sm:rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50 w-full">
@@ -170,7 +202,7 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
               )}
             </div>
 
-            {canUseShoppingFeatures && product.inStock && isAuthenticated && (
+            {shouldShowCartButton && (
               <Button
                 size="sm"
                 onClick={handleAddToCart}
