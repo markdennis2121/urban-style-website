@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import { useWishlist } from '../contexts/WishlistContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
+import { Heart, ShoppingCart, Trash2, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +36,10 @@ const Wishlist = () => {
     });
   };
 
+  const handleRemoveFromWishlist = (item: any) => {
+    removeFromWishlist(item.product_id);
+  };
+
   if (state.loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -50,9 +54,12 @@ const Wishlist = () => {
       
       <section className="pt-24 pb-8 bg-gradient-to-r from-muted/30 via-background to-muted/30 backdrop-blur-sm border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent">
-            My Wishlist
-          </h1>
+          <div className="flex items-center gap-3 mb-4">
+            <Heart className="w-8 h-8 text-red-500 fill-current" />
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent">
+              My Wishlist
+            </h1>
+          </div>
           <div className="w-24 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50 mb-6 rounded-full"></div>
           <p className="text-xl text-muted-foreground font-light">
             Your favorite items saved for later ({state.items.length} {state.items.length === 1 ? 'item' : 'items'})
@@ -78,11 +85,17 @@ const Wishlist = () => {
                     <Button 
                       size="icon" 
                       variant="destructive" 
-                      className="w-8 h-8 rounded-full bg-destructive/80 backdrop-blur-sm hover:bg-destructive"
-                      onClick={() => removeFromWishlist(item.product_id)}
+                      className="w-9 h-9 rounded-full bg-red-500/90 backdrop-blur-sm hover:bg-red-600 shadow-lg flex items-center justify-center"
+                      onClick={() => handleRemoveFromWishlist(item)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
+                  </div>
+                  {/* Wishlist indicator */}
+                  <div className="absolute top-3 left-3">
+                    <div className="w-9 h-9 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg">
+                      <Heart className="w-4 h-4 fill-current" />
+                    </div>
                   </div>
                 </div>
 
@@ -104,7 +117,8 @@ const Wishlist = () => {
                       Add to Cart
                     </Button>
                     <Link to={`/product/${item.product_id}`}>
-                      <Button variant="outline" size="sm" className="rounded-xl border-border/50">
+                      <Button variant="outline" size="sm" className="rounded-xl border-border/50 hover:bg-muted">
+                        <Eye className="w-4 h-4 mr-1" />
                         View
                       </Button>
                     </Link>
@@ -115,7 +129,9 @@ const Wishlist = () => {
           </div>
         ) : (
           <div className="text-center py-16">
-            <div className="text-8xl mb-6 opacity-50">💝</div>
+            <div className="w-32 h-32 mx-auto mb-8 bg-muted/20 rounded-full flex items-center justify-center">
+              <Heart className="w-16 h-16 text-muted-foreground/50" />
+            </div>
             <h3 className="text-2xl font-bold mb-4 text-foreground">Your wishlist is empty</h3>
             <p className="text-muted-foreground mb-6 text-lg">
               Start adding items you love to your wishlist

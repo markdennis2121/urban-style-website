@@ -39,47 +39,59 @@ const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
 
   return (
     <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-      {/* Wishlist Button - Fixed centering and enhanced state indication */}
+      {/* Wishlist Button - Professional design with clear states */}
       <Button
         variant="secondary"
         size="icon"
-        className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 relative ${
+        className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-200 flex items-center justify-center relative overflow-hidden ${
           isWishlisted
-            ? 'bg-red-500 hover:bg-red-600 text-white border-red-500 scale-110'
-            : 'bg-white/90 hover:bg-white text-gray-700 hover:text-red-500 border-white/50'
+            ? 'bg-red-500 hover:bg-red-600 text-white border-red-500 shadow-red-200'
+            : 'bg-white/95 hover:bg-white text-gray-600 hover:text-red-500 border-white/80 hover:border-red-200'
         }`}
         onClick={onWishlistToggle}
       >
-        <Heart className={`w-4 h-4 transition-all duration-200 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
-          isWishlisted ? 'fill-current text-white scale-110' : 'hover:fill-current'
-        }`} />
+        <Heart 
+          className={`w-4 h-4 transition-all duration-200 ${
+            isWishlisted 
+              ? 'fill-white text-white scale-110' 
+              : 'hover:fill-red-500 hover:scale-110'
+          }`} 
+        />
+        {/* Subtle pulse animation for wishlisted items */}
+        {isWishlisted && (
+          <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-20" />
+        )}
       </Button>
 
-      {/* Compare Button - Fixed centering */}
+      {/* Compare Button - Consistent with wishlist design */}
       <Button
         variant="secondary"
         size="icon"
-        className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 relative ${
+        className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-200 flex items-center justify-center ${
           isInComparison
-            ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500 scale-110'
-            : 'bg-white/90 hover:bg-white text-gray-700 hover:text-blue-500 border-white/50'
+            ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500 shadow-blue-200'
+            : 'bg-white/95 hover:bg-white text-gray-600 hover:text-blue-500 border-white/80 hover:border-blue-200'
         } ${!canAddToCompare && !isInComparison ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={onCompareToggle}
         disabled={!canAddToCompare && !isInComparison}
       >
-        <Scale className="w-4 h-4 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+        <Scale className="w-4 h-4" />
       </Button>
 
-      {/* Quick Add to Cart Button - Fixed centering */}
+      {/* Quick Add to Cart Button - Enhanced design */}
       {isAuthenticated && (
         <Button
           variant="secondary"
           size="icon"
-          className="w-10 h-10 rounded-full shadow-lg backdrop-blur-sm bg-primary/90 hover:bg-primary text-white transition-all duration-300 disabled:bg-gray-300 disabled:text-gray-500 border-primary/50 relative"
+          className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-200 flex items-center justify-center ${
+            inStock 
+              ? 'bg-primary/90 hover:bg-primary text-white border-primary/80 hover:shadow-primary/20' 
+              : 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
+          }`}
           onClick={onAddToCart}
           disabled={!inStock}
         >
-          <ShoppingCart className="w-4 h-4 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+          <ShoppingCart className="w-4 h-4" />
         </Button>
       )}
     </div>

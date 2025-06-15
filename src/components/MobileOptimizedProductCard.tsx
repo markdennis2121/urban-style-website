@@ -34,9 +34,11 @@ interface ProductCardProps {
 
 const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) => {
   const { dispatch } = useCart();
-  const { addToWishlist, isInWishlist } = useWishlist();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { canUseShoppingFeatures } = useAdminMode();
   const { isAuthenticated } = useAuth();
+
+  const isWishlisted = isInWishlist(product.id);
 
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -60,10 +62,19 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
     toast.success('Added to cart!');
   }, [dispatch, isAuthenticated, product]);
 
-  const handleAddToWishlist = useCallback((e: React.MouseEvent) => {
+  const handleWishlistToggle = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    addToWishlist(product);
-  }, [addToWishlist, product]);
+    if (!isAuthenticated) {
+      toast.error('Please login to manage your wishlist');
+      return;
+    }
+    
+    if (isWishlisted) {
+      removeFromWishlist(product.id);
+    } else {
+      addToWishlist(product);
+    }
+  }, [addToWishlist, removeFromWishlist, product, isAuthenticated, isWishlisted]);
 
   return (
     <div className="group relative bg-card rounded-lg sm:rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50 w-full">
@@ -81,19 +92,27 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
         )}
       </div>
 
-      {/* Wishlist button - Fixed positioning and visual feedback */}
+      {/* Wishlist button - Professional design with consistent states */}
       {canUseShoppingFeatures && (
         <button
-          onClick={handleAddToWishlist}
-          className={`absolute top-2 right-2 z-10 p-2 rounded-full shadow-md transition-all duration-200 w-9 h-9 relative ${
-            isInWishlist(product.id)
-              ? 'bg-red-500 text-white hover:bg-red-600 scale-110'
-              : 'bg-white/90 backdrop-blur-sm hover:bg-white text-gray-600 hover:text-red-500'
+          onClick={handleWishlistToggle}
+          className={`absolute top-2 right-2 z-10 w-9 h-9 rounded-full shadow-md transition-all duration-200 flex items-center justify-center relative overflow-hidden ${
+            isWishlisted
+              ? 'bg-red-500 text-white hover:bg-red-600 shadow-red-200 scale-105'
+              : 'bg-white/95 backdrop-blur-sm hover:bg-white text-gray-600 hover:text-red-500 hover:scale-105'
           } opacity-0 group-hover:opacity-100 md:opacity-100`}
         >
-          <Heart className={`w-4 h-4 transition-all duration-200 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
-            isInWishlist(product.id) ? 'fill-current' : 'hover:fill-current'
-          }`} />
+          <Heart 
+            className={`w-4 h-4 transition-all duration-200 ${
+              isWishlisted 
+                ? 'fill-white text-white' 
+                : 'hover:fill-red-500'
+            }`} 
+          />
+          {/* Subtle pulse animation for wishlisted items */}
+          {isWishlisted && (
+            <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-20" />
+          )}
         </button>
       )}
 
@@ -110,7 +129,7 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
           {/* Mobile overlay with quick actions */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
             <div className="flex space-x-2">
-              <Button size="sm" variant="secondary" className="text-xs px-3 py-1">
+              <Button size="sm" variant="secondary" className="text-xs px-3 py-1 bg-white/90 backdrop-blur-sm">
                 <Eye className="w-3 h-3 mr-1" />
                 View
               </Button>
@@ -163,11 +182,11 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
               )}
             </div>
 
-            {canUseShoppingFeatures && product.inStock && (
+            {canUseShoppingFeatures && product.inStock && isAuthenticated && (
               <Button
                 size="sm"
                 onClick={handleAddToCart}
-                className="px-3 py-1 text-xs sm:text-sm h-8 sm:h-9"
+                className="px-3 py-1 text-xs sm:text-sm h-8 sm:h-9 bg-primary hover:bg-primary/90"
               >
                 <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                 Add
@@ -180,6 +199,15 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
             <div className="text-center">
               <span className="text-xs sm:text-sm text-red-500 font-medium">
                 Out of Stock
+              </span>
+            </div>
+          )}
+
+          {/* Login prompt for non-authenticated users */}
+          {!isAuthenticated && canUseShoppingFeatures && (
+            <div className="text-center">
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                Login to add to cart or wishlist
               </span>
             </div>
           )}
