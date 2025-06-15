@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -15,7 +16,6 @@ import { createOrder } from '@/lib/supabase/orders';
 import { 
   sanitizeText, 
   validateEmail, 
-  validateCreditCard, 
   validatePhone,
   checkoutRateLimiter 
 } from '@/lib/security';
@@ -38,10 +38,6 @@ const Checkout = () => {
     zipCode: '',
     country: 'PH',
     phone: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    nameOnCard: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,21 +80,6 @@ const Checkout = () => {
     if (formData.phone && !validatePhone(formData.phone)) {
       newErrors.phone = 'Please enter a valid phone number';
     }
-    
-    const cardValidation = validateCreditCard(formData.cardNumber);
-    if (!cardValidation.isValid) {
-      newErrors.cardNumber = 'Please enter a valid credit card number';
-    }
-    
-    if (!formData.expiryDate.match(/^\d{2}\/\d{2}$/)) {
-      newErrors.expiryDate = 'Please enter a valid expiry date (MM/YY)';
-    }
-    if (!formData.cvv.match(/^\d{3,4}$/)) {
-      newErrors.cvv = 'Please enter a valid CVV';
-    }
-    if (!formData.nameOnCard.trim()) {
-      newErrors.nameOnCard = 'Name on card is required';
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -113,7 +94,7 @@ const Checkout = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Rate limiting check
@@ -131,7 +112,7 @@ const Checkout = () => {
     if (!validateForm()) {
       toast({
         title: "Validation Error",
-        description: "Please fix the errors in the form",
+        description: "Please fill in all required shipping information",
         variant: "destructive",
       });
       return;
@@ -150,9 +131,12 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
+      console.log('Creating Stripe checkout session...');
+      
+      // Create order in database first
       const orderData = {
         user_id: currentUser.id,
-        total_amount: state.total * 1.12,
+        total_amount: state.total * 1.12, // Including tax
         shipping_address: {
           name: `${formData.firstName} ${formData.lastName}`,
           address: formData.address,
@@ -173,51 +157,46 @@ const Checkout = () => {
         })),
       };
 
-      const { data: order, error } = await createOrder(orderData);
+      const { data: order, error: orderError } = await createOrder(orderData);
+      if (orderError) {
+        throw orderError;
+      }
+
+      console.log('Order created:', order?.id);
+
+      // Create Stripe checkout session
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          items: state.items,
+          total: state.total,
+          orderId: order?.id,
+        }
+      });
 
       if (error) {
         throw error;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (!data?.url) {
+        throw new Error('No checkout URL received');
+      }
 
-      await supabase
-        .from('orders')
-        .update({ 
-          payment_status: 'paid',
-          status: 'processing'
-        })
-        .eq('id', order?.id);
-
+      console.log('Stripe checkout session created, redirecting...');
+      
+      // Clear cart before redirecting to Stripe
       dispatch({ type: 'CLEAR_CART' });
-
-      toast({
-        title: "Order placed successfully!",
-        description: `Order #${order?.id.slice(0, 8)} has been created. You will receive a confirmation email shortly.`,
-      });
-
-      navigate('/', { 
-        state: { 
-          message: `Order placed successfully! Order ID: ${order?.id.slice(0, 8)}` 
-        }
-      });
+      
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
 
     } catch (error: any) {
-      console.error('Order creation error:', error);
+      console.error('Checkout error:', error);
       
-      if (error.message?.includes('Insufficient stock')) {
-        toast({
-          title: "Stock Error",
-          description: "Some items in your cart are out of stock. Please update your cart.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Order Failed",
-          description: error.message || "There was an error processing your order. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Checkout Failed",
+        description: error.message || "There was an error processing your checkout. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -249,7 +228,7 @@ const Checkout = () => {
             <h1 className="text-3xl font-bold">Secure Checkout</h1>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleStripeCheckout}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               {/* Checkout Form */}
               <div className="space-y-8">
@@ -390,66 +369,17 @@ const Checkout = () => {
                 <div>
                   <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <CreditCard className="w-5 h-5" />
-                    Payment Information
+                    Payment Method
                   </h2>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="checkout-nameOnCard">Name on Card *</Label>
-                      <Input
-                        id="checkout-nameOnCard"
-                        name="nameOnCard"
-                        autoComplete="cc-name"
-                        value={formData.nameOnCard}
-                        onChange={(e) => handleInputChange('nameOnCard', e.target.value)}
-                        required
-                        className={errors.nameOnCard ? 'border-red-500' : ''}
-                      />
-                      {errors.nameOnCard && <p className="text-red-500 text-sm mt-1">{errors.nameOnCard}</p>}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-blue-700">Secure Payment with Stripe</span>
                     </div>
-                    <div>
-                      <Label htmlFor="checkout-cardNumber">Card Number *</Label>
-                      <Input
-                        id="checkout-cardNumber"
-                        name="cardNumber"
-                        autoComplete="cc-number"
-                        placeholder="1234 5678 9012 3456"
-                        value={formData.cardNumber}
-                        onChange={(e) => handleInputChange('cardNumber', e.target.value)}
-                        required
-                        className={errors.cardNumber ? 'border-red-500' : ''}
-                      />
-                      {errors.cardNumber && <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="checkout-expiryDate">Expiry Date *</Label>
-                        <Input
-                          id="checkout-expiryDate"
-                          name="expiryDate"
-                          autoComplete="cc-exp"
-                          placeholder="MM/YY"
-                          value={formData.expiryDate}
-                          onChange={(e) => handleInputChange('expiryDate', e.target.value)}
-                          required
-                          className={errors.expiryDate ? 'border-red-500' : ''}
-                        />
-                        {errors.expiryDate && <p className="text-red-500 text-sm mt-1">{errors.expiryDate}</p>}
-                      </div>
-                      <div>
-                        <Label htmlFor="checkout-cvv">CVV *</Label>
-                        <Input
-                          id="checkout-cvv"
-                          name="cvv"
-                          autoComplete="cc-csc"
-                          placeholder="123"
-                          value={formData.cvv}
-                          onChange={(e) => handleInputChange('cvv', e.target.value)}
-                          required
-                          className={errors.cvv ? 'border-red-500' : ''}
-                        />
-                        {errors.cvv && <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>}
-                      </div>
-                    </div>
+                    <p className="text-sm text-blue-600">
+                      You'll be redirected to Stripe's secure payment page to complete your purchase.
+                      We accept all major credit cards and debit cards.
+                    </p>
                   </div>
                 </div>
 
@@ -520,13 +450,16 @@ const Checkout = () => {
                   <Button 
                     type="submit" 
                     size="lg" 
-                    className="w-full"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
                       <LoadingSpinner size="sm" message="Processing..." />
                     ) : (
-                      'Place Order'
+                      <>
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Pay with Stripe
+                      </>
                     )}
                   </Button>
 
