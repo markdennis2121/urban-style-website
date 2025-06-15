@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -25,14 +24,7 @@ const MobileOptimizedProducts = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(6);
 
-  useEffect(() => {
-    loadFeaturedProducts();
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const handleResize = () => {
+  const handleResize = useCallback(() => {
     const width = window.innerWidth;
     if (width < 640) {
       setItemsPerPage(2); // Mobile: 2 items per "page"
@@ -41,7 +33,17 @@ const MobileOptimizedProducts = () => {
     } else {
       setItemsPerPage(6); // Desktop: 6 items
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadFeaturedProducts();
+  }, []);
+
+  useEffect(() => {
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [handleResize]);
 
   const loadFeaturedProducts = async () => {
     try {
@@ -61,36 +63,41 @@ const MobileOptimizedProducts = () => {
     }
   };
 
-  const transformedDbProducts = dbProducts.map(product => ({
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    image: product.image || '/placeholder.svg',
-    images: [product.image || '/placeholder.svg'],
-    category: product.category,
-    brand: product.brand || 'Admin Added',
-    rating: 4.5,
-    reviews: 0,
-    description: product.description,
-    features: ['Admin Product'],
-    sizes: ['One Size'],
-    colors: ['Default'],
-    inStock: product.stock > 0,
-    isNew: false,
-    isSale: false,
-  }));
+  const transformedDbProducts = useMemo(() => 
+    dbProducts.map(product => ({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image || '/placeholder.svg',
+      images: [product.image || '/placeholder.svg'],
+      category: product.category,
+      brand: product.brand || 'Admin Added',
+      rating: 4.5,
+      reviews: 0,
+      description: product.description,
+      features: ['Admin Product'],
+      sizes: ['One Size'],
+      colors: ['Default'],
+      inStock: product.stock > 0,
+      isNew: false,
+      isSale: false,
+    })), [dbProducts]
+  );
 
-  const totalPages = Math.ceil(transformedDbProducts.length / itemsPerPage);
-  const startIndex = currentPage * itemsPerPage;
-  const displayedProducts = transformedDbProducts.slice(startIndex, startIndex + itemsPerPage);
+  const { totalPages, displayedProducts } = useMemo(() => {
+    const total = Math.ceil(transformedDbProducts.length / itemsPerPage);
+    const startIndex = currentPage * itemsPerPage;
+    const displayed = transformedDbProducts.slice(startIndex, startIndex + itemsPerPage);
+    return { totalPages: total, displayedProducts: displayed };
+  }, [transformedDbProducts, currentPage, itemsPerPage]);
 
-  const nextPage = () => {
+  const nextPage = useCallback(() => {
     setCurrentPage((prev) => (prev + 1) % totalPages);
-  };
+  }, [totalPages]);
 
-  const prevPage = () => {
+  const prevPage = useCallback(() => {
     setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
-  };
+  }, [totalPages]);
 
   return (
     <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-background via-muted/10 to-background">

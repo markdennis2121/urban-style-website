@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart, ShoppingCart, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,13 +31,13 @@ interface ProductCardProps {
   product: Product;
 }
 
-const MobileOptimizedProductCard = ({ product }: ProductCardProps) => {
+const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) => {
   const { dispatch } = useCart();
   const { addToWishlist } = useWishlist();
   const { canUseShoppingFeatures } = useAdminMode();
   const { isAuthenticated } = useAuth();
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
       toast.error('Please login to add items to cart');
@@ -57,12 +57,12 @@ const MobileOptimizedProductCard = ({ product }: ProductCardProps) => {
       },
     });
     toast.success('Added to cart!');
-  };
+  }, [dispatch, isAuthenticated, product]);
 
-  const handleAddToWishlist = (e: React.MouseEvent) => {
+  const handleAddToWishlist = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     addToWishlist(product);
-  };
+  }, [addToWishlist, product]);
 
   return (
     <div className="group relative bg-card rounded-lg sm:rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50">
@@ -180,6 +180,8 @@ const MobileOptimizedProductCard = ({ product }: ProductCardProps) => {
       </Link>
     </div>
   );
-};
+});
+
+MobileOptimizedProductCard.displayName = 'MobileOptimizedProductCard';
 
 export default MobileOptimizedProductCard;
