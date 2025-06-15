@@ -11,7 +11,8 @@ import { User as UserType } from '@/hooks/useAdminData';
 import { AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import UserEditDialog from './UserEditDialog';
 import { useAuth } from '@/hooks/useAuth';
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from '@radix-ui/react-dialog';
+// ✨ FIX: Import from ui/dialog instead of @radix-ui/react-dialog
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 
 interface UserManagementProps {
   users?: UserType[];
