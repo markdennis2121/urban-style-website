@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -210,37 +211,21 @@ const Checkout = () => {
 
       addDebugInfo(`Sending payload to Stripe function: ${JSON.stringify(checkoutPayload)}`);
 
-      // Create Stripe checkout session with explicit request configuration
+      // Create Stripe checkout session using Supabase function invoke
       addDebugInfo('Calling Stripe checkout function...');
       
-      // Use environment variables directly
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      const functionUrl = `${supabaseUrl}/functions/v1/create-checkout`;
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-          'apikey': supabaseAnonKey,
-        },
-        body: JSON.stringify(checkoutPayload),
+      const { data: responseData, error: functionError } = await supabase.functions.invoke('create-checkout', {
+        body: checkoutPayload
       });
 
-      addDebugInfo(`Response status: ${response.status}`);
-      addDebugInfo(`Response headers: ${JSON.stringify(Object.fromEntries(response.headers))}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        addDebugInfo(`Error response text: ${errorText}`);
-        throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
+      if (functionError) {
+        addDebugInfo(`Function error: ${functionError.message}`);
+        throw new Error(`Function error: ${functionError.message}`);
       }
 
-      const responseData = await response.json();
       addDebugInfo(`Stripe function response: ${JSON.stringify(responseData)}`);
 
-      if (!responseData.url) {
+      if (!responseData?.url) {
         addDebugInfo('No checkout URL received from Stripe');
         throw new Error('No checkout URL received from Stripe. Please check your Stripe configuration.');
       }

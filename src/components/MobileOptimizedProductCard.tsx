@@ -81,17 +81,17 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
         )}
       </div>
 
-      {/* Wishlist button - mobile optimized with better visual feedback */}
+      {/* Wishlist button - Fixed positioning and visual feedback */}
       {canUseShoppingFeatures && (
         <button
           onClick={handleAddToWishlist}
-          className={`absolute top-2 right-2 z-10 p-2 rounded-full shadow-md transition-all duration-200 flex items-center justify-center w-9 h-9 ${
+          className={`absolute top-2 right-2 z-10 p-2 rounded-full shadow-md transition-all duration-200 w-9 h-9 relative ${
             isInWishlist(product.id)
-              ? 'bg-red-500 text-white hover:bg-red-600'
+              ? 'bg-red-500 text-white hover:bg-red-600 scale-110'
               : 'bg-white/90 backdrop-blur-sm hover:bg-white text-gray-600 hover:text-red-500'
           } opacity-0 group-hover:opacity-100 md:opacity-100`}
         >
-          <Heart className={`w-4 h-4 transition-all duration-200 ${
+          <Heart className={`w-4 h-4 transition-all duration-200 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
             isInWishlist(product.id) ? 'fill-current' : 'hover:fill-current'
           }`} />
         </button>
