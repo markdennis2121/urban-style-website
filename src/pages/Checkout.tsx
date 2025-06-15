@@ -210,36 +210,46 @@ const Checkout = () => {
 
       addDebugInfo(`Sending payload to Stripe function: ${JSON.stringify(checkoutPayload)}`);
 
-      // Create Stripe checkout session with better error handling
+      // Create Stripe checkout session with explicit request configuration
       addDebugInfo('Calling Stripe checkout function...');
       
-      const response = await supabase.functions.invoke('create-checkout', {
-        body: checkoutPayload,
+      // Use fetch directly for better error handling
+      const functionUrl = `${supabase.supabaseUrl}/functions/v1/create-checkout`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
         headers: {
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
-        }
+          'apikey': supabase.supabaseKey,
+        },
+        body: JSON.stringify(checkoutPayload),
       });
 
-      addDebugInfo(`Stripe function response: ${JSON.stringify(response)}`);
+      addDebugInfo(`Response status: ${response.status}`);
+      addDebugInfo(`Response headers: ${JSON.stringify(Object.fromEntries(response.headers))}`);
 
-      if (response.error) {
-        addDebugInfo(`Stripe function error: ${JSON.stringify(response.error)}`);
-        throw new Error(response.error.message || 'Failed to create checkout session');
+      if (!response.ok) {
+        const errorText = await response.text();
+        addDebugInfo(`Error response text: ${errorText}`);
+        throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
       }
 
-      if (!response.data?.url) {
+      const responseData = await response.json();
+      addDebugInfo(`Stripe function response: ${JSON.stringify(responseData)}`);
+
+      if (!responseData.url) {
         addDebugInfo('No checkout URL received from Stripe');
         throw new Error('No checkout URL received from Stripe. Please check your Stripe configuration.');
       }
 
-      addDebugInfo(`Stripe checkout session created: ${response.data.session_id}`);
+      addDebugInfo(`Stripe checkout session created: ${responseData.session_id}`);
       addDebugInfo('Clearing cart and redirecting to Stripe...');
       
       // Clear cart before redirecting to Stripe
       dispatch({ type: 'CLEAR_CART' });
       
       // Redirect to Stripe Checkout
-      window.location.href = response.data.url;
+      window.location.href = responseData.url;
 
     } catch (error: any) {
       addDebugInfo(`Checkout error: ${error.message}`);
