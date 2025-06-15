@@ -25,13 +25,17 @@ serve(async (req) => {
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
+      console.error("STRIPE_SECRET_KEY is not configured");
       throw new Error("STRIPE_SECRET_KEY is not configured");
     }
+    console.log("Stripe key found");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header provided");
       throw new Error("No authorization header provided");
     }
+    console.log("Authorization header found");
 
     const token = authHeader.replace("Bearer ", "");
     
@@ -43,24 +47,34 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
     
     if (authError || !user?.email) {
+      console.error("Authentication failed:", authError);
       throw new Error("User not authenticated");
     }
+    console.log("User authenticated:", user.email);
 
     const requestBody = await req.json();
+    console.log("Request body received:", requestBody);
+    
     const { items, total } = requestBody;
     
     if (!items || !Array.isArray(items) || items.length === 0) {
+      console.error("No items in request");
       throw new Error("No items in cart");
     }
+    console.log("Items validated:", items.length, "items");
 
     const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
     });
 
+    console.log("Checking for existing customer...");
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      console.log("Found existing customer:", customerId);
+    } else {
+      console.log("No existing customer found");
     }
 
     const lineItems = items.map((item: any) => ({
@@ -76,8 +90,12 @@ serve(async (req) => {
       quantity: item.quantity,
     }));
 
-    const origin = req.headers.get("origin") || "https://urbanweb.netlify.app";
+    console.log("Line items prepared:", lineItems.length);
 
+    const origin = req.headers.get("origin") || "https://urbanweb.netlify.app";
+    console.log("Origin:", origin);
+
+    console.log("Creating Stripe checkout session...");
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -90,6 +108,8 @@ serve(async (req) => {
         user_email: user.email,
       },
     });
+
+    console.log("Checkout session created successfully:", session.id);
 
     return new Response(JSON.stringify({ 
       url: session.url,
