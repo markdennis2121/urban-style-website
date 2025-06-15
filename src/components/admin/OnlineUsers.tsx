@@ -16,37 +16,34 @@ const OnlineUsers = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  // Check if user has admin access
   const hasAdminAccess = isAdmin || isSuperAdmin;
 
   useEffect(() => {
     if (hasAdminAccess) {
-      console.log('Admin access confirmed, loading sessions for role:', profile?.role);
+      console.log('Loading online users for admin:', profile?.email);
       const loadData = async () => {
         try {
           await loadActiveSessions();
           setLastRefresh(new Date());
         } catch (err) {
-          console.error('Error loading sessions:', err instanceof Error ? err.message : 'Unknown error');
+          console.error('Error loading sessions:', err);
         }
       };
 
       loadData();
       
-      // Refresh every 15 seconds for more frequent updates
+      // Refresh every 10 seconds for real-time updates
       const interval = setInterval(() => {
-        console.log('Auto-refreshing sessions...');
         loadData();
-      }, 15000);
+      }, 10000);
       
       return () => clearInterval(interval);
     }
-  }, [loadActiveSessions, hasAdminAccess, profile?.role]);
+  }, [loadActiveSessions, hasAdminAccess, profile?.email]);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
-      console.log('Manual refresh triggered by:', profile?.role);
       await loadActiveSessions();
       setLastRefresh(new Date());
     } catch (err) {
@@ -69,11 +66,7 @@ const OnlineUsers = () => {
           <Alert className="border-red-200 bg-red-50">
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-700">
-              <strong>Access Denied:</strong> Admin or Super Admin role required to view online users.
-              <br />
-              <span className="text-sm">
-                Current role: {profile?.role || 'user'}. Only admin and super_admin roles can access this feature.
-              </span>
+              Access denied. Admin privileges required.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -116,10 +109,9 @@ const OnlineUsers = () => {
               size="sm" 
               onClick={handleManualRefresh}
               disabled={isRefreshing}
-              className="h-8"
             >
               <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Retrying...' : 'Retry'}
+              Retry
             </Button>
           </CardTitle>
         </CardHeader>
@@ -127,12 +119,7 @@ const OnlineUsers = () => {
           <Alert className="border-red-200 bg-red-50">
             <Database className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-700">
-              <strong>Database Error:</strong> {error}
-              <br />
-              <span className="text-sm mt-1">
-                This might be due to missing database tables or permissions.
-                Try the retry button or check the database setup.
-              </span>
+              <strong>Error:</strong> {error}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -140,7 +127,7 @@ const OnlineUsers = () => {
     );
   }
 
-  // Get unique users from sessions
+  // Get unique users from sessions (one session per user)
   const uniqueUsers = activeSessions.reduce((acc, session) => {
     if (!acc.find(u => u.user_id === session.user_id)) {
       acc.push(session);
@@ -157,7 +144,7 @@ const OnlineUsers = () => {
             Online Users
             {lastRefresh && (
               <Badge variant="outline" className="text-xs">
-                Updated: {lastRefresh.toLocaleTimeString()}
+                {lastRefresh.toLocaleTimeString()}
               </Badge>
             )}
           </div>
@@ -170,7 +157,6 @@ const OnlineUsers = () => {
               size="sm" 
               onClick={handleManualRefresh}
               disabled={isRefreshing}
-              className="h-8 px-2"
             >
               <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -182,10 +168,10 @@ const OnlineUsers = () => {
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
             <p className="font-medium">No users currently online</p>
-            <p className="text-sm">Users active in the last 30 minutes will appear here</p>
+            <p className="text-sm">Users active in the last 2 hours will appear here</p>
             <div className="mt-4 text-xs text-gray-500">
-              <p>Debug info: {activeSessions.length} total sessions found</p>
-              <p>Current user role: {profile?.role}</p>
+              <p>Total sessions: {activeSessions.length}</p>
+              <p>Your role: {profile?.role}</p>
             </div>
           </div>
         ) : (
