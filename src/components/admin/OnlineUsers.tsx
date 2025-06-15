@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,10 +31,10 @@ const OnlineUsers = () => {
 
       loadData();
       
-      // Refresh every 10 seconds for real-time updates
+      // Refresh every 5 seconds for better real-time updates
       const interval = setInterval(() => {
         loadData();
-      }, 10000);
+      }, 5000);
       
       return () => clearInterval(interval);
     }
@@ -127,13 +126,26 @@ const OnlineUsers = () => {
     );
   }
 
-  // Get unique users from sessions (one session per user)
+  // Debug logging
+  console.log('Raw activeSessions data:', activeSessions);
+  console.log('Current profile:', profile);
+
+  // Get unique users from sessions (most recent session per user)
   const uniqueUsers = activeSessions.reduce((acc, session) => {
-    if (!acc.find(u => u.user_id === session.user_id)) {
+    const existingUser = acc.find(u => u.user_id === session.user_id);
+    if (!existingUser) {
       acc.push(session);
+    } else {
+      // Keep the session with the most recent activity
+      if (new Date(session.last_activity) > new Date(existingUser.last_activity)) {
+        const index = acc.findIndex(u => u.user_id === session.user_id);
+        acc[index] = session;
+      }
     }
     return acc;
   }, [] as typeof activeSessions);
+
+  console.log('Unique users after processing:', uniqueUsers);
 
   return (
     <Card>
@@ -164,15 +176,25 @@ const OnlineUsers = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Debug info for troubleshooting */}
+        <div className="mb-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+          <p><strong>Debug Info:</strong></p>
+          <p>Total sessions: {activeSessions.length}</p>
+          <p>Unique users: {uniqueUsers.length}</p>
+          <p>Your role: {profile?.role}</p>
+          <p>Your user ID: {profile?.id}</p>
+          <p>Sessions data: {JSON.stringify(activeSessions.map(s => ({
+            user_id: s.user_id,
+            email: s.profiles?.email,
+            last_activity: s.last_activity
+          })), null, 2)}</p>
+        </div>
+
         {uniqueUsers.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
             <p className="font-medium">No users currently online</p>
-            <p className="text-sm">Users active in the last 2 hours will appear here</p>
-            <div className="mt-4 text-xs text-gray-500">
-              <p>Total sessions: {activeSessions.length}</p>
-              <p>Your role: {profile?.role}</p>
-            </div>
+            <p className="text-sm">Users active in the last hour will appear here</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -182,14 +204,15 @@ const OnlineUsers = () => {
                   <div className="relative">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                        {session.profiles?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                        {session.profiles?.full_name?.charAt(0)?.toUpperCase() || 
+                         session.profiles?.email?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm truncate">
-                      {session.profiles?.full_name || 'Anonymous User'}
+                      {session.profiles?.full_name || session.profiles?.email || 'Anonymous User'}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {session.profiles?.email || 'No email'}

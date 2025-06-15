@@ -10,6 +10,7 @@ interface UserSession {
   last_activity: string;
   created_at: string;
   profiles?: {
+    id: string;
     full_name: string;
     email: string;
     role: string;
@@ -41,7 +42,7 @@ export const useUserSessions = () => {
     const sessionId = getSessionId();
     
     try {
-      console.log('Updating session for user:', profile.email, 'role:', profile.role);
+      console.log('Updating session for user:', profile.email, 'role:', profile.role, 'user_id:', profile.id);
       
       // Use upsert to handle both insert and update
       const { error } = await supabase
@@ -86,6 +87,7 @@ export const useUserSessions = () => {
   // Load active sessions (admin only)
   const loadActiveSessions = useCallback(async () => {
     if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+      console.log('Not admin, skipping session load. Profile:', profile);
       setActiveSessions([]);
       setLoading(false);
       return;
@@ -95,8 +97,10 @@ export const useUserSessions = () => {
       setLoading(true);
       setError(null);
       
-      // Get sessions active in the last 2 hours
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      // Get sessions active in the last hour (more recent)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      
+      console.log('Loading sessions since:', oneHourAgo);
       
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('user_sessions')
@@ -109,26 +113,31 @@ export const useUserSessions = () => {
             role
           )
         `)
-        .gte('last_activity', twoHoursAgo)
+        .gte('last_activity', oneHourAgo)
         .order('last_activity', { ascending: false });
 
       if (sessionsError) {
+        console.error('Sessions query error:', sessionsError);
         throw new Error(sessionsError.message);
       }
 
-      console.log('Active sessions loaded:', sessionsData?.length || 0);
+      console.log('Raw sessions data from DB:', sessionsData);
 
       if (!sessionsData) {
         setActiveSessions([]);
         return;
       }
 
-      // Transform the data
-      const transformedSessions = sessionsData.map(session => ({
-        ...session,
-        profiles: Array.isArray(session.profiles) ? session.profiles[0] : session.profiles
-      }));
+      // Transform the data to handle both array and object profiles
+      const transformedSessions = sessionsData.map(session => {
+        console.log('Processing session:', session);
+        return {
+          ...session,
+          profiles: Array.isArray(session.profiles) ? session.profiles[0] : session.profiles
+        };
+      });
 
+      console.log('Transformed sessions:', transformedSessions);
       setActiveSessions(transformedSessions);
 
     } catch (error) {
@@ -149,7 +158,7 @@ export const useUserSessions = () => {
       // Update session immediately
       updateSession();
       
-      // Update every 30 seconds for better real-time tracking
+      // Update every 30 seconds
       const interval = setInterval(updateSession, 30 * 1000);
       
       // Update on page focus/visibility
