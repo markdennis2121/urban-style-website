@@ -39,7 +39,7 @@ export const useUserSessions = () => {
     const sessionId = getSessionId();
     
     try {
-      await supabase
+      const { error } = await supabase
         .from('user_sessions')
         .upsert({
           user_id: profile.id,
@@ -48,6 +48,10 @@ export const useUserSessions = () => {
         }, {
           onConflict: 'user_id,session_id'
         });
+
+      if (error) {
+        console.error('Error updating session:', error);
+      }
     } catch (error) {
       console.error('Error updating session:', error instanceof Error ? error.message : 'Unknown error');
     }
@@ -78,77 +82,79 @@ export const useUserSessions = () => {
       setLoading(true);
       setError(null);
       
-      // Check if user_sessions table exists and has proper schema
-      const { data: tableCheck, error: tableError } = await supabase
+      console.log('Loading active sessions...');
+      
+      // First, ensure the table exists and we can access it
+      const { data: testData, error: testError } = await supabase
         .from('user_sessions')
-        .select('id')
+        .select('count')
         .limit(1);
 
-      if (tableError) {
-        if (tableError.code === '42P01' || tableError.code === '42703') {
-          // Table doesn't exist or schema issue
-          setError('User sessions table not properly configured');
-          setActiveSessions([]);
-          return;
-        }
-        throw tableError;
+      if (testError) {
+        console.error('Table access error:', testError);
+        throw new Error(`Database access error: ${testError.message}`);
       }
 
-      // Clean up old sessions first
-      try {
-        await supabase.rpc('cleanup_old_sessions');
-      } catch (cleanupError) {
-        // Cleanup function might not exist, continue without it
-      }
-      
-      // Get active sessions with user profiles
+      console.log('Table accessible, fetching sessions...');
+
+      // Clean up old sessions first (older than 30 minutes)
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       
-      const { data, error } = await supabase
+      await supabase
         .from('user_sessions')
-        .select(`
-          id,
-          user_id,
-          session_id,
-          last_activity,
-          created_at
-        `)
+        .delete()
+        .lt('last_activity', thirtyMinutesAgo);
+
+      // Get active sessions
+      const { data: sessionsData, error: sessionsError } = await supabase
+        .from('user_sessions')
+        .select('*')
         .gte('last_activity', thirtyMinutesAgo)
         .order('last_activity', { ascending: false });
 
-      if (error) {
-        throw error;
+      if (sessionsError) {
+        console.error('Sessions fetch error:', sessionsError);
+        throw new Error(`Failed to fetch sessions: ${sessionsError.message}`);
+      }
+
+      console.log('Sessions fetched:', sessionsData?.length || 0);
+
+      if (!sessionsData || sessionsData.length === 0) {
+        setActiveSessions([]);
+        return;
       }
 
       // Get user profiles for the sessions
-      if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(session => session.user_id))];
-        
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, role')
-          .in('id', userIds);
+      const userIds = [...new Set(sessionsData.map(session => session.user_id))];
+      console.log('Fetching profiles for users:', userIds.length);
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .in('id', userIds);
 
-        if (profilesError) {
-          console.error('Error loading profiles:', profilesError.message);
-          setActiveSessions(data);
-          return;
-        }
-
-        // Enrich sessions with profile data
-        const enrichedSessions = data.map(session => ({
-          ...session,
-          profiles: profilesData?.find(p => p.id === session.user_id) || null
-        }));
-
-        setActiveSessions(enrichedSessions);
-      } else {
-        setActiveSessions([]);
+      if (profilesError) {
+        console.error('Profiles fetch error:', profilesError);
+        // Continue without profiles rather than failing completely
+        setActiveSessions(sessionsData);
+        return;
       }
+
+      console.log('Profiles fetched:', profilesData?.length || 0);
+
+      // Enrich sessions with profile data
+      const enrichedSessions = sessionsData.map(session => ({
+        ...session,
+        profiles: profilesData?.find(p => p.id === session.user_id) || null
+      }));
+
+      setActiveSessions(enrichedSessions);
+      console.log('Active sessions loaded successfully:', enrichedSessions.length);
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error loading active sessions:', errorMessage);
-      setError(`Failed to load user sessions: ${errorMessage}`);
+      setError(errorMessage);
       setActiveSessions([]);
     } finally {
       setLoading(false);

@@ -4,9 +4,9 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, BarChart3, Package, Users, Heart, MessageSquare } from 'lucide-react';
+import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Wifi } from 'lucide-react';
 
-// Import our new components
+// Import our components
 import { useAdminData } from '@/hooks/useAdminData';
 import OverviewTab from '@/components/admin/OverviewTab';
 import ProductManagement from '@/components/admin/ProductManagement';
@@ -14,6 +14,7 @@ import UserManagement from '@/components/admin/UserManagement';
 import WishlistManagement from '@/components/admin/WishlistManagement';
 import MessageManagement from '@/components/admin/MessageManagement';
 import WishlistAnalytics from '@/components/admin/WishlistAnalytics';
+import OnlineUsers from '@/components/admin/OnlineUsers';
 
 const AdminDashboard = () => {
   const {
@@ -80,6 +81,10 @@ const AdminDashboard = () => {
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Overview
               </TabsTrigger>
+              <TabsTrigger value="online" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700 rounded-lg px-4 py-3 font-medium">
+                <Wifi className="w-4 h-4 mr-2" />
+                Online Users
+              </TabsTrigger>
               <TabsTrigger value="products" className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 rounded-lg px-4 py-3 font-medium">
                 <Package className="w-4 h-4 mr-2" />
                 Products
@@ -105,6 +110,10 @@ const AdminDashboard = () => {
                 messagesCount={messages.length}
                 wishlistsCount={wishlists.length}
               />
+            </TabsContent>
+
+            <TabsContent value="online">
+              <OnlineUsers />
             </TabsContent>
 
             <TabsContent value="products">
