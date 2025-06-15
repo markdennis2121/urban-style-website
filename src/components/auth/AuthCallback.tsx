@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase/client';
@@ -84,14 +85,29 @@ const AuthCallback = () => {
           profile = newProfile;
         }
 
+        // Sign out the user first so they need to log in manually
+        await supabase.auth.signOut();
+
         // Redirect based on role
         console.log('Redirecting user with role:', profile.role);
         if (profile.role === 'super_admin') {
-          navigate('/superadmin/dashboard');
+          navigate('/superadmin/login', {
+            state: {
+              message: 'Email confirmed! Please log in to access your Super Admin dashboard.'
+            }
+          });
         } else if (profile.role === 'admin') {
-          navigate('/admin/dashboard');
+          navigate('/admin/login', {
+            state: {
+              message: 'Email confirmed! Please log in to access your Admin dashboard.'
+            }
+          });
         } else {
-          navigate('/');
+          navigate('/login', {
+            state: {
+              message: 'Email confirmed successfully! Please log in to continue.'
+            }
+          });
         }
       } catch (err) {
         console.error('Auth callback error:', err);
@@ -120,7 +136,7 @@ const AuthCallback = () => {
   return (
     <div className="p-4">
       <Alert>
-        Processing your authentication...
+        Processing your email confirmation...
       </Alert>
     </div>
   );
