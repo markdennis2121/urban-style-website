@@ -16,7 +16,7 @@ interface AttemptRecord {
 }
 
 export class AdvancedRateLimiter extends RateLimiter {
-  private attempts: Map<string, AttemptRecord> = new Map();
+  private advancedAttempts: Map<string, AttemptRecord> = new Map();
   private config: RateLimitConfig;
   private blockedIPs: Set<string> = new Set();
 
@@ -36,7 +36,7 @@ export class AdvancedRateLimiter extends RateLimiter {
     }
 
     const now = Date.now();
-    const record = this.attempts.get(identifier);
+    const record = this.advancedAttempts.get(identifier);
 
     // Check if user is temporarily blocked
     if (record?.blockUntil && now < record.blockUntil) {
@@ -51,7 +51,7 @@ export class AdvancedRateLimiter extends RateLimiter {
 
     // Standard rate limiting check
     if (!record) {
-      this.attempts.set(identifier, {
+      this.advancedAttempts.set(identifier, {
         count: 1,
         lastAttempt: now,
         progressiveMultiplier: 1
@@ -61,7 +61,7 @@ export class AdvancedRateLimiter extends RateLimiter {
 
     // Reset window if enough time has passed
     if (now - record.lastAttempt > this.config.windowMs) {
-      this.attempts.set(identifier, {
+      this.advancedAttempts.set(identifier, {
         count: 1,
         lastAttempt: now,
         progressiveMultiplier: record.progressiveMultiplier || 1
@@ -108,7 +108,7 @@ export class AdvancedRateLimiter extends RateLimiter {
   }
 
   getBlockInfo(identifier: string): { blocked: boolean; timeRemaining?: number } {
-    const record = this.attempts.get(identifier);
+    const record = this.advancedAttempts.get(identifier);
     
     if (record?.blockUntil) {
       const timeRemaining = record.blockUntil - Date.now();
@@ -121,7 +121,7 @@ export class AdvancedRateLimiter extends RateLimiter {
   }
 
   unblockUser(identifier: string): void {
-    const record = this.attempts.get(identifier);
+    const record = this.advancedAttempts.get(identifier);
     if (record) {
       record.blockUntil = undefined;
       record.count = 0;
@@ -145,14 +145,14 @@ export class AdvancedRateLimiter extends RateLimiter {
     const now = Date.now();
     let blockedUsers = 0;
 
-    for (const record of this.attempts.values()) {
+    for (const record of this.advancedAttempts.values()) {
       if (record.blockUntil && now < record.blockUntil) {
         blockedUsers++;
       }
     }
 
     return {
-      activeAttempts: this.attempts.size,
+      activeAttempts: this.advancedAttempts.size,
       blockedUsers,
       blockedIPs: this.blockedIPs.size
     };
