@@ -11,9 +11,13 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("🚀 CREATE CHECKOUT FUNCTION STARTED");
+  console.log("Method:", req.method);
+  console.log("URL:", req.url);
+
   // Handle CORS preflight requests FIRST
   if (req.method === "OPTIONS") {
-    console.log("Handling CORS preflight request");
+    console.log("✅ Handling CORS preflight request");
     return new Response(null, { 
       headers: corsHeaders,
       status: 200
@@ -21,24 +25,22 @@ serve(async (req) => {
   }
 
   try {
-    console.log("=== CREATE CHECKOUT FUNCTION STARTED ===");
-    console.log("Request method:", req.method);
-    console.log("Request URL:", req.url);
-
-    // Check environment variables first
+    // Check ALL environment variables
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-    console.log("Environment check:");
-    console.log("- STRIPE_SECRET_KEY:", stripeKey ? "✓ Present" : "✗ Missing");
-    console.log("- SUPABASE_URL:", supabaseUrl ? "✓ Present" : "✗ Missing");
-    console.log("- SUPABASE_ANON_KEY:", supabaseAnonKey ? "✓ Present" : "✗ Missing");
+    console.log("🔍 Environment Variables Check:");
+    console.log("STRIPE_SECRET_KEY exists:", !!stripeKey);
+    console.log("STRIPE_SECRET_KEY prefix:", stripeKey ? stripeKey.substring(0, 8) + "..." : "MISSING");
+    console.log("SUPABASE_URL exists:", !!supabaseUrl);
+    console.log("SUPABASE_ANON_KEY exists:", !!supabaseAnonKey);
 
     if (!stripeKey) {
-      console.error("STRIPE_SECRET_KEY is not configured");
+      console.error("❌ STRIPE_SECRET_KEY is missing!");
       return new Response(JSON.stringify({ 
-        error: "STRIPE_SECRET_KEY is not configured in Supabase secrets" 
+        error: "STRIPE_SECRET_KEY is not configured in Supabase secrets",
+        debug: "Check your Supabase project settings > Edge Functions > Secrets"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
@@ -46,7 +48,7 @@ serve(async (req) => {
     }
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Supabase environment variables missing");
+      console.error("❌ Supabase environment variables missing");
       return new Response(JSON.stringify({ 
         error: "Supabase configuration missing" 
       }), {
@@ -55,11 +57,12 @@ serve(async (req) => {
       });
     }
 
+    // Check authorization
     const authHeader = req.headers.get("Authorization");
-    console.log("Authorization header:", authHeader ? "✓ Present" : "✗ Missing");
+    console.log("🔐 Auth header exists:", !!authHeader);
 
     if (!authHeader) {
-      console.error("No authorization header provided");
+      console.error("❌ No authorization header");
       return new Response(JSON.stringify({ 
         error: "No authorization header provided" 
       }), {
@@ -69,15 +72,17 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    console.log("Token extracted, length:", token.length);
+    console.log("🎫 Token length:", token.length);
     
+    // Test Supabase client creation
+    console.log("🏗️ Creating Supabase client...");
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
     
-    console.log("Attempting to authenticate user...");
+    console.log("👤 Getting user...");
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
     
     if (authError) {
-      console.error("Authentication failed:", authError.message);
+      console.error("❌ Auth error:", authError.message);
       return new Response(JSON.stringify({ 
         error: `Authentication failed: ${authError.message}` 
       }), {
@@ -87,7 +92,7 @@ serve(async (req) => {
     }
 
     if (!user?.email) {
-      console.error("User not authenticated or email missing");
+      console.error("❌ No user or email");
       return new Response(JSON.stringify({ 
         error: "User not authenticated or email not available" 
       }), {
@@ -96,17 +101,18 @@ serve(async (req) => {
       });
     }
 
-    console.log("User authenticated successfully:", user.email);
+    console.log("✅ User authenticated:", user.email);
 
+    // Parse request body
     let requestBody;
     try {
+      console.log("📦 Parsing request body...");
       requestBody = await req.json();
-      console.log("Request body parsed successfully");
-      console.log("Items count:", requestBody.items?.length || 0);
+      console.log("✅ Request body parsed");
+      console.log("Items count:", requestBody.items?.length);
       console.log("Total:", requestBody.total);
-      console.log("Order ID:", requestBody.orderId);
     } catch (parseError) {
-      console.error("Failed to parse request body:", parseError);
+      console.error("❌ JSON parse error:", parseError);
       return new Response(JSON.stringify({ 
         error: "Invalid JSON in request body" 
       }), {
@@ -118,7 +124,7 @@ serve(async (req) => {
     const { items, total, orderId } = requestBody;
     
     if (!items || !Array.isArray(items) || items.length === 0) {
-      console.error("No items in request or invalid items array");
+      console.error("❌ No items or invalid items");
       return new Response(JSON.stringify({ 
         error: "No items in cart or invalid items format" 
       }), {
@@ -127,22 +133,26 @@ serve(async (req) => {
       });
     }
 
-    console.log("Initializing Stripe with key prefix:", stripeKey.substring(0, 12) + "...");
+    // Test Stripe initialization
+    console.log("💳 Initializing Stripe...");
     const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
     });
+    console.log("✅ Stripe initialized");
 
-    console.log("Checking for existing Stripe customer...");
+    // Check for existing customer
+    console.log("🔍 Looking for existing customer...");
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      console.log("Found existing customer:", customerId);
+      console.log("✅ Found existing customer:", customerId);
     } else {
-      console.log("No existing customer found, will create new one during checkout");
+      console.log("ℹ️ No existing customer found");
     }
 
-    console.log("Preparing line items...");
+    // Prepare line items
+    console.log("📋 Preparing line items...");
     const lineItems = items.map((item: any) => ({
       price_data: {
         currency: "php",
@@ -155,13 +165,13 @@ serve(async (req) => {
       },
       quantity: item.quantity,
     }));
-
-    console.log("Line items prepared, count:", lineItems.length);
+    console.log("✅ Line items prepared:", lineItems.length);
 
     const origin = req.headers.get("origin") || "https://urbanweb.netlify.app";
-    console.log("Origin for redirect URLs:", origin);
+    console.log("🌐 Origin:", origin);
 
-    console.log("Creating Stripe checkout session...");
+    // Create checkout session
+    console.log("🛒 Creating Stripe checkout session...");
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -176,9 +186,9 @@ serve(async (req) => {
       },
     });
 
-    console.log("Checkout session created successfully!");
+    console.log("🎉 SUCCESS! Checkout session created");
     console.log("Session ID:", session.id);
-    console.log("Session URL:", session.url);
+    console.log("Session URL exists:", !!session.url);
 
     return new Response(JSON.stringify({ 
       url: session.url,
@@ -189,18 +199,15 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    const errorStack = error instanceof Error ? error.stack : "No stack trace";
-    
-    console.error("=== ERROR IN CREATE-CHECKOUT ===");
-    console.error("Error message:", errorMessage);
-    console.error("Error stack:", errorStack);
-    console.error("Error type:", typeof error);
-    console.error("Error constructor:", error?.constructor?.name);
+    console.error("💥 FATAL ERROR:", error);
+    console.error("Error name:", error?.name);
+    console.error("Error message:", error?.message);
+    console.error("Error stack:", error?.stack);
     
     return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: "Check edge function logs for more information"
+      error: error?.message || "Unknown error occurred",
+      errorName: error?.name || "UnknownError",
+      details: "Check edge function logs for complete error information"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
