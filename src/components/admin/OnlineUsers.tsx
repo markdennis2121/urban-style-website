@@ -6,38 +6,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Users, Clock, Wifi, AlertCircle, RefreshCw, Database, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserSessions } from '@/hooks/useUserSessions';
-import { validateAnyAdminAccess } from '@/lib/auth/adminValidation';
+import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const OnlineUsers = () => {
   const { activeSessions, loading, error, loadActiveSessions } = useUserSessions();
-  const [hasAdminAccess, setHasAdminAccess] = useState(false);
-  const [accessError, setAccessError] = useState<string | null>(null);
+  const { profile, isAdmin, isSuperAdmin } = useAuth();
   const [isRetrying, setIsRetrying] = useState(false);
 
-  useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        console.log('Checking admin access...');
-        const validation = await validateAnyAdminAccess();
-        console.log('Admin validation result:', validation);
-        
-        setHasAdminAccess(validation.isValid);
-        if (!validation.isValid) {
-          setAccessError(validation.error || 'Access denied');
-        } else {
-          setAccessError(null);
-        }
-      } catch (err) {
-        console.error('Admin access check failed:', err);
-        setHasAdminAccess(false);
-        setAccessError('Failed to validate admin access');
-      }
-    };
-
-    checkAccess();
-  }, []);
+  // Check if user has admin access
+  const hasAdminAccess = isAdmin || isSuperAdmin;
 
   useEffect(() => {
     if (hasAdminAccess) {
@@ -83,9 +62,11 @@ const OnlineUsers = () => {
           <Alert className="border-red-200 bg-red-50">
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-700">
-              <strong>Access Denied:</strong> {accessError}
+              <strong>Access Denied:</strong> Admin or Super Admin role required to view online users.
               <br />
-              <span className="text-sm">Admin or Super Admin role required to view online users.</span>
+              <span className="text-sm">
+                Current role: {profile?.role || 'user'}. Only admin and super_admin roles can access this feature.
+              </span>
             </AlertDescription>
           </Alert>
         </CardContent>
