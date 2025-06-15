@@ -14,31 +14,25 @@ const AdminModeToggle = () => {
 
   return (
     <div className="flex items-center gap-3">
-      {/* Fixed label */}
-      <span className="text-sm font-medium text-muted-foreground min-w-[32px]">
+      {/* Fixed label with consistent width */}
+      <span className="text-sm font-medium text-muted-foreground w-12 text-right">
         {isAdminMode ? 'Admin' : 'User'}
       </span>
       
-      {/* Toggle switch */}
-      <button
-        onClick={toggleAdminMode}
-        className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted/30 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6b7280] focus:ring-offset-2 hover:bg-muted/40"
-        role="switch"
-        aria-checked={isAdminMode}
-      >
-        <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out ${
-            isAdminMode ? 'translate-x-6 bg-[#6b7280]' : 'translate-x-1'
-          }`}
+      {/* Toggle switch with slider design */}
+      <label className="relative inline-block w-[60px] h-[34px] cursor-pointer">
+        <input
+          type="checkbox"
+          checked={isAdminMode}
+          onChange={toggleAdminMode}
+          className="opacity-0 w-0 h-0"
         />
-        
-        {/* Background color transition */}
-        <span
-          className={`absolute inset-0 rounded-full transition-colors duration-200 ${
-            isAdminMode ? 'bg-[#6b7280]/20' : 'bg-muted/10'
-          }`}
-        />
-      </button>
+        <span className={`absolute cursor-pointer top-0 left-0 right-0 bottom-0 rounded-[34px] transition-all duration-400 ease-in-out ${
+          isAdminMode ? 'bg-[#6b7280]' : 'bg-gray-300'
+        } before:absolute before:content-[''] before:h-[26px] before:w-[26px] before:left-1 before:bottom-1 before:bg-white before:transition-all before:duration-400 before:ease-in-out before:rounded-full ${
+          isAdminMode ? 'before:translate-x-[26px]' : 'before:translate-x-0'
+        }`} />
+      </label>
     </div>
   );
 };
