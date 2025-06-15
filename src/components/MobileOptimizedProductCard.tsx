@@ -78,7 +78,7 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
 
   return (
     <div className="group relative bg-card rounded-lg sm:rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50 w-full">
-      {/* Product badges - mobile optimized */}
+      {/* Product badges - minimal design */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
         {product.isNew && (
           <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-md font-medium">
@@ -92,32 +92,26 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
         )}
       </div>
 
-      {/* Wishlist button - Professional design with consistent states */}
+      {/* Minimal Wishlist button */}
       {canUseShoppingFeatures && (
         <button
           onClick={handleWishlistToggle}
-          className={`absolute top-2 right-2 z-10 w-9 h-9 rounded-full shadow-md transition-all duration-200 flex items-center justify-center relative overflow-hidden ${
+          className={`absolute top-2 right-2 z-10 w-8 h-8 rounded-lg transition-all duration-200 flex items-center justify-center ${
             isWishlisted
-              ? 'bg-red-500 text-white hover:bg-red-600 shadow-red-200 scale-105'
-              : 'bg-white/95 backdrop-blur-sm hover:bg-white text-gray-600 hover:text-red-500 hover:scale-105'
+              ? 'bg-red-50 text-red-600 border border-red-200'
+              : 'bg-white/90 hover:bg-white text-gray-600 hover:text-red-500 border border-gray-200 hover:border-red-200'
           } opacity-0 group-hover:opacity-100 md:opacity-100`}
         >
           <Heart 
             className={`w-4 h-4 transition-all duration-200 ${
-              isWishlisted 
-                ? 'fill-white text-white' 
-                : 'hover:fill-red-500'
+              isWishlisted ? 'fill-red-500 text-red-500' : ''
             }`} 
           />
-          {/* Subtle pulse animation for wishlisted items */}
-          {isWishlisted && (
-            <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-20" />
-          )}
         </button>
       )}
 
       <Link to={`/product/${product.id}`} className="block">
-        {/* Image container - mobile optimized aspect ratio */}
+        {/* Image container */}
         <div className="relative aspect-square overflow-hidden bg-muted/20">
           <img
             src={product.image}
@@ -126,37 +120,35 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
             loading="lazy"
           />
           
-          {/* Mobile overlay with quick actions */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <div className="flex space-x-2">
-              <Button size="sm" variant="secondary" className="text-xs px-3 py-1 bg-white/90 backdrop-blur-sm">
-                <Eye className="w-3 h-3 mr-1" />
-                View
-              </Button>
-            </div>
+          {/* Minimal overlay */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <Button size="sm" variant="secondary" className="text-xs px-3 py-1 bg-white/90 backdrop-blur-sm border border-gray-200">
+              <Eye className="w-3 h-3 mr-1" />
+              View
+            </Button>
           </div>
         </div>
 
-        {/* Product info - mobile optimized spacing */}
-        <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
+        {/* Product info - minimal spacing */}
+        <div className="p-3 sm:p-4 space-y-2">
           {/* Brand and category */}
-          <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="font-medium">{product.brand}</span>
             <span className="capitalize">{product.category}</span>
           </div>
 
-          {/* Product name - mobile optimized text size */}
+          {/* Product name */}
           <h3 className="font-semibold text-sm sm:text-base text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
 
-          {/* Rating - mobile optimized */}
+          {/* Rating - minimal */}
           <div className="flex items-center space-x-1">
             <div className="flex">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                  className={`w-3 h-3 ${
                     i < Math.floor(product.rating)
                       ? 'text-yellow-400 fill-current'
                       : 'text-gray-300'
@@ -164,17 +156,13 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
                 />
               ))}
             </div>
-            <span className="text-xs sm:text-sm text-muted-foreground">
-              ({product.reviews})
-            </span>
+            <span className="text-xs text-muted-foreground">({product.reviews})</span>
           </div>
 
-          {/* Price and add to cart - mobile optimized */}
-          <div className="flex items-center justify-between pt-1 sm:pt-2">
+          {/* Price and add to cart */}
+          <div className="flex items-center justify-between pt-1">
             <div className="flex flex-col">
-              <span className="text-lg sm:text-xl font-bold text-primary">
-                ${product.price}
-              </span>
+              <span className="text-lg font-bold text-primary">${product.price}</span>
               {product.isSale && (
                 <span className="text-xs text-red-500 line-through">
                   ${(product.price * 1.2).toFixed(2)}
@@ -186,9 +174,9 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
               <Button
                 size="sm"
                 onClick={handleAddToCart}
-                className="px-3 py-1 text-xs sm:text-sm h-8 sm:h-9 bg-primary hover:bg-primary/90"
+                className="px-3 py-1 text-xs h-8 bg-primary hover:bg-primary/90 rounded-lg"
               >
-                <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <ShoppingCart className="w-3 h-3 mr-1" />
                 Add
               </Button>
             )}
@@ -197,18 +185,14 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
           {/* Stock status */}
           {!product.inStock && (
             <div className="text-center">
-              <span className="text-xs sm:text-sm text-red-500 font-medium">
-                Out of Stock
-              </span>
+              <span className="text-xs text-red-500 font-medium">Out of Stock</span>
             </div>
           )}
 
-          {/* Login prompt for non-authenticated users */}
+          {/* Login prompt */}
           {!isAuthenticated && canUseShoppingFeatures && (
             <div className="text-center">
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                Login to add to cart or wishlist
-              </span>
+              <span className="text-xs text-muted-foreground">Login to add to cart or wishlist</span>
             </div>
           )}
         </div>

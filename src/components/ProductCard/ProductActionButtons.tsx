@@ -30,47 +30,41 @@ const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
   if (loading) {
     return (
       <div className="absolute top-3 right-3 flex flex-col gap-2">
-        <Skeleton className="w-10 h-10 rounded-full" />
-        <Skeleton className="w-10 h-10 rounded-full" />
-        <Skeleton className="w-10 h-10 rounded-full" />
+        <Skeleton className="w-8 h-8 rounded-lg" />
+        <Skeleton className="w-8 h-8 rounded-lg" />
+        <Skeleton className="w-8 h-8 rounded-lg" />
       </div>
     );
   }
 
   return (
-    <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-      {/* Wishlist Button - Professional design with clear states */}
+    <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+      {/* Minimal Wishlist Button */}
       <Button
-        variant="secondary"
+        variant="ghost"
         size="icon"
-        className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-200 flex items-center justify-center relative overflow-hidden ${
+        className={`w-8 h-8 rounded-lg transition-all duration-200 ${
           isWishlisted
-            ? 'bg-red-500 hover:bg-red-600 text-white border-red-500 shadow-red-200'
-            : 'bg-white/95 hover:bg-white text-gray-600 hover:text-red-500 border-white/80 hover:border-red-200'
+            ? 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-200'
+            : 'bg-white/90 hover:bg-white text-gray-600 hover:text-red-500 border border-gray-200 hover:border-red-200'
         }`}
         onClick={onWishlistToggle}
       >
         <Heart 
           className={`w-4 h-4 transition-all duration-200 ${
-            isWishlisted 
-              ? 'fill-white text-white scale-110' 
-              : 'hover:fill-red-500 hover:scale-110'
+            isWishlisted ? 'fill-red-500 text-red-500' : ''
           }`} 
         />
-        {/* Subtle pulse animation for wishlisted items */}
-        {isWishlisted && (
-          <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-20" />
-        )}
       </Button>
 
-      {/* Compare Button - Consistent with wishlist design */}
+      {/* Minimal Compare Button */}
       <Button
-        variant="secondary"
+        variant="ghost"
         size="icon"
-        className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-200 flex items-center justify-center ${
+        className={`w-8 h-8 rounded-lg transition-all duration-200 ${
           isInComparison
-            ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500 shadow-blue-200'
-            : 'bg-white/95 hover:bg-white text-gray-600 hover:text-blue-500 border-white/80 hover:border-blue-200'
+            ? 'bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200'
+            : 'bg-white/90 hover:bg-white text-gray-600 hover:text-blue-500 border border-gray-200 hover:border-blue-200'
         } ${!canAddToCompare && !isInComparison ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={onCompareToggle}
         disabled={!canAddToCompare && !isInComparison}
@@ -78,15 +72,15 @@ const ProductActionButtons: React.FC<ProductActionButtonsProps> = ({
         <Scale className="w-4 h-4" />
       </Button>
 
-      {/* Quick Add to Cart Button - Enhanced design */}
+      {/* Minimal Quick Add to Cart Button */}
       {isAuthenticated && (
         <Button
-          variant="secondary"
+          variant="ghost"
           size="icon"
-          className={`w-10 h-10 rounded-full shadow-lg backdrop-blur-sm transition-all duration-200 flex items-center justify-center ${
+          className={`w-8 h-8 rounded-lg transition-all duration-200 ${
             inStock 
-              ? 'bg-primary/90 hover:bg-primary text-white border-primary/80 hover:shadow-primary/20' 
-              : 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
+              ? 'bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/30' 
+              : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
           }`}
           onClick={onAddToCart}
           disabled={!inStock}
