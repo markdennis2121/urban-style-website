@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 // Helper logging function for enhanced debugging
@@ -31,13 +32,14 @@ serve(async (req) => {
     }
     logStep("Stripe key found and verified");
 
-    // Create Supabase client using the anon key for user authentication
+    // Create Supabase client using the service role key for bypassing RLS
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
     );
 
-    // Retrieve authenticated user
+    // Retrieve authenticated user using anon key
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("ERROR: No authorization header provided");
@@ -46,7 +48,14 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     logStep("Authenticating user with token");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    // Use anon key client for user authentication
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
     
     if (authError || !user?.email) {
       logStep("ERROR: Authentication failed", { authError: authError?.message });
