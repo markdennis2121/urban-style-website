@@ -25,6 +25,8 @@ const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchItems, setSearchItems] = useState([]);
+  const [searchLoaded, setSearchLoaded] = useState(false);
+  
   const { state } = useCart();
   const { state: wishlistState } = useWishlist();
   const { canUseShoppingFeatures } = useAdminMode();
@@ -32,9 +34,12 @@ const Header: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Memoize search data loading
+  // Memoize search data loading with proper error handling
   const loadSearchData = useCallback(async () => {
+    if (searchLoaded) return;
+    
     try {
+      console.log('Loading search data...');
       const { data: dbProducts } = await supabase
         .from('products')
         .select('*')
@@ -64,12 +69,16 @@ const Header: React.FC = () => {
       ];
 
       setSearchItems(allProducts);
+      setSearchLoaded(true);
+      console.log('Search data loaded successfully:', allProducts.length, 'items');
     } catch (error) {
       console.error('Error loading search data:', error);
+      setSearchItems([]);
+      setSearchLoaded(true);
     }
-  }, []);
+  }, [searchLoaded]);
 
-  // Load search data only once
+  // Load search data only once when component mounts
   useEffect(() => {
     loadSearchData();
   }, [loadSearchData]);
@@ -83,15 +92,21 @@ const Header: React.FC = () => {
     { name: 'Contact', href: '/contact', isActive: location.pathname === '/contact' },
   ], [location.pathname]);
 
-  // Optimized handlers
+  // Optimized handlers with proper error handling
   const handleSearch = useCallback((term: string) => {
-    if (term.trim()) {
-      navigate(`/shop?search=${encodeURIComponent(term)}`);
+    try {
+      if (term.trim()) {
+        console.log('Searching for:', term);
+        navigate(`/shop?search=${encodeURIComponent(term)}`);
+      }
+    } catch (error) {
+      console.error('Error in search navigation:', error);
     }
   }, [navigate]);
 
-  const handleAuthAction = useCallback((action: string) => {
+  const handleAuthAction = useCallback(() => {
     if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to login');
       navigate('/login');
       return false;
     }
@@ -99,30 +114,40 @@ const Header: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   const handleCartClick = useCallback(() => {
-    if (!handleAuthAction('access cart')) return;
-    navigate('/cart');
+    if (handleAuthAction()) {
+      console.log('Navigating to cart');
+      navigate('/cart');
+    }
   }, [handleAuthAction, navigate]);
 
   const handleWishlistClick = useCallback(() => {
-    if (!handleAuthAction('access wishlist')) return;
-    navigate('/wishlist');
+    if (handleAuthAction()) {
+      console.log('Navigating to wishlist');
+      navigate('/wishlist');
+    }
   }, [handleAuthAction, navigate]);
 
   const handleLogout = useCallback(async () => {
     try {
       console.log('User logging out...');
       await supabase.auth.signOut();
+      setIsMobileMenuOpen(false);
+      navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
       navigate('/');
     }
   }, [navigate]);
 
-  const handleProfileUpdate = useCallback((updatedProfile) => {
+  const handleProfileUpdate = useCallback(() => {
     setIsProfileOpen(false);
   }, []);
 
-  // Loading state
+  const handleMobileMenuClose = useCallback(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  // Loading state with consistent styling
   if (loading) {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg">
@@ -140,34 +165,14 @@ const Header: React.FC = () => {
               <ul className="flex items-center justify-center">
                 {navItems.map((item) => (
                   <li key={item.name} className="px-5 relative group">
-                    <Link
-                      className={`text-primary hover:text-muted-foreground transition-colors duration-200 relative ${
-                        item.isActive ? 'font-bold' : ''
-                      }`}
-                      to={item.href}
-                    >
-                      {item.name}
-                      <span
-                        className={`absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 ${
-                          item.isActive ? 'w-full' : 'w-0 group-hover:w-full'
-                        }`}
-                      ></span>
-                    </Link>
+                    <div className="w-16 h-6 bg-muted/30 rounded animate-pulse"></div>
                   </li>
                 ))}
               </ul>
             </nav>
 
             <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
-              <div className="md:hidden">
-                <button
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="text-primary hover:text-muted-foreground transition-colors duration-200"
-                >
-                  {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
-              </div>
+              <div className="w-8 h-8 rounded-full bg-muted/30 animate-pulse" />
             </div>
           </div>
         </div>
@@ -180,7 +185,7 @@ const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center flex-shrink-0">
             <Link to="/" className="cursor-pointer transform hover:scale-105 transition-transform duration-300">
               <div className="w-[60px] h-[60px] rounded-lg flex items-center justify-center">
                 <img src="/favicon.png" alt="Urban Logo" className="w-full h-full object-contain" />
@@ -189,7 +194,7 @@ const Header: React.FC = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex">
+          <nav className="hidden md:flex flex-1 justify-center">
             <ul className="flex items-center justify-center">
               {navItems.map((item) => (
                 <li key={item.name} className="px-5 relative group">
@@ -212,14 +217,19 @@ const Header: React.FC = () => {
           </nav>
 
           {/* Right side actions */}
-          <div className="flex items-center space-x-4">
-            {isAuthenticated && <AdminModeToggle />}
+          <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+            {/* Admin Mode Toggle - only show if authenticated and has admin access */}
+            {isAuthenticated && (profile?.role === 'admin' || profile?.role === 'super_admin') && (
+              <div className="hidden md:block">
+                <AdminModeToggle />
+              </div>
+            )}
 
-            {/* Search */}
+            {/* Search - Desktop only */}
             <div className="hidden md:block">
               <GlobalSearch
                 placeholder="Search products..."
-                className="w-64"
+                className="w-48 lg:w-64"
                 items={searchItems}
                 onSearch={handleSearch}
               />
@@ -272,7 +282,7 @@ const Header: React.FC = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-56 bg-background border shadow-lg" align="end" forceMount>
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
                       <p className="font-medium">{profile?.username}</p>
@@ -329,60 +339,72 @@ const Header: React.FC = () => {
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="text-primary hover:text-muted-foreground transition-colors duration-200"
+                aria-label="Toggle mobile menu"
               >
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
           </div>
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="absolute top-full left-0 w-full bg-background/95 backdrop-blur-md shadow-lg md:hidden animate-fade-in border-b border-border/50">
-              <nav className="py-4">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`block px-5 py-3 text-primary hover:bg-muted/50 transition-colors ${
-                      item.isActive ? 'font-bold bg-muted/30' : ''
-                    }`}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-                <div className="px-5 py-3">
-                  <GlobalSearch
-                    placeholder="Search products..."
-                    className="w-full"
-                    items={searchItems}
-                    onSearch={(term) => {
-                      handleSearch(term);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    showResults={false}
-                  />
-                </div>
-                {isAuthenticated ? (
-                  <button 
-                    onClick={handleLogout}
-                    className="block w-full text-left px-5 py-3 text-primary hover:bg-muted/50 transition-colors"
-                  >
-                    Logout
-                  </button>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="block px-5 py-3 text-primary hover:bg-muted/50 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Login
-                  </Link>
-                )}
-              </nav>
-            </div>
-          )}
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 w-full bg-background/95 backdrop-blur-md shadow-lg animate-fade-in border-b border-border/50 z-40">
+            <nav className="py-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`block px-5 py-3 text-primary hover:bg-muted/50 transition-colors ${
+                    item.isActive ? 'font-bold bg-muted/30' : ''
+                  }`}
+                  onClick={handleMobileMenuClose}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              
+              {/* Mobile Search */}
+              <div className="px-5 py-3">
+                <GlobalSearch
+                  placeholder="Search products..."
+                  className="w-full"
+                  items={searchItems}
+                  onSearch={(term) => {
+                    handleSearch(term);
+                    handleMobileMenuClose();
+                  }}
+                  showResults={false}
+                />
+              </div>
+
+              {/* Mobile Admin Toggle */}
+              {isAuthenticated && (profile?.role === 'admin' || profile?.role === 'super_admin') && (
+                <div className="px-5 py-3 border-t border-border/30">
+                  <AdminModeToggle />
+                </div>
+              )}
+              
+              {/* Mobile Auth */}
+              {isAuthenticated ? (
+                <button 
+                  onClick={handleLogout}
+                  className="block w-full text-left px-5 py-3 text-primary hover:bg-muted/50 transition-colors border-t border-border/30"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="block px-5 py-3 text-primary hover:bg-muted/50 transition-colors border-t border-border/30"
+                  onClick={handleMobileMenuClose}
+                >
+                  Login
+                </Link>
+              )}
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );
