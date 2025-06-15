@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,10 @@ import { Search, Users, Shield, User, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useUserSessions } from '@/hooks/useUserSessions';
 import { User as UserType } from '@/hooks/useAdminData';
+import { AlertTriangle, Edit, Trash2 } from 'lucide-react';
+import UserEditDialog from './UserEditDialog';
+import { useAuth } from '@/hooks/useAuth';
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from '@radix-ui/react-dialog';
 
 interface UserManagementProps {
   users?: UserType[];
@@ -16,15 +19,19 @@ interface UserManagementProps {
   onUserDelete?: (userId: string) => Promise<void>;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ 
-  users: propUsers, 
-  onUserUpdate, 
-  onUserDelete 
+const UserManagement: React.FC<UserManagementProps> = ({
+  users: propUsers,
+  onUserUpdate,
+  onUserDelete
 }) => {
   const [users, setUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { activeSessions, loadActiveSessions } = useUserSessions();
+  const [editDialog, setEditDialog] = useState<{ open: boolean; user: UserType | null }>({ open: false, user: null });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; user: UserType | null }>({ open: false, user: null });
+  const { profile } = useAuth();
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   useEffect(() => {
     if (propUsers) {
@@ -203,6 +210,28 @@ const UserManagement: React.FC<UserManagementProps> = ({
                   >
                     {user.role || 'user'}
                   </Badge>
+                  {isSuperAdmin && (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Edit User"
+                        className="hover:bg-blue-50"
+                        onClick={() => setEditDialog({ open: true, user })}
+                      >
+                        <Edit className="w-4 h-4 text-blue-600" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Delete User"
+                        className="hover:bg-red-50"
+                        onClick={() => setDeleteDialog({ open: true, user })}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -216,6 +245,49 @@ const UserManagement: React.FC<UserManagementProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      {editDialog.user && onUserUpdate && (
+        <UserEditDialog
+          user={editDialog.user}
+          open={editDialog.open}
+          onClose={() => setEditDialog({ open: false, user: null })}
+          onSubmit={async updates => {
+            await onUserUpdate(editDialog.user!.id, updates);
+          }}
+        />
+      )}
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={open => !open && setDeleteDialog({ open: false, user: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this user account? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-3 p-3 bg-red-50 rounded">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <span className="font-medium">{deleteDialog.user?.full_name || deleteDialog.user?.email}</span>
+          </div>
+          <DialogFooter>
+            <Button variant="destructive"
+              disabled={!onUserDelete}
+              onClick={async () => {
+                if (deleteDialog.user && onUserDelete) {
+                  await onUserDelete(deleteDialog.user.id);
+                  setDeleteDialog({ open: false, user: null });
+                }
+              }}
+            >
+              Delete
+            </Button>
+            <DialogClose asChild>
+              <Button variant="ghost" onClick={() => setDeleteDialog({ open: false, user: null })}>Cancel</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
