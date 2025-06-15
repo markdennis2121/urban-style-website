@@ -1,226 +1,214 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Users, User, Calendar, Edit, Trash2, Shield } from 'lucide-react';
-import { User as UserType } from '@/hooks/useAdminData';
-import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Search, Users, Shield, User, Wifi, WifiOff } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
+import { useUserSessions } from '@/hooks/useUserSessions';
 
-interface UserManagementProps {
-  users: UserType[];
-  onUserUpdate?: (userId: string, updates: Partial<UserType>) => void;
-  onUserDelete?: (userId: string) => void;
+interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  created_at: string;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ 
-  users, 
-  onUserUpdate, 
-  onUserDelete 
-}) => {
-  const { profile } = useAuth();
-  const isSuperAdmin = profile?.role === 'super_admin';
-  
-  const [editingUser, setEditingUser] = useState<UserType | null>(null);
-  const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserType | null>(null);
-  const [editForm, setEditForm] = useState({ username: '', email: '', role: '' });
+const UserManagement = () => {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const { activeSessions, loadActiveSessions } = useUserSessions();
 
-  const handleEditUser = (user: UserType) => {
-    setEditingUser(user);
-    setEditForm({
-      username: user.username || '',
-      email: user.email,
-      role: user.role
-    });
-  };
+  useEffect(() => {
+    loadUsers();
+    loadActiveSessions();
+  }, [loadActiveSessions]);
 
-  const handleSaveEdit = () => {
-    if (editingUser && onUserUpdate) {
-      onUserUpdate(editingUser.id, {
-        username: editForm.username,
-        email: editForm.email,
-        role: editForm.role as any
-      });
-      setEditingUser(null);
+  const loadUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteUser = () => {
-    if (deleteConfirmUser && onUserDelete) {
-      onUserDelete(deleteConfirmUser.id);
-      setDeleteConfirmUser(null);
-    }
+  const isUserOnline = (userId: string) => {
+    return activeSessions.some(session => session.user_id === userId);
   };
 
-  return (
-    <>
-      <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
-        <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
-          <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
-            <div className="bg-blue-500 p-2 rounded-lg">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            User Management
-            {!isSuperAdmin && (
-              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                View Only
-              </Badge>
-            )}
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            {isSuperAdmin 
-              ? "View and manage customer accounts" 
-              : "View customer accounts (editing restricted to super admins)"
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          {!isSuperAdmin && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2 text-blue-700">
-                <Shield className="h-4 w-4" />
-                <span className="font-medium">Admin Access Level</span>
-              </div>
-              <p className="text-sm text-blue-600 mt-1">
-                User management operations are restricted to super administrators only.
-              </p>
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            {users.length > 0 ? users.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-blue-100 p-3 rounded-full">
-                    <User className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{user.username || 'No username'}</p>
-                    <p className="text-sm text-gray-600">{user.email}</p>
-                    <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
-                      {user.role}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="flex items-center text-sm text-gray-500 mb-1">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  {isSuperAdmin && (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditUser(user)}
-                        className="rounded-lg"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setDeleteConfirmUser(user)}
-                        className="rounded-lg"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No users found</p>
-              </div>
-            )}
-          </div>
+  const filteredUsers = users.filter(user =>
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const onlineUsers = users.filter(user => isUserOnline(user.id));
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {/* Edit User Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Make changes to the user account. Click save when you're done.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="username" className="text-right">
-                Username
-              </Label>
-              <Input
-                id="username"
-                value={editForm.username}
-                onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                className="col-span-3"
-              />
+  return (
+    <div className="space-y-6">
+      {/* Stats Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-500" />
+              <div>
+                <p className="text-sm font-medium">Total Users</p>
+                <p className="text-2xl font-bold">{users.length}</p>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={editForm.email}
-                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                className="col-span-3"
-              />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Wifi className="h-4 w-4 text-green-500" />
+              <div>
+                <p className="text-sm font-medium">Online Now</p>
+                <p className="text-2xl font-bold text-green-600">{onlineUsers.length}</p>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="role" className="text-right">
-                Role
-              </Label>
-              <Select value={editForm.role} onValueChange={(value) => setEditForm({ ...editForm, role: value })}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-purple-500" />
+              <div>
+                <p className="text-sm font-medium">Admins</p>
+                <p className="text-2xl font-bold">
+                  {users.filter(u => u.role === 'admin' || u.role === 'superadmin').length}
+                </p>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-gray-500" />
+              <div>
+                <p className="text-sm font-medium">Regular Users</p>
+                <p className="text-2xl font-bold">
+                  {users.filter(u => u.role === 'user' || !u.role).length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* User List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>User Management</span>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 w-64"
+                />
+              </div>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {filteredUsers.map((user) => (
+              <div
+                key={user.id}
+                className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isUserOnline(user.id) ? (
+                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                    ) : (
+                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 border-2 border-white rounded-full"></div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium">{user.full_name || 'No name'}</h3>
+                      {isUserOnline(user.id) ? (
+                        <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+                          <Wifi className="w-3 h-3 mr-1" />
+                          Online
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-gray-500 border-gray-200">
+                          <WifiOff className="w-3 h-3 mr-1" />
+                          Offline
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Joined {new Date(user.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant="outline"
+                    className={
+                      user.role === 'superadmin' 
+                        ? 'border-red-200 text-red-700 bg-red-50'
+                        : user.role === 'admin'
+                        ? 'border-blue-200 text-blue-700 bg-blue-50'
+                        : 'border-gray-200 text-gray-700'
+                    }
+                  >
+                    {user.role || 'user'}
+                  </Badge>
+                </div>
+              </div>
+            ))}
           </div>
-          <DialogFooter>
-            <Button type="submit" onClick={handleSaveEdit}>Save changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteConfirmUser} onOpenChange={() => setDeleteConfirmUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete {deleteConfirmUser?.username || deleteConfirmUser?.email}? 
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmUser(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteUser}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No users found matching your search.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
