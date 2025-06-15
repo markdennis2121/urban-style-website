@@ -126,10 +126,6 @@ const OnlineUsers = () => {
     );
   }
 
-  // Debug logging
-  console.log('Raw activeSessions data:', activeSessions);
-  console.log('Current profile:', profile);
-
   // Get unique users from sessions (most recent session per user)
   const uniqueUsers = activeSessions.reduce((acc, session) => {
     const existingUser = acc.find(u => u.user_id === session.user_id);
@@ -144,8 +140,6 @@ const OnlineUsers = () => {
     }
     return acc;
   }, [] as typeof activeSessions);
-
-  console.log('Unique users after processing:', uniqueUsers);
 
   return (
     <Card>
@@ -176,20 +170,6 @@ const OnlineUsers = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Debug info for troubleshooting */}
-        <div className="mb-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
-          <p><strong>Debug Info:</strong></p>
-          <p>Total sessions: {activeSessions.length}</p>
-          <p>Unique users: {uniqueUsers.length}</p>
-          <p>Your role: {profile?.role}</p>
-          <p>Your user ID: {profile?.id}</p>
-          <p>Sessions data: {JSON.stringify(activeSessions.map(s => ({
-            user_id: s.user_id,
-            email: s.profiles?.email,
-            last_activity: s.last_activity
-          })), null, 2)}</p>
-        </div>
-
         {uniqueUsers.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
