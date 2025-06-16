@@ -17,7 +17,7 @@ const Footer = () => {
               <span className="text-xl font-bold text-foreground">Urban</span>
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Your premium destination for fashion, electronics, and lifestyle products. 
+              Your premium destination for fashion, and lifestyle products. 
               Quality guaranteed with fast, reliable shipping.
             </p>
             <div className="flex space-x-4">
