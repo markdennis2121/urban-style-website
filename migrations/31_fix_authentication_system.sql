@@ -85,9 +85,9 @@ CREATE POLICY "Admins can view all profiles" ON public.profiles
     FOR SELECT TO authenticated
     USING (
         EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid()
-            AND role IN ('admin', 'super_admin')
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid()
+            AND p.role IN ('admin', 'super_admin')
         )
     );
 
@@ -96,11 +96,11 @@ CREATE POLICY "Users can update own profile except role" ON public.profiles
     USING (auth.uid() = id)
     WITH CHECK (
         auth.uid() = id AND
-        (role = OLD.role OR 
+        (role = (SELECT role FROM public.profiles WHERE id = auth.uid()) OR 
          EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid()
-            AND role = 'super_admin'
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid()
+            AND p.role = 'super_admin'
          ))
     );
 
@@ -108,9 +108,9 @@ CREATE POLICY "Super admins can update any profile" ON public.profiles
     FOR UPDATE TO authenticated
     USING (
         EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid()
-            AND role = 'super_admin'
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid()
+            AND p.role = 'super_admin'
         )
     );
 
@@ -137,9 +137,31 @@ CREATE POLICY "Admins can view all sessions" ON user_sessions
     FOR SELECT TO authenticated
     USING (
         EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid()
-            AND role IN ('admin', 'super_admin')
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid()
+            AND p.role IN ('admin', 'super_admin')
+        )
+    );
+
+-- Ensure products table has proper RLS
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing product policies
+DROP POLICY IF EXISTS "Everyone can view products" ON products;
+DROP POLICY IF EXISTS "Admins can manage products" ON products;
+
+-- Create permissive product policies
+CREATE POLICY "Everyone can view products" ON products
+    FOR SELECT TO authenticated, anon
+    USING (true);
+
+CREATE POLICY "Admins can manage products" ON products
+    FOR ALL TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid()
+            AND p.role IN ('admin', 'super_admin')
         )
     );
 
@@ -147,14 +169,21 @@ CREATE POLICY "Admins can view all sessions" ON user_sessions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON public.profiles TO anon, authenticated;
 GRANT ALL ON user_sessions TO anon, authenticated;
+GRANT SELECT ON products TO anon, authenticated;
+GRANT ALL ON products TO authenticated;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 -- Insert default super admin if it doesn't exist
 DO $$
+DECLARE
+    super_admin_id UUID;
 BEGIN
+    -- Generate a consistent UUID for super admin
+    super_admin_id := '00000000-0000-0000-0000-000000000001'::UUID;
+    
     -- First check if the user exists in auth.users
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'superadmin@urbanstyle.com') THEN
-        -- Create the auth user first (this would normally be done through signup)
+        -- Create the auth user first
         INSERT INTO auth.users (
             instance_id,
             id,
@@ -164,38 +193,29 @@ BEGIN
             encrypted_password,
             email_confirmed_at,
             created_at,
-            updated_at,
-            confirmation_token,
-            email_change,
-            email_change_token_new,
-            recovery_token
+            updated_at
         ) VALUES (
             '00000000-0000-0000-0000-000000000000',
-            gen_random_uuid(),
+            super_admin_id,
             'authenticated',
             'authenticated',
             'superadmin@urbanstyle.com',
             crypt('SuperAdmin123!', gen_salt('bf')),
             NOW(),
             NOW(),
-            NOW(),
-            '',
-            '',
-            '',
-            ''
+            NOW()
         );
     END IF;
     
     -- Now ensure the profile exists
     INSERT INTO public.profiles (id, email, username, role, full_name)
-    SELECT 
-        u.id,
-        u.email,
+    VALUES (
+        super_admin_id,
+        'superadmin@urbanstyle.com',
         'superadmin',
         'super_admin'::user_role,
         'Super Administrator'
-    FROM auth.users u
-    WHERE u.email = 'superadmin@urbanstyle.com'
+    )
     ON CONFLICT (id) DO UPDATE SET
         role = 'super_admin',
         full_name = 'Super Administrator';

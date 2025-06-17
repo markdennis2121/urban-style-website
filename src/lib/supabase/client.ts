@@ -82,11 +82,16 @@ export const getCurrentProfile = async (): Promise<Profile | null> => {
     return profile;
   } catch (error) {
     console.error('Error in getCurrentProfile:', error);
-    return null;
+    throw error; // Re-throw to allow proper error handling upstream
   }
 };
 
 export const hasRole = async (requiredRoles: UserRole[]): Promise<boolean> => {
-  const profile = await getCurrentProfile();
-  return profile ? requiredRoles.includes(profile.role) : false;
+  try {
+    const profile = await getCurrentProfile();
+    return profile ? requiredRoles.includes(profile.role) : false;
+  } catch (error) {
+    console.error('Error checking role:', error);
+    return false;
+  }
 };

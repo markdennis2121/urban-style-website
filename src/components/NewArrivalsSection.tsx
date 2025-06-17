@@ -20,6 +20,7 @@ interface DatabaseProduct {
 const NewArrivalsSection = () => {
   const [dbProducts, setDbProducts] = useState<DatabaseProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadNewArrivals();
@@ -27,17 +28,28 @@ const NewArrivalsSection = () => {
 
   const loadNewArrivals = async () => {
     try {
+      console.log('Loading new arrivals from database...');
+      
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('is_new_arrival', true)
         .gt('stock', 0)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(8);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error loading new arrivals:', error);
+        throw error;
+      }
+
+      console.log('New arrivals loaded successfully:', data?.length || 0, 'products');
       setDbProducts(data || []);
+      setError(null);
     } catch (err) {
       console.error('Error loading new arrivals:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load products');
+      setDbProducts([]);
     } finally {
       setLoading(false);
     }
@@ -62,6 +74,26 @@ const NewArrivalsSection = () => {
     isNew: true,
     isSale: false,
   }));
+
+  if (error) {
+    return (
+      <section className="py-20 bg-gradient-to-br from-muted/20 via-background to-muted/20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4 opacity-50">⚠️</div>
+            <h3 className="text-2xl font-bold mb-2 text-foreground">Error Loading Products</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <button 
+              onClick={loadNewArrivals}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-20 bg-gradient-to-br from-muted/20 via-background to-muted/20">

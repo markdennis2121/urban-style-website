@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +22,7 @@ interface DatabaseProduct {
 const MobileOptimizedProducts = () => {
   const [dbProducts, setDbProducts] = useState<DatabaseProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(6);
 
@@ -47,17 +49,28 @@ const MobileOptimizedProducts = () => {
 
   const loadFeaturedProducts = async () => {
     try {
+      console.log('Loading featured products from database...');
+      
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('is_featured', true)
         .gt('stock', 0)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(12);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error loading featured products:', error);
+        throw error;
+      }
+
+      console.log('Featured products loaded successfully:', data?.length || 0, 'products');
       setDbProducts(data || []);
+      setError(null);
     } catch (err) {
       console.error('Error loading featured products:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load products');
+      setDbProducts([]);
     } finally {
       setLoading(false);
     }
@@ -75,7 +88,7 @@ const MobileOptimizedProducts = () => {
       rating: 4.5,
       reviews: 0,
       description: product.description,
-      features: ['Admin Product'],
+      features: ['Featured Product'],
       sizes: ['One Size'],
       colors: ['Default'],
       inStock: product.stock > 0,
@@ -98,6 +111,26 @@ const MobileOptimizedProducts = () => {
   const prevPage = useCallback(() => {
     setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
   }, [totalPages]);
+
+  if (error) {
+    return (
+      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-background via-muted/10 to-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4 opacity-50">⚠️</div>
+            <h3 className="text-2xl font-bold mb-2 text-foreground">Error Loading Products</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <button 
+              onClick={loadFeaturedProducts}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-br from-background via-muted/10 to-background">

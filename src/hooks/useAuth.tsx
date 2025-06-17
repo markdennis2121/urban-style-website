@@ -7,6 +7,7 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const initRef = useRef(false);
   const subscriptionRef = useRef<any>(null);
@@ -17,6 +18,7 @@ export const useAuth = () => {
     
     try {
       console.log('Updating profile for user:', userId);
+      setError(null);
       const userProfile = await getCurrentProfile();
       console.log('Profile updated:', userProfile);
       
@@ -29,6 +31,7 @@ export const useAuth = () => {
       if (mountedRef.current) {
         setProfile(null);
         setLoading(false);
+        setError(error instanceof Error ? error.message : 'Failed to load profile');
       }
     }
   }, []);
@@ -51,6 +54,7 @@ export const useAuth = () => {
             setProfile(null);
             setLoading(false);
             setInitialized(true);
+            setError('Session error: ' + sessionError.message);
           }
           return;
         }
@@ -63,6 +67,7 @@ export const useAuth = () => {
           if (mountedRef.current) {
             setProfile(null);
             setLoading(false);
+            setError(null);
           }
         }
 
@@ -80,12 +85,14 @@ export const useAuth = () => {
             if (event === 'SIGNED_IN' && newSession?.user) {
               console.log('User signed in:', newSession.user.email);
               setLoading(true);
+              setError(null);
               await updateProfile(newSession.user.id);
             } else if (event === 'SIGNED_OUT') {
               console.log('User signed out');
               if (mountedRef.current) {
                 setProfile(null);
                 setLoading(false);
+                setError(null);
               }
             } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
               console.log('Token refreshed for user:', newSession.user.email);
@@ -102,6 +109,7 @@ export const useAuth = () => {
           setProfile(null);
           setLoading(false);
           setInitialized(true);
+          setError(error instanceof Error ? error.message : 'Authentication initialization failed');
         }
       }
     };
@@ -122,8 +130,9 @@ export const useAuth = () => {
     profile,
     loading,
     initialized,
+    error,
     isAuthenticated: !!profile,
-    isSuperAdmin: profile?.role?.toLowerCase() === 'super_admin',
-    isAdmin: ['admin', 'super_admin'].includes(profile?.role?.toLowerCase() ?? ''),
+    isSuperAdmin: profile?.role === 'super_admin',
+    isAdmin: profile?.role === 'admin' || profile?.role === 'super_admin',
   };
 };
