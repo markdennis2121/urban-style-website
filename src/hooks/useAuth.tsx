@@ -8,17 +8,18 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   
-  // Single initialization guard
   const initRef = useRef(false);
   const subscriptionRef = useRef<any>(null);
   const mountedRef = useRef(true);
 
-  // Optimized profile update callback
   const updateProfile = useCallback(async (userId?: string) => {
     if (!mountedRef.current) return;
     
     try {
+      console.log('Updating profile for user:', userId);
       const userProfile = await getCurrentProfile();
+      console.log('Profile updated:', userProfile);
+      
       if (mountedRef.current) {
         setProfile(userProfile);
         setLoading(false);
@@ -36,16 +37,12 @@ export const useAuth = () => {
     mountedRef.current = true;
 
     const initializeAuth = async () => {
-      // Prevent multiple initializations
-      if (initRef.current) {
-        return;
-      }
+      if (initRef.current) return;
       
       initRef.current = true;
       console.log('Initializing auth...');
 
       try {
-        // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -59,7 +56,7 @@ export const useAuth = () => {
         }
 
         if (session?.user) {
-          console.log('Found existing session');
+          console.log('Found existing session for user:', session.user.email);
           await updateProfile(session.user.id);
         } else {
           console.log('No existing session');
@@ -73,20 +70,15 @@ export const useAuth = () => {
           setInitialized(true);
         }
 
-        // Set up auth state listener only once
         if (!subscriptionRef.current && mountedRef.current) {
           console.log('Setting up auth state listener');
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-            // Skip INITIAL_SESSION events to reduce noise
-            if (event === 'INITIAL_SESSION') {
-              return;
-            }
-            
-            console.log('Auth state changed:', event);
+            console.log('Auth state changed:', event, newSession?.user?.email);
             
             if (!mountedRef.current) return;
 
             if (event === 'SIGNED_IN' && newSession?.user) {
+              console.log('User signed in:', newSession.user.email);
               setLoading(true);
               await updateProfile(newSession.user.id);
             } else if (event === 'SIGNED_OUT') {
@@ -96,6 +88,7 @@ export const useAuth = () => {
                 setLoading(false);
               }
             } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
+              console.log('Token refreshed for user:', newSession.user.email);
               await updateProfile(newSession.user.id);
             }
           });
@@ -123,7 +116,7 @@ export const useAuth = () => {
         subscriptionRef.current = null;
       }
     };
-  }, []); // Empty dependency array - only run once
+  }, [updateProfile]);
 
   return {
     profile,

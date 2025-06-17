@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase/client';
@@ -39,72 +38,24 @@ const UserLoginPage = () => {
     }
   };
 
-  const getOrCreateProfile = async (userId: string, userEmail: string) => {
-    try {
-      let { data: profiles, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .limit(1);
-
-      if (fetchError) {
-        console.error('Error fetching profile:', fetchError);
-        throw fetchError;
-      }
-
-      if (profiles && profiles.length > 0) {
-        console.log('Found existing profile:', profiles[0]);
-        return profiles[0];
-      }
-
-      console.log('No profile found, creating new profile...');
-      const { data: newProfile, error: createError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: userId,
-            email: userEmail,
-            username: userEmail.split('@')[0],
-            role: 'user'
-          }
-        ])
-        .select('*')
-        .single();
-
-      if (createError) {
-        console.error('Error creating profile:', createError);
-        throw createError;
-      }
-
-      console.log('Created new profile:', newProfile);
-      return newProfile;
-    } catch (error) {
-      console.error('Error in getOrCreateProfile:', error);
-      throw error;
-    }
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
 
-    // Sanitize inputs
     const sanitizedEmail = sanitizeText(email);
     
-    // Validate inputs
     if (!validateEmail(sanitizedEmail)) {
       setError('Please enter a valid email address');
       setLoading(false);
       return;
     }
 
-    // Check rate limiting
     if (!authRateLimiter.isAllowed(sanitizedEmail)) {
       const remaining = authRateLimiter.getRemainingTime(sanitizedEmail);
       setRateLimited(true);
-      setRemainingTime(Math.ceil(remaining / 1000 / 60)); // Convert to minutes
+      setRemainingTime(Math.ceil(remaining / 1000 / 60));
       setError(`Too many login attempts. Please try again in ${Math.ceil(remaining / 1000 / 60)} minutes.`);
       setLoading(false);
       return;
@@ -139,26 +90,35 @@ const UserLoginPage = () => {
         throw new Error('No user data returned');
       }
 
-      console.log('Auth successful, fetching profile...');
+      console.log('Auth successful, checking profile...');
 
-      const profileData = await getOrCreateProfile(authData.user.id, authData.user.email || '');
+      // Wait for the profile to be created/fetched
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (!profileData) {
-        throw new Error('No profile data found');
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error('Profile error:', profileError);
+        throw new Error('Could not load user profile');
       }
 
-      console.log('Login successful, user role:', profileData.role);
+      console.log('Login successful, user role:', profile.role);
 
       // Check if admin or super_admin is trying to login through user login
-      if (profileData.role === 'admin' || profileData.role === 'super_admin') {
-        await supabase.auth.signOut(); // Sign them out
+      if (profile.role === 'admin' || profile.role === 'super_admin') {
+        await supabase.auth.signOut();
         setError('Please use the appropriate login page for your account type.');
         setLoading(false);
         return;
       }
 
       // Only allow regular users to proceed
-      if (profileData.role === 'user') {
+      if (profile.role === 'user') {
+        console.log('Regular user login successful, redirecting to home');
         navigate('/');
       } else {
         throw new Error('Invalid account type for user login');

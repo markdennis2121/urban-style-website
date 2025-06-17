@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -22,27 +23,69 @@ export interface Profile {
   updated_at: string;
 }
 
-// Helper function to get current user's profile with role
 export const getCurrentProfile = async (): Promise<Profile | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    console.log('Getting current user...');
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error('Error getting user:', userError);
+      throw userError;
+    }
+    
+    if (!user) {
+      console.log('No authenticated user found');
+      return null;
+    }
 
-    const { data: profile, error } = await supabase
+    console.log('User found, fetching profile for:', user.email);
+    
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
 
-    if (error) throw error;
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      
+      // If profile doesn't exist, try to create it
+      if (profileError.code === 'PGRST116') {
+        console.log('Profile not found, creating new profile...');
+        
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: user.id,
+              email: user.email || '',
+              username: user.email?.split('@')[0] || 'user',
+              role: 'user' as UserRole
+            }
+          ])
+          .select('*')
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          throw createError;
+        }
+
+        console.log('Profile created successfully:', newProfile);
+        return newProfile;
+      }
+      
+      throw profileError;
+    }
+
+    console.log('Profile fetched successfully:', profile);
     return profile;
   } catch (error) {
-    console.error('Error getting current profile:', error);
+    console.error('Error in getCurrentProfile:', error);
     return null;
   }
 };
 
-// Helper function to check if user has required role
 export const hasRole = async (requiredRoles: UserRole[]): Promise<boolean> => {
   const profile = await getCurrentProfile();
   return profile ? requiredRoles.includes(profile.role) : false;
