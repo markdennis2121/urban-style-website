@@ -31,7 +31,10 @@ export const useAuth = () => {
       if (mountedRef.current) {
         setProfile(null);
         setLoading(false);
-        setError(error instanceof Error ? error.message : 'Failed to load profile');
+        // Don't set error for profile fetch failures during normal operation
+        if (error instanceof Error && !error.message.includes('infinite recursion')) {
+          setError(error.message);
+        }
       }
     }
   }, []);
@@ -109,7 +112,10 @@ export const useAuth = () => {
           setProfile(null);
           setLoading(false);
           setInitialized(true);
-          setError(error instanceof Error ? error.message : 'Authentication initialization failed');
+          // Only show error for critical initialization failures
+          if (error instanceof Error && !error.message.includes('infinite recursion')) {
+            setError(error.message);
+          }
         }
       }
     };

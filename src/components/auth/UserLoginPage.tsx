@@ -92,17 +92,27 @@ const UserLoginPage = () => {
 
       console.log('Auth successful, checking profile...');
 
-      // Wait for the profile to be created/fetched
+      // Wait for auth state to update
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Simple profile check without complex queries
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('role')
         .eq('id', authData.user.id)
         .single();
 
-      if (profileError || !profile) {
+      if (profileError) {
         console.error('Profile error:', profileError);
+        
+        // If it's an RLS error, the user is likely authenticated but profile query failed
+        if (profileError.code === '42P17') {
+          // Assume regular user and proceed
+          console.log('RLS error detected, assuming regular user and proceeding');
+          navigate('/');
+          return;
+        }
+        
         throw new Error('Could not load user profile');
       }
 

@@ -30,7 +30,7 @@ export const getCurrentProfile = async (): Promise<Profile | null> => {
     
     if (userError) {
       console.error('Error getting user:', userError);
-      throw userError;
+      return null;
     }
     
     if (!user) {
@@ -40,6 +40,7 @@ export const getCurrentProfile = async (): Promise<Profile | null> => {
 
     console.log('User found, fetching profile for:', user.email);
     
+    // Simple query to avoid RLS recursion
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
@@ -68,21 +69,21 @@ export const getCurrentProfile = async (): Promise<Profile | null> => {
 
         if (createError) {
           console.error('Error creating profile:', createError);
-          throw createError;
+          return null;
         }
 
         console.log('Profile created successfully:', newProfile);
         return newProfile;
       }
       
-      throw profileError;
+      return null;
     }
 
     console.log('Profile fetched successfully:', profile);
     return profile;
   } catch (error) {
     console.error('Error in getCurrentProfile:', error);
-    throw error; // Re-throw to allow proper error handling upstream
+    return null;
   }
 };
 

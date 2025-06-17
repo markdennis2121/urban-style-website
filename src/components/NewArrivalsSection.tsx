@@ -30,7 +30,8 @@ const NewArrivalsSection = () => {
     try {
       console.log('Loading new arrivals from database...');
       
-      const { data, error } = await supabase
+      // First try to load products marked as new arrivals
+      let { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('is_new_arrival', true)
@@ -38,12 +39,23 @@ const NewArrivalsSection = () => {
         .order('created_at', { ascending: false })
         .limit(8);
 
+      // If no new arrivals, load recent products
+      if (!data || data.length === 0) {
+        console.log('No new arrivals found, loading recent products...');
+        ({ data, error } = await supabase
+          .from('products')
+          .select('*')
+          .gt('stock', 0)
+          .order('created_at', { ascending: false })
+          .limit(8));
+      }
+
       if (error) {
-        console.error('Supabase error loading new arrivals:', error);
+        console.error('Supabase error loading products:', error);
         throw error;
       }
 
-      console.log('New arrivals loaded successfully:', data?.length || 0, 'products');
+      console.log('Products loaded successfully:', data?.length || 0, 'products');
       setDbProducts(data || []);
       setError(null);
     } catch (err) {
@@ -63,7 +75,7 @@ const NewArrivalsSection = () => {
     image: product.image || '/placeholder.svg',
     images: [product.image || '/placeholder.svg'],
     category: product.category,
-    brand: product.brand || 'Admin Added',
+    brand: product.brand || 'Urban Style',
     rating: 4.5,
     reviews: 0,
     description: product.description,
@@ -133,8 +145,8 @@ const NewArrivalsSection = () => {
         ) : (
           <div className="text-center py-16">
             <div className="text-6xl mb-4 opacity-50">📦</div>
-            <h3 className="text-2xl font-bold mb-2 text-foreground">No New Arrivals</h3>
-            <p className="text-muted-foreground">Check back soon for new products!</p>
+            <h3 className="text-2xl font-bold mb-2 text-foreground">No Products Available</h3>
+            <p className="text-muted-foreground">Products will appear here once added by admin!</p>
           </div>
         )}
       </div>
