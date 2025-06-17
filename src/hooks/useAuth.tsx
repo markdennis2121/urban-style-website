@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getCurrentProfile, Profile } from '@/lib/supabase/client';
 import { supabase } from '@/lib/supabase/client';
@@ -58,7 +57,7 @@ export const useAuth = () => {
               .select('*')
               .single();
 
-            if (!createError) {
+            if (!createError && createdProfile) {
               userProfile = createdProfile;
               console.log('Profile created/updated:', userProfile);
             }
@@ -188,13 +187,17 @@ export const useAuth = () => {
     };
   }, [updateProfile]);
 
+  // Enhanced role checking functions
+  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'superadmin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'superadmin';
+
   return {
     profile,
     loading,
     initialized,
     error,
     isAuthenticated: !!profile,
-    isSuperAdmin: profile?.role === 'super_admin',
-    isAdmin: profile?.role === 'admin' || profile?.role === 'super_admin',
+    isSuperAdmin,
+    isAdmin,
   };
 };

@@ -34,25 +34,51 @@ const AdminLoginPage = () => {
       }
 
       if (data.user) {
-        // Check user role
+        // Check user role with fallback
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, email, id')
           .eq('id', data.user.id)
           .single();
 
         console.log('Admin profile check:', profile);
+        console.log('Profile fetch error:', profileError);
 
         if (profileError) {
           console.error('Profile fetch error:', profileError);
-          throw new Error('Could not verify admin status');
+          // Try alternative query
+          const { data: altProfile, error: altError } = await supabase
+            .from('profiles')
+            .select('role, email, id')
+            .eq('email', email)
+            .single();
+          
+          console.log('Alternative admin profile query result:', altProfile, altError);
+          
+          if (altError) {
+            throw new Error('Could not verify admin status - profile not found');
+          }
+          
+          // Check admin privileges with alternative profile
+          if (altProfile && (
+            altProfile.role === 'admin' || 
+            altProfile.role === 'super_admin' || 
+            altProfile.role === 'superadmin'
+          )) {
+            console.log('Admin login successful via alternative query, redirecting to dashboard');
+            navigate('/admin/dashboard');
+            return;
+          } else {
+            throw new Error(`Invalid account type or insufficient permissions. Current role: ${altProfile?.role || 'unknown'}`);
+          }
         }
 
-        if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+        // Check for admin or super admin privileges
+        if (profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'superadmin') {
           console.log('Admin login successful, redirecting to dashboard');
           navigate('/admin/dashboard');
         } else {
-          throw new Error('Invalid account type or insufficient permissions');
+          throw new Error(`Invalid account type or insufficient permissions. Current role: ${profile?.role || 'unknown'}`);
         }
       }
     } catch (err) {

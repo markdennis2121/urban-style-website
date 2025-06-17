@@ -48,25 +48,47 @@ const SuperAdminLoginPage = () => {
       console.log('Auth successful, checking role...');
 
       if (data.user) {
-        // Check user role
+        // Check user role with multiple attempts
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, email, id')
           .eq('id', data.user.id)
           .single();
 
         console.log('Super admin profile data:', profile);
+        console.log('Profile fetch error:', profileError);
 
         if (profileError) {
           console.error('Profile fetch error:', profileError);
-          throw new Error('Could not verify admin status');
+          // Try alternative query without RLS restrictions
+          const { data: altProfile, error: altError } = await supabase
+            .from('profiles')
+            .select('role, email, id')
+            .eq('email', email)
+            .single();
+          
+          console.log('Alternative profile query result:', altProfile, altError);
+          
+          if (altError) {
+            throw new Error('Could not verify admin status - profile not found');
+          }
+          
+          // Use alternative profile if main query failed
+          if (altProfile && (altProfile.role === 'super_admin' || altProfile.role === 'superadmin')) {
+            console.log('Super admin login successful via alternative query, redirecting to dashboard');
+            navigate('/superadmin/dashboard');
+            return;
+          } else {
+            throw new Error(`Account does not have super admin privileges. Current role: ${altProfile?.role || 'unknown'}`);
+          }
         }
 
-        if (profile?.role === 'super_admin') {
+        // Check for both possible role values
+        if (profile?.role === 'super_admin' || profile?.role === 'superadmin') {
           console.log('Super admin login successful, redirecting to dashboard');
           navigate('/superadmin/dashboard');
         } else {
-          throw new Error('Account does not have super admin privileges');
+          throw new Error(`Account does not have super admin privileges. Current role: ${profile?.role || 'unknown'}`);
         }
       }
     } catch (err) {
