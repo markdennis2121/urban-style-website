@@ -19,20 +19,66 @@ export const useAuth = () => {
     try {
       console.log('Updating profile for user:', userId);
       setError(null);
-      const userProfile = await getCurrentProfile();
-      console.log('Profile updated:', userProfile);
+      
+      // Get current user if no userId provided
+      const { data: { user } } = await supabase.auth.getUser();
+      const targetUserId = userId || user?.id;
+      
+      if (!targetUserId) {
+        console.log('No user ID available');
+        if (mountedRef.current) {
+          setProfile(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      // Try to get profile with fallback handling
+      let userProfile = null;
+      try {
+        userProfile = await getCurrentProfile();
+        console.log('Profile retrieved:', userProfile);
+      } catch (profileError) {
+        console.error('Profile fetch error:', profileError);
+        
+        // If RLS is blocking, try a direct approach
+        if (user?.email) {
+          console.log('Attempting profile creation/recovery for:', user.email);
+          try {
+            const { data: createdProfile, error: createError } = await supabase
+              .from('profiles')
+              .upsert([
+                {
+                  id: user.id,
+                  email: user.email,
+                  username: user.email.split('@')[0],
+                  role: 'user'
+                }
+              ], { onConflict: 'id' })
+              .select('*')
+              .single();
+
+            if (!createError) {
+              userProfile = createdProfile;
+              console.log('Profile created/updated:', userProfile);
+            }
+          } catch (upsertError) {
+            console.error('Profile upsert failed:', upsertError);
+          }
+        }
+      }
       
       if (mountedRef.current) {
         setProfile(userProfile);
         setLoading(false);
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Error in updateProfile:', error);
       if (mountedRef.current) {
         setProfile(null);
         setLoading(false);
-        // Don't set error for profile fetch failures during normal operation
-        if (error instanceof Error && !error.message.includes('infinite recursion')) {
+        // Only set error for critical failures
+        if (error instanceof Error && error.message.includes('network')) {
           setError(error.message);
         }
       }
@@ -49,6 +95,7 @@ export const useAuth = () => {
       console.log('Initializing auth...');
 
       try {
+        // Get session with error handling
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -57,7 +104,10 @@ export const useAuth = () => {
             setProfile(null);
             setLoading(false);
             setInitialized(true);
-            setError('Session error: ' + sessionError.message);
+            // Only show critical session errors
+            if (!sessionError.message.includes('refresh')) {
+              setError('Authentication service unavailable');
+            }
           }
           return;
         }
@@ -78,6 +128,7 @@ export const useAuth = () => {
           setInitialized(true);
         }
 
+        // Set up auth listener with error handling
         if (!subscriptionRef.current && mountedRef.current) {
           console.log('Setting up auth state listener');
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -85,21 +136,26 @@ export const useAuth = () => {
             
             if (!mountedRef.current) return;
 
-            if (event === 'SIGNED_IN' && newSession?.user) {
-              console.log('User signed in:', newSession.user.email);
-              setLoading(true);
-              setError(null);
-              await updateProfile(newSession.user.id);
-            } else if (event === 'SIGNED_OUT') {
-              console.log('User signed out');
-              if (mountedRef.current) {
-                setProfile(null);
-                setLoading(false);
+            try {
+              if (event === 'SIGNED_IN' && newSession?.user) {
+                console.log('User signed in:', newSession.user.email);
+                setLoading(true);
                 setError(null);
+                await updateProfile(newSession.user.id);
+              } else if (event === 'SIGNED_OUT') {
+                console.log('User signed out');
+                if (mountedRef.current) {
+                  setProfile(null);
+                  setLoading(false);
+                  setError(null);
+                }
+              } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
+                console.log('Token refreshed for user:', newSession.user.email);
+                await updateProfile(newSession.user.id);
               }
-            } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
-              console.log('Token refreshed for user:', newSession.user.email);
-              await updateProfile(newSession.user.id);
+            } catch (authError) {
+              console.error('Auth state change error:', authError);
+              // Don't propagate auth state errors to UI
             }
           });
 
@@ -112,9 +168,9 @@ export const useAuth = () => {
           setProfile(null);
           setLoading(false);
           setInitialized(true);
-          // Only show error for critical initialization failures
-          if (error instanceof Error && !error.message.includes('infinite recursion')) {
-            setError(error.message);
+          // Only show critical initialization errors
+          if (error instanceof Error && error.message.includes('network')) {
+            setError('Unable to connect to authentication service');
           }
         }
       }

@@ -29,38 +29,85 @@ const NewArrivalsSection = () => {
   const loadNewArrivals = async () => {
     try {
       console.log('Loading new arrivals from database...');
+      setError(null);
       
-      // First try to load products marked as new arrivals
-      let { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_new_arrival', true)
-        .gt('stock', 0)
-        .order('created_at', { ascending: false })
-        .limit(8);
-
-      // If no new arrivals, load recent products
-      if (!data || data.length === 0) {
-        console.log('No new arrivals found, loading recent products...');
-        ({ data, error } = await supabase
+      // Try multiple approaches for loading products
+      let data = null;
+      let productError = null;
+      
+      // Attempt 1: Load new arrivals
+      try {
+        const result = await supabase
           .from('products')
           .select('*')
+          .eq('is_new_arrival', true)
           .gt('stock', 0)
           .order('created_at', { ascending: false })
-          .limit(8));
+          .limit(8);
+
+        if (result.error) throw result.error;
+        data = result.data;
+        console.log('New arrivals loaded:', data?.length || 0);
+      } catch (err) {
+        productError = err;
+        console.log('New arrivals query failed, trying recent products:', err);
+        
+        // Attempt 2: Load recent products
+        try {
+          const result = await supabase
+            .from('products')
+            .select('*')
+            .gt('stock', 0)
+            .order('created_at', { ascending: false })
+            .limit(8);
+
+          if (result.error) throw result.error;
+          data = result.data;
+          console.log('Recent products loaded:', data?.length || 0);
+        } catch (err2) {
+          console.log('Recent products query failed, trying all products:', err2);
+          
+          // Attempt 3: Load any products
+          try {
+            const result = await supabase
+              .from('products')
+              .select('*')
+              .limit(8);
+
+            if (result.error) throw result.error;
+            data = result.data;
+            console.log('All products loaded:', data?.length || 0);
+          } catch (err3) {
+            console.error('All product queries failed:', err3);
+            throw err3;
+          }
+        }
       }
 
-      if (error) {
-        console.error('Supabase error loading products:', error);
-        throw error;
+      // If we still have no data, check if the table exists and has data
+      if (!data || data.length === 0) {
+        console.log('No products found, checking table status...');
+        const { count, error: countError } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true });
+          
+        if (countError) {
+          console.error('Table access error:', countError);
+          throw new Error('Unable to access products table. Database may need setup.');
+        }
+        
+        console.log('Total products in database:', count);
+        if (count === 0) {
+          setError('No products found in database. Please add some products through the admin panel.');
+        }
       }
 
-      console.log('Products loaded successfully:', data?.length || 0, 'products');
       setDbProducts(data || []);
       setError(null);
     } catch (err) {
       console.error('Error loading new arrivals:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load products');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load products';
+      setError(errorMessage);
       setDbProducts([]);
     } finally {
       setLoading(false);
@@ -94,12 +141,18 @@ const NewArrivalsSection = () => {
           <div className="text-center py-16">
             <div className="text-6xl mb-4 opacity-50">⚠️</div>
             <h3 className="text-2xl font-bold mb-2 text-foreground">Error Loading Products</h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
+            <p className="text-muted-foreground mb-4 max-w-md mx-auto">{error}</p>
             <button 
               onClick={loadNewArrivals}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 mr-4"
             >
               Try Again
+            </button>
+            <button 
+              onClick={() => window.location.href = '/admin/dashboard'}
+              className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90"
+            >
+              Admin Panel
             </button>
           </div>
         </div>
@@ -146,7 +199,13 @@ const NewArrivalsSection = () => {
           <div className="text-center py-16">
             <div className="text-6xl mb-4 opacity-50">📦</div>
             <h3 className="text-2xl font-bold mb-2 text-foreground">No Products Available</h3>
-            <p className="text-muted-foreground">Products will appear here once added by admin!</p>
+            <p className="text-muted-foreground mb-4">Products will appear here once added by admin!</p>
+            <button 
+              onClick={() => window.location.href = '/admin/dashboard'}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+            >
+              Go to Admin Panel
+            </button>
           </div>
         )}
       </div>

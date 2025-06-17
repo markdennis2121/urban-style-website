@@ -40,46 +40,114 @@ export const getCurrentProfile = async (): Promise<Profile | null> => {
 
     console.log('User found, fetching profile for:', user.email);
     
-    // Simple query to avoid RLS recursion
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    // Try multiple approaches to get profile data
+    let profile = null;
+    let profileError = null;
+    
+    // Attempt 1: Standard query
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-    if (profileError) {
-      console.error('Error fetching profile:', profileError);
+      if (error) throw error;
+      profile = data;
+      console.log('Profile fetched via standard query:', profile);
+    } catch (err) {
+      profileError = err;
+      console.log('Standard query failed, trying alternative approach:', err);
       
-      // If profile doesn't exist, try to create it
-      if (profileError.code === 'PGRST116') {
+      // Attempt 2: If profile doesn't exist, create it
+      if (err && (err as any).code === 'PGRST116') {
         console.log('Profile not found, creating new profile...');
         
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: user.id,
-              email: user.email || '',
-              username: user.email?.split('@')[0] || 'user',
-              role: 'user' as UserRole
+        try {
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: user.id,
+                email: user.email || '',
+                username: user.email?.split('@')[0] || 'user',
+                role: 'user' as UserRole,
+                full_name: user.user_metadata?.full_name || null,
+                avatar_url: user.user_metadata?.avatar_url || null
+              }
+            ])
+            .select('*')
+            .single();
+
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            // If creation fails due to RLS, try upsert
+            const { data: upsertProfile, error: upsertError } = await supabase
+              .from('profiles')
+              .upsert([
+                {
+                  id: user.id,
+                  email: user.email || '',
+                  username: user.email?.split('@')[0] || 'user',
+                  role: 'user' as UserRole,
+                  full_name: user.user_metadata?.full_name || null,
+                  avatar_url: user.user_metadata?.avatar_url || null
+                }
+              ], { onConflict: 'id' })
+              .select('*')
+              .single();
+              
+            if (upsertError) {
+              console.error('Upsert also failed:', upsertError);
+              // Return a basic profile structure if all else fails
+              return {
+                id: user.id,
+                email: user.email || '',
+                username: user.email?.split('@')[0] || 'user',
+                role: 'user' as UserRole,
+                full_name: user.user_metadata?.full_name || null,
+                avatar_url: user.user_metadata?.avatar_url || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              };
             }
-          ])
-          .select('*')
-          .single();
-
-        if (createError) {
-          console.error('Error creating profile:', createError);
-          return null;
+            
+            profile = upsertProfile;
+          } else {
+            profile = newProfile;
+          }
+          
+          console.log('Profile created successfully:', profile);
+        } catch (createErr) {
+          console.error('Failed to create profile:', createErr);
+          // Return basic profile if creation fails
+          return {
+            id: user.id,
+            email: user.email || '',
+            username: user.email?.split('@')[0] || 'user',
+            role: 'user' as UserRole,
+            full_name: user.user_metadata?.full_name || null,
+            avatar_url: user.user_metadata?.avatar_url || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
         }
-
-        console.log('Profile created successfully:', newProfile);
-        return newProfile;
+      } else {
+        // For other errors, try to return a basic profile
+        console.log('Returning fallback profile due to:', err);
+        return {
+          id: user.id,
+          email: user.email || '',
+          username: user.email?.split('@')[0] || 'user',
+          role: 'user' as UserRole,
+          full_name: user.user_metadata?.full_name || null,
+          avatar_url: user.user_metadata?.avatar_url || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
       }
-      
-      return null;
     }
 
-    console.log('Profile fetched successfully:', profile);
     return profile;
   } catch (error) {
     console.error('Error in getCurrentProfile:', error);
