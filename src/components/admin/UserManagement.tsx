@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +33,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
   const [editDialog, setEditDialog] = useState<{ open: boolean; user: UserType | null }>({ open: false, user: null });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; user: UserType | null }>({ open: false, user: null });
   const { profile } = useAuth();
-  const isSuperAdmin = profile?.role === 'super_admin';
+  const isSuperAdmin = profile?.role === 'superadmin';
 
   useEffect(() => {
     if (propUsers) {

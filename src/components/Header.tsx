@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ShoppingBag, Menu, X, User, LogOut, Heart, LogIn } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -224,7 +225,7 @@ const Header: React.FC = () => {
           {/* Right side actions */}
           <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
             {/* Admin Mode Toggle - only show if authenticated and has admin access */}
-            {isAuthenticated && (profile?.role === 'admin' || profile?.role === 'super_admin') && (
+            {isAuthenticated && (profile?.role === 'admin' || profile?.role === 'superadmin') && (
               <div className="hidden md:block">
                 <AdminModeToggle />
               </div>
@@ -312,13 +313,13 @@ const Header: React.FC = () => {
                       </DialogContent>
                     </Dialog>
                   </DropdownMenuItem>
-                  {(profile?.role === 'admin' || profile?.role === 'super_admin') && (
+                  {(profile?.role === 'admin' || profile?.role === 'superadmin') && (
                     <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
                       <User className="mr-2 h-4 w-4" />
                       <span>Admin Dashboard</span>
                     </DropdownMenuItem>
                   )}
-                  {profile?.role === 'super_admin' && (
+                  {profile?.role === 'superadmin' && (
                     <DropdownMenuItem onClick={() => navigate('/superadmin/dashboard')}>
                       <User className="mr-2 h-4 w-4" />
                       <span>Super Admin</span>
@@ -384,7 +385,7 @@ const Header: React.FC = () => {
               </div>
 
               {/* Mobile Admin Toggle */}
-              {isAuthenticated && (profile?.role === 'admin' || profile?.role === 'super_admin') && (
+              {isAuthenticated && (profile?.role === 'admin' || profile?.role === 'superadmin') && (
                 <div className="px-5 py-3 border-t border-border/30">
                   <AdminModeToggle />
                 </div>
