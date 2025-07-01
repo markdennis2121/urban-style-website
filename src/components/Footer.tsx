@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
@@ -14,7 +13,6 @@ const Footer = () => {
           <div className="space-y-4">
             <Link to="/" className="flex items-center space-x-2">
               <img src="/logo.png" alt="Urban Logo" className="w-8 h-8" />
-              <span className="text-xl font-bold text-foreground">Urban</span>
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed">
               Your premium destination for fashion, and lifestyle products. 

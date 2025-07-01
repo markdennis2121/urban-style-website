@@ -33,43 +33,61 @@ export const useAuth = () => {
         return;
       }
 
-      // Try to get profile with fallback handling
-      let userProfile = null;
-      try {
-        userProfile = await getCurrentProfile();
-        console.log('Profile retrieved:', userProfile);
-      } catch (profileError) {
-        console.error('Profile fetch error:', profileError);
-        
-        // If RLS is blocking, try a direct approach
-        if (user?.email) {
-          console.log('Attempting profile creation/recovery for:', user.email);
-          try {
-            const { data: createdProfile, error: createError } = await supabase
-              .from('profiles')
-              .upsert([
-                {
-                  id: user.id,
-                  email: user.email,
-                  username: user.email.split('@')[0],
-                  role: 'user'
-                }
-              ], { onConflict: 'id' })
-              .select('*')
-              .single();
+      // Direct query to profiles table to get the most accurate role data
+      console.log('Fetching profile directly from database for user:', targetUserId);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', targetUserId)
+        .single();
 
-            if (!createError && createdProfile) {
-              userProfile = createdProfile;
-              console.log('Profile created/updated:', userProfile);
+      if (profileError) {
+        console.error('Direct profile query failed:', profileError);
+        
+        // Try alternative query by email if direct ID query fails
+        if (user?.email) {
+          console.log('Attempting fallback query by email:', user.email);
+          const { data: emailProfile, error: emailError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', user.email)
+            .single();
+          
+          if (!emailError && emailProfile) {
+            console.log('Profile found via email query:', emailProfile);
+            if (mountedRef.current) {
+              setProfile(emailProfile);
+              setLoading(false);
             }
-          } catch (upsertError) {
-            console.error('Profile upsert failed:', upsertError);
+            return;
           }
         }
+        
+        // If all queries fail, create a basic profile structure
+        console.log('Creating fallback profile structure');
+        const fallbackProfile = {
+          id: targetUserId,
+          email: user?.email || '',
+          username: user?.email?.split('@')[0] || 'user',
+          role: 'user' as const,
+          full_name: user?.user_metadata?.full_name || null,
+          avatar_url: user?.user_metadata?.avatar_url || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        if (mountedRef.current) {
+          setProfile(fallbackProfile);
+          setLoading(false);
+        }
+        return;
       }
+
+      console.log('Profile successfully retrieved:', profileData);
+      console.log('User role detected as:', profileData.role);
       
       if (mountedRef.current) {
-        setProfile(userProfile);
+        setProfile(profileData);
         setLoading(false);
       }
     } catch (error) {
@@ -77,7 +95,6 @@ export const useAuth = () => {
       if (mountedRef.current) {
         setProfile(null);
         setLoading(false);
-        // Only set error for critical failures
         if (error instanceof Error && error.message.includes('network')) {
           setError(error.message);
         }
@@ -95,7 +112,6 @@ export const useAuth = () => {
       console.log('Initializing auth...');
 
       try {
-        // Get session with error handling
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -104,7 +120,6 @@ export const useAuth = () => {
             setProfile(null);
             setLoading(false);
             setInitialized(true);
-            // Only show critical session errors
             if (!sessionError.message.includes('refresh')) {
               setError('Authentication service unavailable');
             }
@@ -128,7 +143,6 @@ export const useAuth = () => {
           setInitialized(true);
         }
 
-        // Set up auth listener with error handling
         if (!subscriptionRef.current && mountedRef.current) {
           console.log('Setting up auth state listener');
           const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -155,7 +169,6 @@ export const useAuth = () => {
               }
             } catch (authError) {
               console.error('Auth state change error:', authError);
-              // Don't propagate auth state errors to UI
             }
           });
 
@@ -168,7 +181,6 @@ export const useAuth = () => {
           setProfile(null);
           setLoading(false);
           setInitialized(true);
-          // Only show critical initialization errors
           if (error instanceof Error && error.message.includes('network')) {
             setError('Unable to connect to authentication service');
           }
@@ -188,9 +200,18 @@ export const useAuth = () => {
     };
   }, [updateProfile]);
 
-  // Enhanced role checking functions with proper type handling
-  const isSuperAdmin = profile?.role === 'super_admin';
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
+  // Enhanced role checking with proper handling of all role variations
+  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'superadmin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'superadmin';
+
+  console.log('Current auth state:', {
+    profile: profile,
+    role: profile?.role,
+    isSuperAdmin,
+    isAdmin,
+    loading,
+    initialized
+  });
 
   return {
     profile,
