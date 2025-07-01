@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -10,7 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export type UserRole = 'user' | 'admin' | 'super_admin' | 'superadmin';
+export type UserRole = 'user' | 'admin' | 'superadmin';
 
 export interface Profile {
   id: string;

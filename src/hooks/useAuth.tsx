@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getCurrentProfile, Profile } from '@/lib/supabase/client';
 import { supabase } from '@/lib/supabase/client';
@@ -200,9 +199,9 @@ export const useAuth = () => {
     };
   }, [updateProfile]);
 
-  // Enhanced role checking with proper handling of all role variations
-  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'superadmin';
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'superadmin';
+  // Enhanced role checking with standardized role names
+  const isSuperAdmin = profile?.role === 'superadmin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
 
   console.log('Current auth state:', {
     profile: profile,

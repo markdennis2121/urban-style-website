@@ -76,8 +76,8 @@ const SuperAdminLoginPage = () => {
             throw new Error('Could not verify admin status - profile not found');
           }
           
-          // Use alternative profile if main query failed
-          if (altProfile && altProfile.role === 'super_admin') {
+          // Use alternative profile if main query failed (using standardized role name)
+          if (altProfile && altProfile.role === 'superadmin') {
             console.log('Super admin login successful via alternative query, redirecting to dashboard');
             navigate('/superadmin/dashboard');
             return;
@@ -86,8 +86,8 @@ const SuperAdminLoginPage = () => {
           }
         }
 
-        // Check for super admin role
-        if (profile?.role === 'super_admin') {
+        // Check for superadmin role (using standardized role name)
+        if (profile?.role === 'superadmin') {
           console.log('Super admin login successful, redirecting to dashboard');
           navigate('/superadmin/dashboard');
         } else {
