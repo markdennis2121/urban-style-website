@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getCurrentProfile, Profile } from '@/lib/supabase/client';
 import { supabase } from '@/lib/supabase/client';
@@ -187,9 +188,9 @@ export const useAuth = () => {
     };
   }, [updateProfile]);
 
-  // Enhanced role checking functions
-  const isSuperAdmin = profile?.role === 'super_admin' || profile?.role === 'superadmin';
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'superadmin';
+  // Enhanced role checking functions with proper type handling
+  const isSuperAdmin = profile?.role === 'super_admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
 
   return {
     profile,

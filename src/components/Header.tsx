@@ -43,11 +43,11 @@ const Header: React.FC = () => {
         .from('products')
         .select('id, name, category, description, image, price')
         .gt('stock', 0)
-        .limit(50); // Reduced from 200
+        .limit(50);
 
       if (error) {
         console.error('Error fetching products for search:', error);
-        throw error;
+        // Don't throw, just use local products
       }
 
       const allProducts = [
@@ -68,7 +68,7 @@ const Header: React.FC = () => {
           description: p.description,
           type: 'product' as const,
           url: `/product/${p.id}`,
-          image: p.image, // FIX: Was p.image_url, which might not exist.
+          image: p.image,
           price: p.price
         }))
       ];
@@ -79,7 +79,7 @@ const Header: React.FC = () => {
     } catch (error) {
       console.error('Error loading search data:', error);
       setSearchItems([]);
-      setSearchLoaded(true); // Ensure we don't retry on error
+      setSearchLoaded(true);
     }
   }, [searchLoaded]);
 

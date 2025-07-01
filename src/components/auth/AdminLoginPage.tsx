@@ -34,6 +34,9 @@ const AdminLoginPage = () => {
       }
 
       if (data.user) {
+        // Wait a moment for auth state to settle
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         // Check user role with fallback
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -46,7 +49,7 @@ const AdminLoginPage = () => {
 
         if (profileError) {
           console.error('Profile fetch error:', profileError);
-          // Try alternative query
+          // Try alternative query by email
           const { data: altProfile, error: altError } = await supabase
             .from('profiles')
             .select('role, email, id')
@@ -62,8 +65,7 @@ const AdminLoginPage = () => {
           // Check admin privileges with alternative profile
           if (altProfile && (
             altProfile.role === 'admin' || 
-            altProfile.role === 'super_admin' || 
-            altProfile.role === 'superadmin'
+            altProfile.role === 'super_admin'
           )) {
             console.log('Admin login successful via alternative query, redirecting to dashboard');
             navigate('/admin/dashboard');
@@ -74,7 +76,7 @@ const AdminLoginPage = () => {
         }
 
         // Check for admin or super admin privileges
-        if (profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'superadmin') {
+        if (profile?.role === 'admin' || profile?.role === 'super_admin') {
           console.log('Admin login successful, redirecting to dashboard');
           navigate('/admin/dashboard');
         } else {

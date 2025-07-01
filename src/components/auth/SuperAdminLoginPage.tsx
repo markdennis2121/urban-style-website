@@ -48,6 +48,9 @@ const SuperAdminLoginPage = () => {
       console.log('Auth successful, checking role...');
 
       if (data.user) {
+        // Wait a moment for auth state to settle
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         // Check user role with multiple attempts
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -74,7 +77,7 @@ const SuperAdminLoginPage = () => {
           }
           
           // Use alternative profile if main query failed
-          if (altProfile && (altProfile.role === 'super_admin' || altProfile.role === 'superadmin')) {
+          if (altProfile && altProfile.role === 'super_admin') {
             console.log('Super admin login successful via alternative query, redirecting to dashboard');
             navigate('/superadmin/dashboard');
             return;
@@ -83,8 +86,8 @@ const SuperAdminLoginPage = () => {
           }
         }
 
-        // Check for both possible role values
-        if (profile?.role === 'super_admin' || profile?.role === 'superadmin') {
+        // Check for super admin role
+        if (profile?.role === 'super_admin') {
           console.log('Super admin login successful, redirecting to dashboard');
           navigate('/superadmin/dashboard');
         } else {
