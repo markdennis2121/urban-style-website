@@ -12,7 +12,8 @@ import { User as UserType } from '@/hooks/useAdminData';
 import { AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import UserEditDialog from './UserEditDialog';
 import { useAuth } from '@/hooks/useAuth';
-// ✨ FIX: Import from ui/dialog instead of @radix-ui/react-dialog
+import { useToast } from '@/hooks/use-toast';
+import CollapsibleTable from '@/components/ui/collapsible-table';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 
 interface UserManagementProps {
@@ -33,6 +34,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
   const [editDialog, setEditDialog] = useState<{ open: boolean; user: UserType | null }>({ open: false, user: null });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; user: UserType | null }>({ open: false, user: null });
   const { profile } = useAuth();
+  const { toast } = useToast();
   const isSuperAdmin = profile?.role === 'superadmin';
 
   useEffect(() => {
@@ -58,6 +60,81 @@ const UserManagement: React.FC<UserManagementProps> = ({
       console.error('Error loading users:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUserUpdate = async (userId: string, updates: Partial<UserType>) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "User updated successfully.",
+      });
+
+      // Update local state
+      setUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, ...updates } : user
+      ));
+      
+      if (onUserUpdate) {
+        await onUserUpdate(userId, updates);
+      }
+    } catch (err) {
+      console.error('Error updating user:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update user.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUserDelete = async (userId: string) => {
+    try {
+      // First delete related wishlist items
+      await supabase
+        .from('wishlists')
+        .delete()
+        .eq('user_id', userId);
+
+      // Delete user carts
+      await supabase
+        .from('user_carts')
+        .delete()
+        .eq('user_id', userId);
+
+      // Then delete the user profile
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "User deleted successfully.",
+      });
+
+      // Update local state
+      setUsers(prev => prev.filter(user => user.id !== userId));
+      
+      if (onUserDelete) {
+        await onUserDelete(userId);
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete user.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -140,25 +217,26 @@ const UserManagement: React.FC<UserManagementProps> = ({
         </Card>
       </div>
 
-      {/* User List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>User Management</span>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-64"
-                />
-              </div>
+      {/* User List with Collapsible Table */}
+      <CollapsibleTable
+        title="User Management"
+        icon={<Users className="h-5 w-5 text-white" />}
+        itemCount={filteredUsers.length}
+        defaultExpanded={false}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </div>
+
           <div className="space-y-3">
             {filteredUsers.map((user) => (
               <div
@@ -215,22 +293,22 @@ const UserManagement: React.FC<UserManagementProps> = ({
                   {isSuperAdmin && (
                     <>
                       <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label="Edit User"
-                        className="hover:bg-blue-50"
+                        size="sm"
+                        variant="outline"
                         onClick={() => setEditDialog({ open: true, user })}
+                        className="hover:bg-blue-50"
                       >
-                        <Edit className="w-4 h-4 text-blue-600" />
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
                       </Button>
                       <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label="Delete User"
-                        className="hover:bg-red-50"
+                        size="sm"
+                        variant="outline"
                         onClick={() => setDeleteDialog({ open: true, user })}
+                        className="hover:bg-red-50 text-red-600"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
                       </Button>
                     </>
                   )}
@@ -245,20 +323,22 @@ const UserManagement: React.FC<UserManagementProps> = ({
               <p>No users found matching your search.</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleTable>
 
       {/* Edit Dialog */}
-      {editDialog.user && onUserUpdate && (
+      {editDialog.user && (
         <UserEditDialog
           user={editDialog.user}
           open={editDialog.open}
           onClose={() => setEditDialog({ open: false, user: null })}
           onSubmit={async updates => {
-            await onUserUpdate(editDialog.user!.id, updates);
+            await handleUserUpdate(editDialog.user!.id, updates);
+            setEditDialog({ open: false, user: null });
           }}
         />
       )}
+
       {/* Delete Dialog */}
       <Dialog open={deleteDialog.open} onOpenChange={open => !open && setDeleteDialog({ open: false, user: null })}>
         <DialogContent>
@@ -274,10 +354,9 @@ const UserManagement: React.FC<UserManagementProps> = ({
           </div>
           <DialogFooter>
             <Button variant="destructive"
-              disabled={!onUserDelete}
               onClick={async () => {
-                if (deleteDialog.user && onUserDelete) {
-                  await onUserDelete(deleteDialog.user.id);
+                if (deleteDialog.user) {
+                  await handleUserDelete(deleteDialog.user.id);
                   setDeleteDialog({ open: false, user: null });
                 }
               }}

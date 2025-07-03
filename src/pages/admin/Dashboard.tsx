@@ -11,7 +11,6 @@ import { useRealtimeAdminData } from '@/hooks/useRealtimeAdminData';
 import OverviewTab from '@/components/admin/OverviewTab';
 import ProductManagement from '@/components/admin/ProductManagement';
 import UserManagement from '@/components/admin/UserManagement';
-import WishlistManagement from '@/components/admin/WishlistManagement';
 import MessageManagement from '@/components/admin/MessageManagement';
 import WishlistAnalytics from '@/components/admin/WishlistAnalytics';
 import OnlineUsers from '@/components/admin/OnlineUsers';
@@ -66,7 +65,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <p className="text-xl text-blue-100">
-                    Manage products, users, and system content with real-time updates
+                    Manage products, users, and system content with real-time updates and collapsible data views
                   </p>
                 </div>
               </div>

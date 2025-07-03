@@ -1,5 +1,5 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
@@ -7,6 +7,7 @@ import { Package, Plus } from 'lucide-react';
 import { Product } from '@/hooks/useAdminData';
 import ProductTable from '@/components/admin/ProductTable';
 import ProductForm from '@/components/admin/ProductForm';
+import CollapsibleTable from '@/components/ui/collapsible-table';
 
 interface SuperAdminProductManagementProps {
   products: Product[];
@@ -140,7 +141,7 @@ const SuperAdminProductManagement: React.FC<SuperAdminProductManagementProps> = 
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Add New Product</h2>
           <Button 
             variant="outline" 
             onClick={() => setShowForm(false)}
@@ -184,15 +185,14 @@ const SuperAdminProductManagement: React.FC<SuperAdminProductManagementProps> = 
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
-        <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
-              <div className="bg-purple-500 p-2 rounded-lg">
-                <Package className="h-5 w-5 text-white" />
-              </div>
-              Product Management ({products.length})
-            </CardTitle>
+      <CollapsibleTable
+        title="Product Management"
+        icon={<Package className="h-5 w-5 text-white" />}
+        itemCount={products.length}
+        defaultExpanded={false}
+      >
+        <div className="space-y-4">
+          <div className="flex justify-end">
             <Button 
               onClick={() => setShowForm(true)}
               className="bg-green-600 hover:bg-green-700 rounded-lg"
@@ -201,8 +201,6 @@ const SuperAdminProductManagement: React.FC<SuperAdminProductManagementProps> = 
               Add Product
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="p-6">
           <ProductTable
             products={products}
             canEdit={true}
@@ -211,8 +209,8 @@ const SuperAdminProductManagement: React.FC<SuperAdminProductManagementProps> = 
             onDelete={handleDeleteProduct}
             loading={loading}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleTable>
     </div>
   );
 };

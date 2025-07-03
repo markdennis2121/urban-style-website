@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
 import { ShoppingCart, Trash2, User, Package, Eye } from 'lucide-react';
 import { useRealtimeCartData } from '@/hooks/useRealtimeCartData';
+import CollapsibleTable from '@/components/ui/collapsible-table';
 import {
   Table,
   TableBody,
@@ -118,86 +118,75 @@ const CartManagement: React.FC = () => {
   }
 
   return (
-    <Card className="bg-white border border-gray-200 rounded-xl shadow-sm">
-      <CardHeader className="border-b border-gray-100 bg-gray-50 rounded-t-xl">
-        <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
-          <div className="bg-blue-500 p-2 rounded-lg">
-            <ShoppingCart className="h-5 w-5 text-white" />
-          </div>
-          User Carts ({userCarts.length})
-          <div className="bg-green-500/20 px-2 py-1 rounded-full border border-green-300">
-            <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-xs font-medium text-green-700">Real-time</span>
-            </div>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-6">
-        {userCarts.length === 0 ? (
-          <div className="text-center py-8">
-            <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No user carts found</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Total Value</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead>Actions</TableHead>
+    <CollapsibleTable
+      title="User Carts"
+      icon={<ShoppingCart className="h-5 w-5 text-white" />}
+      itemCount={userCarts.length}
+      defaultExpanded={false}
+    >
+      {userCarts.length === 0 ? (
+        <div className="text-center py-8">
+          <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">No user carts found</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead>Total Value</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {userCarts.map((cart) => (
+                <TableRow key={cart.user_id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <span className="font-medium">{cart.username}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    {cart.email}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      <Package className="h-3 w-3 mr-1" />
+                      {cart.total_items}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    ₱{cart.total_value.toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    {formatDate(cart.last_updated)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <CartDetailsDialog cart={cart} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => clearUserCart(cart.user_id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Clear
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {userCarts.map((cart) => (
-                  <TableRow key={cart.user_id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="font-medium">{cart.username}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {cart.email}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        <Package className="h-3 w-3 mr-1" />
-                        {cart.total_items}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      ₱{cart.total_value.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {formatDate(cart.last_updated)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <CartDetailsDialog cart={cart} />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => clearUserCart(cart.user_id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Clear
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </CollapsibleTable>
   );
 };
 

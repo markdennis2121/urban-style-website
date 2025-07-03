@@ -10,9 +10,8 @@ import { useAdminMode } from '@/contexts/AdminModeContext';
 import OverviewTab from '@/components/admin/OverviewTab';
 import SuperAdminProductManagement from '@/components/superadmin/SuperAdminProductManagement';
 import UserManagement from '@/components/admin/UserManagement';
-import WishlistManagement from '@/components/admin/WishlistManagement';
-import MessageManagement from '@/components/admin/MessageManagement';
 import WishlistAnalytics from '@/components/admin/WishlistAnalytics';
+import MessageManagement from '@/components/admin/MessageManagement';
 import CartManagement from '@/components/superadmin/CartManagement';
 import OnlineUsers from '@/components/admin/OnlineUsers';
 
@@ -30,24 +29,16 @@ const SuperAdminDashboard = () => {
     loadWishlistsData,
   } = useRealtimeAdminData();
 
-  // Simple delete functions for Super Admin
-  const deleteProduct = async (id: string) => {
-    // This will trigger the real-time update automatically
+  // Simplified handlers for Super Admin
+  const handleProductDeleted = async (id: string) => {
     console.log('Product deletion will trigger real-time update');
   };
 
-  const deleteWishlistItem = async (wishlistId: string) => {
-    // This will trigger the real-time update automatically
-    console.log('Wishlist deletion will trigger real-time update');
-  };
-
-  const updateUser = async (userId: string, updates: any) => {
-    // This will trigger the real-time update automatically
+  const handleUserUpdate = async (userId: string, updates: any) => {
     console.log('User update will trigger real-time update');
   };
 
-  const deleteUser = async (userId: string) => {
-    // This will trigger the real-time update automatically
+  const handleUserDelete = async (userId: string) => {
     console.log('User deletion will trigger real-time update');
   };
 
@@ -89,7 +80,7 @@ const SuperAdminDashboard = () => {
                   </div>
                   <p className="text-xl text-amber-100">
                     {isAdminMode 
-                      ? "Managing products, users, and system content with elevated privileges and real-time updates"
+                      ? "Managing products, users, and system content with elevated privileges, real-time updates, and collapsible data views"
                       : "Currently in Customer Mode - Switch to Admin Mode to access full dashboard features"
                     }
                   </p>
@@ -137,7 +128,7 @@ const SuperAdminDashboard = () => {
                     User Carts
                   </TabsTrigger>
                   <TabsTrigger value="wishlists" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 rounded-lg px-4 py-3 font-medium">
-                    <Heart className="w-4 h-4 mr-2" />
+                    <Heart className="w-4 w-4 mr-2" />
                     User Wishlists
                   </TabsTrigger>
                   <TabsTrigger value="messages" className="data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 rounded-lg px-4 py-3 font-medium">
@@ -167,7 +158,7 @@ const SuperAdminDashboard = () => {
                   <SuperAdminProductManagement 
                     products={products}
                     loading={loading}
-                    onProductDeleted={deleteProduct}
+                    onProductDeleted={handleProductDeleted}
                     onProductCreated={loadProducts}
                     onProductUpdated={loadProducts}
                   />
@@ -176,8 +167,8 @@ const SuperAdminDashboard = () => {
                 <TabsContent value="users">
                   <UserManagement 
                     users={users} 
-                    onUserUpdate={updateUser}
-                    onUserDelete={deleteUser}
+                    onUserUpdate={handleUserUpdate}
+                    onUserDelete={handleUserDelete}
                   />
                 </TabsContent>
 
