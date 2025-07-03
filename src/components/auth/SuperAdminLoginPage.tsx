@@ -63,20 +63,20 @@ const SuperAdminLoginPage = () => {
 
         if (profileError) {
           console.error('Profile fetch error:', profileError);
-          // Try alternative query without RLS restrictions
+          // Try alternative query by email
           const { data: altProfile, error: altError } = await supabase
             .from('profiles')
             .select('role, email, id')
             .eq('email', email)
             .single();
           
-          console.log('Alternative profile query result:', altProfile, altError);
+          console.log('Alternative super admin profile query result:', altProfile, altError);
           
           if (altError) {
             throw new Error('Could not verify admin status - profile not found');
           }
           
-          // Use alternative profile if main query failed (using standardized role name)
+          // Use alternative profile if main query failed
           if (altProfile && altProfile.role === 'superadmin') {
             console.log('Super admin login successful via alternative query, redirecting to dashboard');
             navigate('/superadmin/dashboard');
@@ -86,7 +86,7 @@ const SuperAdminLoginPage = () => {
           }
         }
 
-        // Check for superadmin role (using standardized role name)
+        // Check for superadmin role
         if (profile?.role === 'superadmin') {
           console.log('Super admin login successful, redirecting to dashboard');
           navigate('/superadmin/dashboard');
