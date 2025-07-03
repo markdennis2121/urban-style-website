@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase/client';
@@ -118,8 +119,8 @@ const UserLoginPage = () => {
 
       console.log('Login successful, user role:', profile.role);
 
-      // Check if admin or super_admin is trying to login through user login
-      if (profile.role === 'admin' || profile.role === 'super_admin') {
+      // Check if admin or superadmin is trying to login through user login
+      if (profile.role === 'admin' || profile.role === 'superadmin') {
         await supabase.auth.signOut();
         setError('Please use the appropriate login page for your account type.');
         setLoading(false);
