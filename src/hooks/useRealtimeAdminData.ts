@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { User, Product, Message, WishlistItem, Review } from '@/hooks/useAdminData';
 
 export const useRealtimeAdminData = () => {
@@ -14,9 +15,16 @@ export const useRealtimeAdminData = () => {
   const [error, setError] = useState<string | null>(null);
   
   const { toast } = useToast();
+  const { profile, isAdmin } = useAuth();
 
   const loadUsers = useCallback(async () => {
+    if (!isAdmin) {
+      console.log('Not admin, skipping users load');
+      return;
+    }
+    
     try {
+      console.log('Loading users as admin...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -27,20 +35,23 @@ export const useRealtimeAdminData = () => {
         return;
       }
       
+      console.log('Users loaded successfully:', data?.length);
       setUsers(data || []);
     } catch (err) {
       console.error('Error loading users:', err instanceof Error ? err.message : 'Unknown error');
     }
-  }, []);
+  }, [isAdmin]);
 
   const loadProducts = useCallback(async () => {
     try {
+      console.log('Loading products...');
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('Products loaded successfully:', data?.length);
       setProducts(data || []);
     } catch (err) {
       console.error('Error loading products:', err instanceof Error ? err.message : 'Unknown error');
@@ -49,6 +60,7 @@ export const useRealtimeAdminData = () => {
 
   const loadMessages = useCallback(async () => {
     try {
+      console.log('Loading messages...');
       const { data, error } = await supabase
         .from('contact_messages')
         .select('*')
@@ -59,6 +71,7 @@ export const useRealtimeAdminData = () => {
         setMessages([]);
         return;
       }
+      console.log('Messages loaded successfully:', data?.length);
       setMessages(data || []);
     } catch (err) {
       console.error('Error loading messages:', err instanceof Error ? err.message : 'Unknown error');
@@ -67,24 +80,34 @@ export const useRealtimeAdminData = () => {
   }, []);
 
   const loadWishlistsData = useCallback(async () => {
+    if (!isAdmin) {
+      console.log('Not admin, skipping wishlists load');
+      return;
+    }
+    
     try {
+      console.log('Loading wishlists as admin...');
       const { data: wishlistsData, error } = await supabase
         .from('wishlists')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.log('Wishlists table not accessible, using empty array');
+        console.log('Wishlists table not accessible:', error.message);
         setWishlists([]);
         return;
       }
 
       if (!wishlistsData || wishlistsData.length === 0) {
+        console.log('No wishlist data found');
         setWishlists([]);
         return;
       }
 
+      console.log('Raw wishlist data:', wishlistsData.length, 'items');
+
       const userIds = [...new Set(wishlistsData.map(w => w.user_id))];
+      console.log('Fetching profiles for users:', userIds);
 
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -109,16 +132,18 @@ export const useRealtimeAdminData = () => {
         };
       });
 
+      console.log('Wishlists loaded and enriched successfully:', enrichedWishlists.length);
       setWishlists(enrichedWishlists);
 
     } catch (err) {
       console.error('Error in loadWishlists:', err instanceof Error ? err.message : 'Unknown error');
       setWishlists([]);
     }
-  }, []);
+  }, [isAdmin]);
 
   const loadReviews = useCallback(async () => {
     try {
+      console.log('Loading reviews...');
       const { data, error } = await supabase
         .from('reviews')
         .select(`
@@ -132,6 +157,7 @@ export const useRealtimeAdminData = () => {
         setReviews([]);
         return;
       }
+      console.log('Reviews loaded successfully:', data?.length);
       setReviews(data || []);
     } catch (err) {
       console.error('Error loading reviews:', err instanceof Error ? err.message : 'Unknown error');
@@ -140,8 +166,16 @@ export const useRealtimeAdminData = () => {
   }, []);
 
   const loadAllData = useCallback(async () => {
+    if (!profile) {
+      console.log('No profile available, skipping data load');
+      return;
+    }
+
     try {
       setLoading(true);
+      setError(null);
+      console.log('Loading all dashboard data for profile:', profile.email, 'role:', profile.role);
+      
       await Promise.all([
         loadUsers(),
         loadProducts(),
@@ -149,16 +183,24 @@ export const useRealtimeAdminData = () => {
         loadWishlistsData(),
         loadReviews()
       ]);
+      
+      console.log('All dashboard data loaded successfully');
     } catch (err) {
       console.error('Error loading dashboard data:', err instanceof Error ? err.message : 'Unknown error');
       setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
-  }, [loadUsers, loadProducts, loadMessages, loadWishlistsData, loadReviews]);
+  }, [profile, loadUsers, loadProducts, loadMessages, loadWishlistsData, loadReviews]);
 
   // Set up real-time subscriptions
   useEffect(() => {
+    if (!profile) {
+      console.log('No profile, skipping data load and subscriptions');
+      return;
+    }
+
+    console.log('Setting up real-time subscriptions and loading data for:', profile.email);
     loadAllData();
 
     // Subscribe to products changes
@@ -170,7 +212,6 @@ export const useRealtimeAdminData = () => {
           console.log('Products real-time update:', payload);
           loadProducts();
           
-          // Show toast notification for real-time updates
           if (payload.eventType === 'INSERT') {
             toast({
               title: "New Product Added",
@@ -191,24 +232,27 @@ export const useRealtimeAdminData = () => {
       )
       .subscribe();
 
-    // Subscribe to profiles/users changes
-    const usersSubscription = supabase
-      .channel('profiles-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'profiles' },
-        (payload) => {
-          console.log('Users real-time update:', payload);
-          loadUsers();
-          
-          if (payload.eventType === 'INSERT') {
-            toast({
-              title: "New User Registered",
-              description: "A new user has joined the platform.",
-            });
+    // Subscribe to profiles/users changes (admin only)
+    let usersSubscription: any = null;
+    if (isAdmin) {
+      usersSubscription = supabase
+        .channel('profiles-changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          (payload) => {
+            console.log('Users real-time update:', payload);
+            loadUsers();
+            
+            if (payload.eventType === 'INSERT') {
+              toast({
+                title: "New User Registered",
+                description: "A new user has joined the platform.",
+              });
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    }
 
     // Subscribe to contact messages changes
     const messagesSubscription = supabase
@@ -229,17 +273,20 @@ export const useRealtimeAdminData = () => {
       )
       .subscribe();
 
-    // Subscribe to wishlist changes
-    const wishlistsSubscription = supabase
-      .channel('wishlists-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'wishlists' },
-        (payload) => {
-          console.log('Wishlists real-time update:', payload);
-          loadWishlistsData();
-        }
-      )
-      .subscribe();
+    // Subscribe to wishlist changes (admin only)
+    let wishlistsSubscription: any = null;
+    if (isAdmin) {
+      wishlistsSubscription = supabase
+        .channel('wishlists-changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'wishlists' },
+          (payload) => {
+            console.log('Wishlists real-time update:', payload);
+            loadWishlistsData();
+          }
+        )
+        .subscribe();
+    }
 
     // Subscribe to reviews changes
     const reviewsSubscription = supabase
@@ -260,28 +307,15 @@ export const useRealtimeAdminData = () => {
       )
       .subscribe();
 
-    // Subscribe to user_carts changes (for cart management)
-    const cartsSubscription = supabase
-      .channel('carts-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'user_carts' },
-        (payload) => {
-          console.log('Carts real-time update:', payload);
-          // This will be handled by CartManagement component separately
-        }
-      )
-      .subscribe();
-
     // Cleanup subscriptions on unmount
     return () => {
       supabase.removeChannel(productsSubscription);
-      supabase.removeChannel(usersSubscription);
+      if (usersSubscription) supabase.removeChannel(usersSubscription);
       supabase.removeChannel(messagesSubscription);
-      supabase.removeChannel(wishlistsSubscription);
+      if (wishlistsSubscription) supabase.removeChannel(wishlistsSubscription);
       supabase.removeChannel(reviewsSubscription);
-      supabase.removeChannel(cartsSubscription);
     };
-  }, [loadAllData, loadProducts, loadUsers, loadMessages, loadWishlistsData, loadReviews, toast]);
+  }, [profile, isAdmin, loadAllData, loadProducts, loadUsers, loadMessages, loadWishlistsData, loadReviews, toast]);
 
   return {
     users,

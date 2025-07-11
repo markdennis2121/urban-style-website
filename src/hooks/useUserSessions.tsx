@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from './useAuth';
@@ -20,7 +21,7 @@ export const useUserSessions = () => {
   const [activeSessions, setActiveSessions] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { profile, isAuthenticated } = useAuth();
+  const { profile, isAuthenticated, isAdmin } = useAuth();
 
   // Generate session ID
   const getSessionId = useCallback(() => {
@@ -32,7 +33,7 @@ export const useUserSessions = () => {
     return sessionId;
   }, []);
 
-  // Update session - FIXED: works for ALL authenticated users regardless of role
+  // Update session - works for ALL authenticated users
   const updateSession = useCallback(async () => {
     if (!isAuthenticated || !profile) {
       console.log('Not authenticated or no profile, skipping session update');
@@ -44,7 +45,6 @@ export const useUserSessions = () => {
     try {
       console.log('Updating session for user:', profile.email, 'role:', profile.role, 'user_id:', profile.id);
       
-      // Use upsert to handle both insert and update - works for ALL user roles
       const { data, error } = await supabase
         .from('user_sessions')
         .upsert({
@@ -58,13 +58,11 @@ export const useUserSessions = () => {
 
       if (error) {
         console.error('Session update error for user', profile.email, ':', error);
-        // Don't throw here, just log the error to avoid breaking the UI
       } else {
-        console.log('Session updated successfully for:', profile.email, 'Data:', data);
+        console.log('Session updated successfully for:', profile.email);
       }
     } catch (error) {
       console.error('Error in updateSession for user', profile.email, ':', error);
-      // Don't throw here, just log the error
     }
   }, [isAuthenticated, profile, getSessionId]);
 
@@ -92,11 +90,10 @@ export const useUserSessions = () => {
     }
   }, [profile, getSessionId]);
 
-  // Load active sessions (admin only) - BUT SHOW ALL USERS' SESSIONS
+  // Load active sessions (admin only) - SHOW ALL USERS' SESSIONS
   const loadActiveSessions = useCallback(async () => {
-    const userRole = profile?.role?.toLowerCase();
-    if (!profile || (userRole !== 'admin' && userRole !== 'super_admin')) {
-      console.log('Not an admin, skipping session load. Profile:', profile, 'Detected role:', userRole);
+    if (!profile || !isAdmin) {
+      console.log('Not an admin, skipping session load. Profile:', profile, 'Is admin:', isAdmin);
       setActiveSessions([]);
       setLoading(false);
       return;
@@ -106,12 +103,11 @@ export const useUserSessions = () => {
       setLoading(true);
       setError(null);
       
-      // Get sessions active in the last hour (more recent)
+      // Get sessions active in the last hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       
       console.log('Admin detected. Loading ALL user sessions since:', oneHourAgo);
       
-      // FIXED: Remove role filtering - show ALL users' sessions, not just admin sessions
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('user_sessions')
         .select(`
@@ -158,9 +154,9 @@ export const useUserSessions = () => {
     } finally {
       setLoading(false);
     }
-  }, [profile]);
+  }, [profile, isAdmin]);
 
-  // Set up session tracking - ENHANCED: Better logging and error handling
+  // Set up session tracking
   useEffect(() => {
     if (isAuthenticated && profile) {
       console.log('Starting session tracking for user:', profile.email, 'role:', profile.role);

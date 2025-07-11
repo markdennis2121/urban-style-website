@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getCurrentProfile, Profile } from '@/lib/supabase/client';
 import { supabase } from '@/lib/supabase/client';
@@ -32,7 +33,7 @@ export const useAuth = () => {
         return;
       }
 
-      // Direct query to profiles table to get the most accurate role data
+      // Direct query to profiles table with proper error handling
       console.log('Fetching profile directly from database for user:', targetUserId);
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -102,123 +103,89 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
     mountedRef.current = true;
 
-    const initializeAuth = async () => {
-      if (initRef.current) return;
-      
-      initRef.current = true;
-      console.log('Initializing auth...');
-
+    const initAuth = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('Initializing auth...');
         
-        if (sessionError) {
-          console.error('Session error:', sessionError);
+        // Set up auth state listener first
+        subscriptionRef.current = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('Auth state changed:', event, session?.user?.email);
+            
+            if (session?.user) {
+              // Use setTimeout to avoid potential recursion
+              setTimeout(() => {
+                updateProfile(session.user.id);
+              }, 0);
+            } else {
+              if (mountedRef.current) {
+                setProfile(null);
+                setLoading(false);
+                setInitialized(true);
+              }
+            }
+          }
+        );
+
+        // Then check for existing session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
           if (mountedRef.current) {
-            setProfile(null);
             setLoading(false);
             setInitialized(true);
-            if (!sessionError.message.includes('refresh')) {
-              setError('Authentication service unavailable');
-            }
           }
           return;
         }
 
         if (session?.user) {
-          console.log('Found existing session for user:', session.user.email);
           await updateProfile(session.user.id);
         } else {
-          console.log('No existing session');
           if (mountedRef.current) {
             setProfile(null);
             setLoading(false);
-            setError(null);
           }
         }
-
+        
         if (mountedRef.current) {
           setInitialized(true);
         }
-
-        if (!subscriptionRef.current && mountedRef.current) {
-          console.log('Setting up auth state listener');
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-            console.log('Auth state changed:', event, newSession?.user?.email);
-            
-            if (!mountedRef.current) return;
-
-            try {
-              if (event === 'SIGNED_IN' && newSession?.user) {
-                console.log('User signed in:', newSession.user.email);
-                setLoading(true);
-                setError(null);
-                await updateProfile(newSession.user.id);
-              } else if (event === 'SIGNED_OUT') {
-                console.log('User signed out');
-                if (mountedRef.current) {
-                  setProfile(null);
-                  setLoading(false);
-                  setError(null);
-                }
-              } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
-                console.log('Token refreshed for user:', newSession.user.email);
-                await updateProfile(newSession.user.id);
-              }
-            } catch (authError) {
-              console.error('Auth state change error:', authError);
-            }
-          });
-
-          subscriptionRef.current = subscription;
-        }
-          
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Auth initialization error:', error);
         if (mountedRef.current) {
           setProfile(null);
           setLoading(false);
           setInitialized(true);
-          if (error instanceof Error && error.message.includes('network')) {
-            setError('Unable to connect to authentication service');
-          }
         }
       }
     };
 
-    initializeAuth();
+    initAuth();
 
     return () => {
-      console.log('Auth hook cleanup');
       mountedRef.current = false;
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
-        subscriptionRef.current = null;
       }
     };
   }, [updateProfile]);
 
-  // Enhanced role checking with standardized role names
-  const isSuperAdmin = profile?.role === 'superadmin';
+  const isAuthenticated = !!profile;
   const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin';
-
-  console.log('Current auth state:', {
-    profile: profile,
-    role: profile?.role,
-    isSuperAdmin,
-    isAdmin,
-    loading,
-    initialized
-  });
+  const isSuperAdmin = profile?.role === 'superadmin';
 
   return {
     profile,
     loading,
     initialized,
     error,
-    isAuthenticated: !!profile,
-    isSuperAdmin,
+    isAuthenticated,
     isAdmin,
+    isSuperAdmin,
+    updateProfile,
   };
 };
