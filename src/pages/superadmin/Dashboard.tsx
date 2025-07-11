@@ -7,13 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Crown, ShoppingCart, Wifi } from 'lucide-react';
 import { useRealtimeAdminData } from '@/hooks/useRealtimeAdminData';
 import { useAdminMode } from '@/contexts/AdminModeContext';
-import OverviewTab from '@/components/admin/OverviewTab';
+import { 
+  LazyOverviewTab,
+  LazyUserManagement, 
+  LazyMessageManagement,
+  LazyOnlineUsers
+} from '@/components/admin/LazyDashboardComponents';
 import SuperAdminProductManagement from '@/components/superadmin/SuperAdminProductManagement';
-import UserManagement from '@/components/admin/UserManagement';
 import WishlistAnalytics from '@/components/admin/WishlistAnalytics';
-import MessageManagement from '@/components/admin/MessageManagement';
 import CartManagement from '@/components/superadmin/CartManagement';
-import OnlineUsers from '@/components/admin/OnlineUsers';
 
 const SuperAdminDashboard = () => {
   const { isAdminMode } = useAdminMode();
@@ -140,7 +142,7 @@ const SuperAdminDashboard = () => {
             </TabsList>
 
             <TabsContent value="overview">
-              <OverviewTab 
+              <LazyOverviewTab 
                 usersCount={users.length}
                 productsCount={products.length}
                 messagesCount={messages.length}
@@ -151,7 +153,7 @@ const SuperAdminDashboard = () => {
             {isAdminMode && (
               <>
                 <TabsContent value="online">
-                  <OnlineUsers />
+                  <LazyOnlineUsers />
                 </TabsContent>
 
                 <TabsContent value="products">
@@ -165,11 +167,7 @@ const SuperAdminDashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="users">
-                  <UserManagement 
-                    users={users} 
-                    onUserUpdate={handleUserUpdate}
-                    onUserDelete={handleUserDelete}
-                  />
+                  <LazyUserManagement />
                 </TabsContent>
 
                 <TabsContent value="carts">
@@ -184,7 +182,7 @@ const SuperAdminDashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="messages">
-                  <MessageManagement messages={messages} />
+                  <LazyMessageManagement messages={messages} />
                 </TabsContent>
               </>
             )}

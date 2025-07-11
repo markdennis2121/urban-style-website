@@ -502,6 +502,10 @@ export type Database = {
           | { user_id: string }
         Returns: string
       }
+      check_user_role_v2: {
+        Args: { required_role: string }
+        Returns: boolean
+      }
       cleanup_old_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined

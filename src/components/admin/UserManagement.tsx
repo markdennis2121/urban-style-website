@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import CollapsibleTable from '@/components/ui/collapsible-table';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { normalizeRole, isAdmin, isSuperAdmin } from '@/utils/roleUtils';
 
 interface UserManagementProps {
   users?: UserType[];
@@ -35,7 +36,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; user: UserType | null }>({ open: false, user: null });
   const { profile } = useAuth();
   const { toast } = useToast();
-  const isSuperAdmin = profile?.role === 'superadmin';
+  const isSuperAdminUser = isSuperAdmin(profile?.role as any);
 
   useEffect(() => {
     if (propUsers) {
@@ -281,16 +282,16 @@ const UserManagement: React.FC<UserManagementProps> = ({
                   <Badge 
                     variant="outline"
                     className={
-                      user.role === 'superadmin' 
+                      normalizeRole(user.role as any) === 'superadmin' 
                         ? 'border-red-200 text-red-700 bg-red-50'
-                        : user.role === 'admin'
+                        : normalizeRole(user.role as any) === 'admin'
                         ? 'border-blue-200 text-blue-700 bg-blue-50'
                         : 'border-gray-200 text-gray-700'
                     }
                   >
-                    {user.role || 'user'}
+                    {normalizeRole(user.role as any)}
                   </Badge>
-                  {isSuperAdmin && (
+                  {isSuperAdminUser && (
                     <>
                       <Button
                         size="sm"

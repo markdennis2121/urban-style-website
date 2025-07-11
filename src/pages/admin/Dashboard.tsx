@@ -8,12 +8,14 @@ import { Activity, BarChart3, Package, Users, Heart, MessageSquare, Wifi } from 
 
 // Import our components and real-time hook
 import { useRealtimeAdminData } from '@/hooks/useRealtimeAdminData';
-import OverviewTab from '@/components/admin/OverviewTab';
-import ProductManagement from '@/components/admin/ProductManagement';
-import UserManagement from '@/components/admin/UserManagement';
-import MessageManagement from '@/components/admin/MessageManagement';
+import { 
+  LazyOverviewTab,
+  LazyProductManagement,
+  LazyUserManagement, 
+  LazyMessageManagement,
+  LazyOnlineUsers
+} from '@/components/admin/LazyDashboardComponents';
 import WishlistAnalytics from '@/components/admin/WishlistAnalytics';
-import OnlineUsers from '@/components/admin/OnlineUsers';
 
 const AdminDashboard = () => {
   const {
@@ -107,7 +109,7 @@ const AdminDashboard = () => {
             </TabsList>
 
             <TabsContent value="overview">
-              <OverviewTab 
+              <LazyOverviewTab 
                 usersCount={users.length}
                 productsCount={products.length}
                 messagesCount={messages.length}
@@ -116,11 +118,11 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="online">
-              <OnlineUsers />
+              <LazyOnlineUsers />
             </TabsContent>
 
             <TabsContent value="products">
-              <ProductManagement 
+              <LazyProductManagement 
                 products={products}
                 loading={loading}
                 onProductCreated={loadProducts}
@@ -128,7 +130,7 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="users">
-              <UserManagement users={users} />
+              <LazyUserManagement />
             </TabsContent>
 
             <TabsContent value="wishlists">
@@ -139,7 +141,7 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="messages">
-              <MessageManagement messages={messages} />
+              <LazyMessageManagement messages={messages} />
             </TabsContent>
           </Tabs>
         </div>
