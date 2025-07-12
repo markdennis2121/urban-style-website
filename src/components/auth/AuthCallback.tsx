@@ -90,7 +90,7 @@ const AuthCallback = () => {
 
         // Redirect based on role
         console.log('Redirecting user with role:', profile.role);
-        if (profile.role === 'super_admin') {
+        if (profile.role === 'superadmin') {
           navigate('/superadmin/login', {
             state: {
               message: 'Email confirmed! Please log in to access your Super Admin dashboard.'
