@@ -526,6 +526,14 @@ export type Database = {
         Args: { product_id: string; quantity: number; change_type?: string }
         Returns: undefined
       }
+      is_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_super_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           p_user_id: string
