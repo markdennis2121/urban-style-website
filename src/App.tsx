@@ -38,13 +38,28 @@ const PasswordResetPage = lazy(() => import('./components/auth/PasswordResetPage
 
 import './App.css';
 
-const queryClient = new QueryClient();
+// Optimized React Query configuration for better performance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: 'always',
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
-const FullPageLoader = () => (
+// Optimized loading component with hardware acceleration
+const FullPageLoader = React.memo(() => (
   <div className="flex justify-center items-center min-h-screen bg-background">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary transform-gpu"></div>
   </div>
-);
+));
 
 function App() {
   return (

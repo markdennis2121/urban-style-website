@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -19,41 +19,40 @@ interface DatabaseProduct {
   brand: string;
 }
 
-const MobileOptimizedProducts = () => {
+const MobileOptimizedProducts = React.memo(() => {
   const [dbProducts, setDbProducts] = useState<DatabaseProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(6);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Debounced resize handler for better performance
   const handleResize = useCallback(() => {
-    const width = window.innerWidth;
-    if (width < 640) {
-      setItemsPerPage(2); // Mobile: 2 items per "page"
-    } else if (width < 1024) {
-      setItemsPerPage(4); // Tablet: 4 items
-    } else {
-      setItemsPerPage(6); // Desktop: 6 items
+    if (resizeTimeoutRef.current) {
+      clearTimeout(resizeTimeoutRef.current);
     }
+    
+    resizeTimeoutRef.current = setTimeout(() => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setItemsPerPage(2); // Mobile: 2 items per "page"
+      } else if (width < 1024) {
+        setItemsPerPage(4); // Tablet: 4 items
+      } else {
+        setItemsPerPage(6); // Desktop: 6 items
+      }
+    }, 100);
   }, []);
 
-  useEffect(() => {
-    loadFeaturedProducts();
-  }, []);
-
-  useEffect(() => {
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [handleResize]);
-
-  const loadFeaturedProducts = async () => {
+  const loadFeaturedProducts = useCallback(async () => {
     try {
       console.log('Loading featured products from database...');
       
+      // Optimize query to only get needed fields
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('id, name, price, image, category, brand, stock, is_featured, description, created_at')
         .eq('is_featured', true)
         .gt('stock', 0)
         .order('created_at', { ascending: false })
@@ -74,8 +73,24 @@ const MobileOptimizedProducts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  useEffect(() => {
+    loadFeaturedProducts();
+  }, [loadFeaturedProducts]);
+
+  useEffect(() => {
+    handleResize();
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
+  }, [handleResize]);
+
+  // Memoize transformed products with proper optimization
   const transformedDbProducts = useMemo(() => 
     dbProducts.map(product => ({
       id: product.id,
@@ -158,13 +173,16 @@ const MobileOptimizedProducts = () => {
           </div>
         ) : transformedDbProducts.length > 0 ? (
           <>
-            {/* Products grid - mobile-first responsive */}
+            {/* Products grid - mobile-first responsive with optimized animations */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
               {displayedProducts.map((product, index) => (
                 <div 
                   key={product.id}
-                  className="animate-fade-in hover:scale-105 transition-all duration-500"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  className="animate-fade-in hover:scale-105 transition-all duration-300 transform-gpu will-change-transform"
+                  style={{ 
+                    animationDelay: `${index * 50}ms`,
+                    animationFillMode: 'both'
+                  }}
                 >
                   <ProductCard product={product} />
                 </div>
@@ -218,6 +236,8 @@ const MobileOptimizedProducts = () => {
       </div>
     </section>
   );
-};
+});
+
+MobileOptimizedProducts.displayName = 'MobileOptimizedProducts';
 
 export default MobileOptimizedProducts;

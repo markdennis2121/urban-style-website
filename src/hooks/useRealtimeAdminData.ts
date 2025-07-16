@@ -25,10 +25,12 @@ export const useRealtimeAdminData = () => {
     
     try {
       console.log('Loading users as admin...');
+      // Optimize query to only get needed fields
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, email, username, full_name, role, created_at, updated_at, avatar_url')
+        .order('created_at', { ascending: false })
+        .limit(100); // Limit to prevent excessive data loading
 
       if (error) {
         console.error('Error loading users:', error.message);
@@ -45,10 +47,12 @@ export const useRealtimeAdminData = () => {
   const loadProducts = useCallback(async () => {
     try {
       console.log('Loading products...');
+      // Optimize query to only get needed fields
       const { data, error } = await supabase
         .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, name, price, image, category, brand, stock, is_featured, description, created_at, updated_at')
+        .order('created_at', { ascending: false })
+        .limit(200); // Limit to prevent excessive data loading
 
       if (error) throw error;
       console.log('Products loaded successfully:', data?.length);
@@ -63,8 +67,9 @@ export const useRealtimeAdminData = () => {
       console.log('Loading messages...');
       const { data, error } = await supabase
         .from('contact_messages')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, name, email, subject, message, created_at')
+        .order('created_at', { ascending: false })
+        .limit(100); // Limit to prevent excessive data loading
 
       if (error) {
         console.log('Messages table not accessible, using empty array');
@@ -89,8 +94,9 @@ export const useRealtimeAdminData = () => {
       console.log('Loading wishlists as admin...');
       const { data: wishlistsData, error } = await supabase
         .from('wishlists')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, user_id, product_id, product_name, product_price, product_image, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200); // Limit to prevent excessive data loading
 
       if (error) {
         console.log('Wishlists table not accessible:', error.message);
@@ -176,13 +182,19 @@ export const useRealtimeAdminData = () => {
       setError(null);
       console.log('Loading all dashboard data for profile:', profile.email, 'role:', profile.role);
       
-      await Promise.all([
-        loadUsers(),
+      // Load data concurrently for better performance
+      const promises = [
         loadProducts(),
         loadMessages(),
-        loadWishlistsData(),
         loadReviews()
-      ]);
+      ];
+      
+      // Only load admin-specific data if user is admin
+      if (isAdmin) {
+        promises.push(loadUsers(), loadWishlistsData());
+      }
+      
+      await Promise.all(promises);
       
       console.log('All dashboard data loaded successfully');
     } catch (err) {
@@ -191,7 +203,7 @@ export const useRealtimeAdminData = () => {
     } finally {
       setLoading(false);
     }
-  }, [profile, loadUsers, loadProducts, loadMessages, loadWishlistsData, loadReviews]);
+  }, [profile, isAdmin, loadUsers, loadProducts, loadMessages, loadWishlistsData, loadReviews]);
 
   // Set up real-time subscriptions
   useEffect(() => {

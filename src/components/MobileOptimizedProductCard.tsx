@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart, ShoppingCart, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface Product {
   id: string;
@@ -39,15 +40,29 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
   const { isAuthenticated } = useAuth();
 
   const isWishlisted = isInWishlist(product.id);
-
-  console.log('ProductCard Debug:', {
-    productId: product.id,
-    isAuthenticated,
-    canUseShoppingFeatures,
-    inStock: product.inStock,
-    sizes: product.sizes,
-    colors: product.colors
-  });
+  
+  // Memoize computed values for performance
+  const computedValues = useMemo(() => {
+    console.log('ProductCard Debug:', {
+      productId: product.id,
+      isAuthenticated,
+      canUseShoppingFeatures,
+      inStock: product.inStock,
+      sizes: product.sizes,
+      colors: product.colors
+    });
+    
+    return {
+      shouldShowCartButton: canUseShoppingFeatures && product.inStock,
+      defaultSize: product.sizes?.[0] || 'One Size',
+      defaultColor: product.colors?.[0] || 'Default',
+      salePrice: product.isSale ? (product.price * 1.2).toFixed(2) : null,
+      starRating: [...Array(5)].map((_, i) => ({
+        key: i,
+        filled: i < Math.floor(product.rating)
+      }))
+    };
+  }, [product, isAuthenticated, canUseShoppingFeatures]);
 
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -77,8 +92,8 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
       price: product.price,
       image: product.image,
       quantity: 1,
-      size: product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'One Size',
-      color: product.colors && product.colors.length > 0 ? product.colors[0] : 'Default',
+      size: computedValues.defaultSize,
+      color: computedValues.defaultColor,
     };
 
     console.log('Adding to cart:', cartItem);
@@ -89,7 +104,7 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
     });
     
     toast.success('Added to cart!');
-  }, [dispatch, isAuthenticated, canUseShoppingFeatures, product]);
+  }, [dispatch, isAuthenticated, canUseShoppingFeatures, product, computedValues]);
 
   const handleWishlistToggle = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -105,11 +120,8 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
     }
   }, [addToWishlist, removeFromWishlist, product, isAuthenticated, isWishlisted]);
 
-  // Show the add to cart button if user is authenticated OR if they're not authenticated (to show login prompt)
-  const shouldShowCartButton = canUseShoppingFeatures && product.inStock;
-
   return (
-    <div className="group relative bg-card rounded-lg sm:rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50 w-full">
+    <div className="group relative bg-card rounded-lg sm:rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50 w-full transform-gpu will-change-transform">
       {/* Product badges - minimal design */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
         {product.isNew && (
@@ -128,7 +140,7 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
       {canUseShoppingFeatures && (
         <button
           onClick={handleWishlistToggle}
-          className={`absolute top-2 right-2 z-10 w-7 h-7 rounded-md transition-all duration-200 flex items-center justify-center border ${
+          className={`absolute top-2 right-2 z-10 w-7 h-7 rounded-md transition-all duration-200 flex items-center justify-center border transform-gpu ${
             isWishlisted
               ? 'bg-red-50 text-red-500 border-red-200'
               : 'bg-white/95 hover:bg-white text-gray-500 hover:text-red-400 border-gray-200/60 hover:border-red-200'
@@ -143,17 +155,18 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
       )}
 
       <Link to={`/product/${product.id}`} className="block">
-        {/* Image container */}
+        {/* Image container - optimized */}
         <div className="relative aspect-square overflow-hidden bg-muted/20">
-          <img
+          <OptimizedImage
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 transform-gpu will-change-transform"
+            fallback="/placeholder.svg"
+            placeholder={true}
           />
           
           {/* Minimal overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transform-gpu">
             <Button size="sm" variant="secondary" className="text-xs px-3 py-1 bg-white/90 backdrop-blur-sm border border-gray-200">
               <Eye className="w-3 h-3 mr-1" />
               View
@@ -174,14 +187,14 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
             {product.name}
           </h3>
 
-          {/* Rating - minimal */}
+          {/* Rating - minimal and optimized */}
           <div className="flex items-center space-x-1">
             <div className="flex">
-              {[...Array(5)].map((_, i) => (
+              {computedValues.starRating.map((star) => (
                 <Star
-                  key={i}
+                  key={star.key}
                   className={`w-3 h-3 ${
-                    i < Math.floor(product.rating)
+                    star.filled
                       ? 'text-yellow-400 fill-current'
                       : 'text-gray-300'
                   }`}
@@ -195,18 +208,18 @@ const MobileOptimizedProductCard = React.memo(({ product }: ProductCardProps) =>
           <div className="flex items-center justify-between pt-1">
             <div className="flex flex-col">
               <span className="text-lg font-bold text-primary">${product.price}</span>
-              {product.isSale && (
+              {product.isSale && computedValues.salePrice && (
                 <span className="text-xs text-red-500 line-through">
-                  ${(product.price * 1.2).toFixed(2)}
+                  ${computedValues.salePrice}
                 </span>
               )}
             </div>
 
-            {shouldShowCartButton && (
+            {computedValues.shouldShowCartButton && (
               <Button
                 size="sm"
                 onClick={handleAddToCart}
-                className="px-2 py-1 text-xs h-7 bg-primary hover:bg-primary/90 rounded-md"
+                className="px-2 py-1 text-xs h-7 bg-primary hover:bg-primary/90 rounded-md transform-gpu"
               >
                 <ShoppingCart className="w-3 h-3 mr-1" />
                 Add to Cart
