@@ -33,7 +33,7 @@ const Shop = () => {
   const itemsPerPage = 12;
 
   useEffect(() => {
-    loadProducts();
+    loadProducts().catch(console.error);
   }, []);
 
   // Initialize search term from URL params only once

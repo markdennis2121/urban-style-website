@@ -16,8 +16,8 @@ const Wishlist = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadWishlist();
-  }, []);
+    loadWishlist().catch(console.error);
+  }, [loadWishlist]);
 
   const handleAddToCart = (item: any) => {
     dispatch({

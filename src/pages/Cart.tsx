@@ -21,7 +21,7 @@ const Cart = () => {
 
   useEffect(() => {
     if (state.items.length > 0) {
-      loadProductStocks();
+      loadProductStocks().catch(console.error);
     } else {
       setLoading(false);
     }

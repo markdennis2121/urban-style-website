@@ -133,7 +133,11 @@ export const useRealtimeCartData = () => {
         .subscribe();
 
       return () => {
-        supabase.removeChannel(cartsSubscription);
+        try {
+          supabase.removeChannel(cartsSubscription);
+        } catch (error) {
+          console.warn('Error removing cart subscription:', error);
+        }
       };
     }
   }, [profile, isAdmin, loadUserCarts, toast]);

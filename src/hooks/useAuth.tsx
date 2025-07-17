@@ -110,7 +110,7 @@ export const useAuth = () => {
         console.log('Initializing auth...');
         
         // Set up auth state listener first
-        subscriptionRef.current = supabase.auth.onAuthStateChange(
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             console.log('Auth state changed:', event, session?.user?.email);
             
@@ -128,6 +128,8 @@ export const useAuth = () => {
             }
           }
         );
+        
+        subscriptionRef.current = subscription;
 
         // Then check for existing session
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -168,7 +170,11 @@ export const useAuth = () => {
     return () => {
       mountedRef.current = false;
       if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
+        try {
+          subscriptionRef.current.unsubscribe();
+        } catch (error) {
+          console.warn('Error unsubscribing from auth:', error);
+        }
       }
     };
   }, [updateProfile]);
