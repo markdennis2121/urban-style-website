@@ -25,21 +25,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     console.log('Initializing cart...');
 
     const initializeCart = async () => {
-      if (isAuthenticated && profile?.id) {
-        // Load from database for authenticated users
-        console.log('Loading cart from database for user:', profile.id);
-        const dbItems = await loadFromDatabase(profile.id);
-        dispatch({ type: 'LOAD_FROM_DATABASE', payload: dbItems });
-      } else {
-        // Load from localStorage for guest users
-        const savedCart = loadFromStorage();
-        if (savedCart) {
-          console.log('Found saved cart in localStorage:', savedCart);
-          dispatch({ type: 'LOAD_FROM_STORAGE', payload: savedCart });
+      try {
+        if (isAuthenticated && profile?.id) {
+          // Load from database for authenticated users
+          console.log('Loading cart from database for user:', profile.id);
+          const dbItems = await loadFromDatabase(profile.id);
+          dispatch({ type: 'LOAD_FROM_DATABASE', payload: dbItems });
         } else {
-          console.log('No saved cart found, setting as loaded');
-          dispatch({ type: 'SET_LOADED' });
+          // Load from localStorage for guest users
+          const savedCart = loadFromStorage();
+          if (savedCart) {
+            console.log('Found saved cart in localStorage:', savedCart);
+            dispatch({ type: 'LOAD_FROM_STORAGE', payload: savedCart });
+          } else {
+            console.log('No saved cart found, setting as loaded');
+            dispatch({ type: 'SET_LOADED' });
+          }
         }
+      } catch (error: any) {
+        console.error('Error initializing cart:', error);
+        dispatch({ type: 'SET_LOADED' });
       }
     };
 
@@ -60,9 +65,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Debounce database sync
-    syncTimeoutRef.current = setTimeout(() => {
-      console.log('Syncing cart to database for user:', profile.id);
-      saveToDatabase(profile.id, state.items);
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        console.log('Syncing cart to database for user:', profile.id);
+        await saveToDatabase(profile.id, state.items);
+      } catch (error: any) {
+        console.error('Error syncing cart to database:', error);
+      }
     }, 1000);
 
     return () => {

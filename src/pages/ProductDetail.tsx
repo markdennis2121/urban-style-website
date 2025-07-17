@@ -49,7 +49,11 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (id) {
-      loadProduct();
+      loadProduct().catch((error) => {
+        console.error('Failed to load product:', error);
+        setError('Failed to load product');
+        setLoading(false);
+      });
     }
   }, [id]);
 
@@ -72,9 +76,9 @@ const ProductDetail = () => {
 
       console.log('Loaded product:', data);
       setProduct(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading product:', err);
-      setError('Failed to load product');
+      setError(err?.message || 'Failed to load product');
     } finally {
       setLoading(false);
     }

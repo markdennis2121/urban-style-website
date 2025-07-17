@@ -89,9 +89,11 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       dispatch({ type: 'SET_ITEMS', payload: data || [] });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading wishlist:', err);
       dispatch({ type: 'SET_ITEMS', payload: [] });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
@@ -112,7 +114,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       console.log('All wishlists loaded:', data);
       return data || [];
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error in loadAllWishlists:', err);
       return [];
     }
@@ -175,11 +177,11 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         title: "Added to wishlist!",
         description: `${product.name} has been added to your wishlist.`,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error adding to wishlist:', err);
       toast({
         title: "Error",
-        description: "Failed to add item to wishlist.",
+        description: err?.message || "Failed to add item to wishlist.",
         variant: "destructive",
       });
     }
@@ -213,11 +215,11 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         title: "Removed from wishlist",
         description: "Item has been removed from your wishlist.",
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error removing from wishlist:', err);
       toast({
         title: "Error",
-        description: "Failed to remove item from wishlist.",
+        description: err?.message || "Failed to remove item from wishlist.",
         variant: "destructive",
       });
     }
@@ -228,18 +230,24 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    loadWishlist();
+    loadWishlist().catch(console.error);
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        loadWishlist();
+        loadWishlist().catch(console.error);
       } else if (event === 'SIGNED_OUT') {
         dispatch({ type: 'SET_ITEMS', payload: [] });
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      try {
+        subscription.unsubscribe();
+      } catch (error) {
+        console.warn('Error unsubscribing from wishlist auth:', error);
+      }
+    };
   }, []);
 
   return (
