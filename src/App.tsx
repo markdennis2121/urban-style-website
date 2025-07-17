@@ -10,6 +10,7 @@ import { AdminModeProvider } from './contexts/AdminModeContext';
 import ScrollToTop from './components/ScrollToTop';
 import SecurityHeaders from './components/SecurityHeaders';
 import ErrorBoundary from './components/ErrorBoundary';
+import SafeRoute from './components/SafeRoute';
 
 // Pages - Lazy Loaded
 const Index = lazy(() => import('./pages/Index'));
@@ -73,34 +74,32 @@ function App() {
                   <SecurityHeaders />
                   <ScrollToTop />
                   <div className="App">
-                    <Suspense fallback={<FullPageLoader />}>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/shop" element={<Shop />} />
-                        <Route path="/product/:id" element={<ProductDetail />} />
-                        <Route path="/cart" element={<Cart />} />
-                        <Route path="/checkout" element={<Checkout />} />
-                        <Route path="/checkout/success" element={<CheckoutSuccess />} />
-                        <Route path="/wishlist" element={<Wishlist />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/contact" element={<Contact />} />
-                        <Route path="/blog" element={<Blog />} />
-                        
-                        {/* Auth Routes */}
-                        <Route path="/login" element={<UserLoginPage />} />
-                        <Route path="/admin/login" element={<AdminLoginPage />} />
-                        <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
-                        <Route path="/signup" element={<SignUpPage />} />
-                        <Route path="/auth/callback" element={<AuthCallback />} />
-                        <Route path="/reset-password" element={<PasswordResetPage />} />
-                        
-                        {/* Admin Routes */}
-                        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                        <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
-                        
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </Suspense>
+                    <Routes>
+                      <Route path="/" element={<SafeRoute><Index /></SafeRoute>} />
+                      <Route path="/shop" element={<SafeRoute><Shop /></SafeRoute>} />
+                      <Route path="/product/:id" element={<SafeRoute><ProductDetail /></SafeRoute>} />
+                      <Route path="/cart" element={<SafeRoute><Cart /></SafeRoute>} />
+                      <Route path="/checkout" element={<SafeRoute><Checkout /></SafeRoute>} />
+                      <Route path="/checkout/success" element={<SafeRoute><CheckoutSuccess /></SafeRoute>} />
+                      <Route path="/wishlist" element={<SafeRoute><Wishlist /></SafeRoute>} />
+                      <Route path="/about" element={<SafeRoute><About /></SafeRoute>} />
+                      <Route path="/contact" element={<SafeRoute><Contact /></SafeRoute>} />
+                      <Route path="/blog" element={<SafeRoute><Blog /></SafeRoute>} />
+                      
+                      {/* Auth Routes */}
+                      <Route path="/login" element={<SafeRoute><UserLoginPage /></SafeRoute>} />
+                      <Route path="/admin/login" element={<SafeRoute><AdminLoginPage /></SafeRoute>} />
+                      <Route path="/superadmin/login" element={<SafeRoute><SuperAdminLoginPage /></SafeRoute>} />
+                      <Route path="/signup" element={<SafeRoute><SignUpPage /></SafeRoute>} />
+                      <Route path="/auth/callback" element={<SafeRoute><AuthCallback /></SafeRoute>} />
+                      <Route path="/reset-password" element={<SafeRoute><PasswordResetPage /></SafeRoute>} />
+                      
+                      {/* Admin Routes */}
+                      <Route path="/admin/dashboard" element={<SafeRoute><AdminDashboard /></SafeRoute>} />
+                      <Route path="/superadmin/dashboard" element={<SafeRoute><SuperAdminDashboard /></SafeRoute>} />
+                      
+                      <Route path="*" element={<SafeRoute><NotFound /></SafeRoute>} />
+                    </Routes>
                   </div>
                   <Toaster />
                 </Router>

@@ -120,8 +120,9 @@ const Shop = () => {
       console.log('Transformed products:', transformedProducts);
       console.log('Categories found in products:', [...new Set(transformedProducts.map(p => p.category))]);
       setDbProducts(transformedProducts);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading products:', err);
+      setDbProducts([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

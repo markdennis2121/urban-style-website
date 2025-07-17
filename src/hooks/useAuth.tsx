@@ -90,14 +90,12 @@ export const useAuth = () => {
         setProfile(profileData);
         setLoading(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in updateProfile:', error);
       if (mountedRef.current) {
         setProfile(null);
         setLoading(false);
-        if (error instanceof Error && error.message.includes('network')) {
-          setError(error.message);
-        }
+        setError(error?.message || 'Authentication error occurred');
       }
     }
   }, []);
@@ -154,12 +152,13 @@ export const useAuth = () => {
         if (mountedRef.current) {
           setInitialized(true);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Auth initialization error:', error);
         if (mountedRef.current) {
           setProfile(null);
           setLoading(false);
           setInitialized(true);
+          setError(error?.message || 'Failed to initialize authentication');
         }
       }
     };

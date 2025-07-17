@@ -96,9 +96,9 @@ export const useRealtimeCartData = () => {
       const carts = Array.from(userCartsMap.values());
       console.log('User carts processed:', carts.length, 'users with carts');
       setUserCarts(carts);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading user carts:', error);
-      setError('Failed to load user carts');
+      setError(error?.message || 'Failed to load user carts');
     } finally {
       setLoading(false);
     }

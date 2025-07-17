@@ -37,8 +37,9 @@ const Cart = () => {
 
       if (error) throw error;
       setProductStocks(data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading product stocks:', err);
+      setProductStocks([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
